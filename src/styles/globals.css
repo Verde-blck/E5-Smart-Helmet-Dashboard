@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Brand colours are stored as space-separated RGB channels, not hex, so that
+ * Tailwind's `rgb(var(--x) / <alpha-value>)` form works. With a plain
+ * `var(--brand-primary): #0f766e` the opacity modifiers (bg-brand-primary/10)
+ * compile to nothing at all — no rule is emitted and the element renders
+ * unstyled. Overwritten at runtime by applyTheme() in AppBootstrap.
+ */
+:root {
+  --brand-primary: 15 118 110;
+  --brand-secondary: 30 41 59;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900;
+}
