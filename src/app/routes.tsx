@@ -4,6 +4,7 @@ import { RequireAuth } from '@/shared/components/RequireAuth'
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute'
 import { LandingRedirect } from './LandingRedirect'
 import { LoginPage } from '@/modules/auth/LoginPage'
+import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
 import { MediaPage } from '@/modules/media/MediaPage'
@@ -47,6 +48,17 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Authenticated but outside the app shell: no sidebar, nothing to
+          navigate to until the password has been changed. */}
+      <Route
+        path="/change-password"
+        element={
+          <RequireAuth>
+            <ChangePasswordPage />
+          </RequireAuth>
+        }
+      />
 
       <Route
         element={

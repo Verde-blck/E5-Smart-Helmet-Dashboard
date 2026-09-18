@@ -2,13 +2,16 @@ import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
 import {
   assignMockRole,
+  createMockUser,
+  resetMockPassword,
+  updateMockUser,
   createMockRole,
   deleteMockRole,
   getMockRoles,
   getMockUsers,
   updateMockRole,
 } from './users.mock'
-import type { ManagedUser, Role } from '../types'
+import type { ManagedUser, NewUserInput, Role } from '../types'
 
 export async function fetchRoles(): Promise<Role[]> {
   if (env.useMocks) return getMockRoles()
@@ -54,4 +57,39 @@ export async function assignRole(userId: string, roleId: string): Promise<Manage
   if (env.useMocks) return assignMockRole(userId, roleId)
   const { data } = await apiClient.patch<ManagedUser>(`/users/${userId}`, { roleId })
   return data
+}
+
+/**
+ * Administrator-created accounts are the only route by which a user exists —
+ * there is no self sign-up. The backend owns two things this call can't: that
+ * the staff ID is unique within the tenant, and that the initial password is
+ * stored hashed and flagged for replacement.
+ */
+export async function createUser(input: NewUserInput): Promise<ManagedUser> {
+  if (env.useMocks) return createMockUser(input)
+  const { data } = await apiClient.post<ManagedUser>('/users', input)
+  return data
+}
+
+export async function updateUser(
+  id: string,
+  patch: Partial<ManagedUser>
+): Promise<ManagedUser> {
+  if (env.useMocks) return updateMockUser(id, patch)
+  const { data } = await apiClient.patch<ManagedUser>(`/users/${id}`, patch)
+  return data
+}
+
+/**
+ * Admin-driven reset — there is no self-service path, by design, since the
+ * deployment can't rely on outbound email. The administrator sets a temporary
+ * password and hands it over; the account is re-flagged so the person must
+ * replace it on next sign-in.
+ */
+export async function resetUserPassword(id: string, temporaryPassword: string): Promise<void> {
+  if (env.useMocks) {
+    resetMockPassword(id)
+    return
+  }
+  await apiClient.post(`/users/${id}/reset-password`, { temporaryPassword })
 }

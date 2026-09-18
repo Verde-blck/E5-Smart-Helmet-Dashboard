@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { useNow } from '@/shared/hooks/useNow'
+import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
 import { fetchDevice, fetchDevices } from '../api/devices.api'
 import { toDeviceView } from '../lib/presence'
@@ -14,14 +15,15 @@ import type { DeviceView } from '../types'
 export function useDevices() {
   const tenantId = useTenantId()
   const now = useNow()
+  const { inScope } = useSiteScope()
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.devices.all(tenantId),
     queryFn: fetchDevices,
   })
 
   const devices = useMemo<DeviceView[]>(
-    () => (data ?? []).map((d) => toDeviceView(d, now)),
-    [data, now]
+    () => (data ?? []).filter((d) => inScope(d.site)).map((d) => toDeviceView(d, now)),
+    [data, now, inScope]
   )
 
   return { devices, now, isLoading, isError, refetch }
@@ -30,6 +32,7 @@ export function useDevices() {
 export function useDevice(id: string) {
   const tenantId = useTenantId()
   const now = useNow()
+  const { inScope } = useSiteScope()
   const { data, isLoading, isError } = useQuery({
     queryKey: qk.devices.detail(tenantId, id),
     queryFn: () => fetchDevice(id),
@@ -41,5 +44,9 @@ export function useDevice(id: string) {
     [data, now]
   )
 
-  return { device, now, isLoading, isError }
+  // Reached by a pasted or bookmarked link to a helmet at another site. The
+  // server should 404 it; this keeps the UI honest if it doesn't.
+  const outOfScope = !!data && !inScope(data.site)
+
+  return { device: outOfScope ? null : device, outOfScope, now, isLoading, isError }
 }

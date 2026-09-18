@@ -5,13 +5,16 @@ import { qk } from '@/shared/lib/query-keys'
 import {
   assignRole,
   createRole,
+  createUser,
   deleteRole,
   fetchRoles,
   fetchUsers,
+  resetUserPassword,
   updateRole,
+  updateUser,
 } from '../api/users.api'
 import type { Permission } from '@/shared/constants/modules'
-import type { Role } from '../types'
+import type { ManagedUser, NewUserInput, Role } from '../types'
 
 export function useRoles() {
   const tenantId = useTenantId()
@@ -56,6 +59,42 @@ export function useCreateRole() {
 export function useDeleteRole() {
   const invalidate = useInvalidateRbac()
   return useMutation({ mutationFn: (id: string) => deleteRole(id), onSuccess: invalidate })
+}
+
+export function useCreateUser() {
+  const invalidate = useInvalidateRbac()
+  return useMutation({
+    mutationFn: (input: NewUserInput) => createUser(input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateUser() {
+  const invalidate = useInvalidateRbac()
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<ManagedUser> }) =>
+      updateUser(id, patch),
+    onSuccess: invalidate,
+  })
+}
+
+export function useResetPassword() {
+  const invalidate = useInvalidateRbac()
+  return useMutation({
+    mutationFn: ({ id, temporaryPassword }: { id: string; temporaryPassword: string }) =>
+      resetUserPassword(id, temporaryPassword),
+    onSuccess: invalidate,
+  })
+}
+
+/**
+ * Who is responsible for a given helmet. This is the payoff of recording
+ * helmet assignment: an SOS from helmet 7 can name a person and a phone
+ * number rather than just a device ID.
+ */
+export function useDeviceAssignees(deviceId: string) {
+  const { users } = useUsers()
+  return users.filter((u) => u.assignedDeviceIds.includes(deviceId))
 }
 
 export function useAssignRole() {

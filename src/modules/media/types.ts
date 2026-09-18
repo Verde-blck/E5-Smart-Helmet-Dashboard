@@ -14,6 +14,8 @@ export interface MediaItem {
   id: string
   deviceId: string
   deviceName: string
+  /** Site the helmet was at when it captured this. */
+  site?: string
   kind: MediaKind
   status: MediaStatus
   /** When the helmet recorded it. */

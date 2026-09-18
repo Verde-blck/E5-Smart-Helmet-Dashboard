@@ -43,6 +43,7 @@ const items: MediaItem[] = Array.from({ length: 26 }, (_, i) => {
     id: `med-${String(i + 1).padStart(3, '0')}`,
     deviceId: device.id,
     deviceName: device.name,
+    site: device.site,
     kind,
     status: i === 1 ? 'uploading' : i === 17 ? 'failed' : 'available',
     capturedAt,

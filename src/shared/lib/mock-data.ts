@@ -15,24 +15,42 @@ export const mockTenant: TenantConfig = {
 
 export const mockAdmin: AuthUser = {
   id: 'user-1',
+  staffId: 'ADM-001',
   name: 'NG_David',
   email: 'david@example.com',
   role: 'Admin',
   permissions: ALL_PERMISSIONS,
+  scope: { allSites: true, sites: [] },
 }
 
 // The brief's own example role: device monitoring only, no user management.
-// Sign in as operator@example.com with mocks on to exercise it — the sidebar
-// drops to two entries and the landing redirect sends them to /devices instead
-// of a dead-end "Not authorized" screen.
+// Sign in as OP-014 with mocks on to exercise it — the sidebar drops to two
+// entries and the landing redirect sends them to /devices instead of a
+// dead-end "Not authorized" screen.
 export const mockOperator: AuthUser = {
   id: 'user-2',
+  staffId: 'OP-014',
   name: 'Site Operator',
   email: 'operator@example.com',
   role: 'Operator',
   permissions: ['devices:read', 'alarms:read'],
+  scope: { allSites: false, sites: ['Site B'] },
 }
 
-export function mockUserFor(email: string): AuthUser {
-  return email.trim().toLowerCase().startsWith('operator') ? mockOperator : mockAdmin
+// Sign in as NEW-001 to exercise the forced-change-on-first-login flow.
+export const mockNewStarter: AuthUser = {
+  id: 'user-5',
+  staffId: 'NEW-001',
+  name: 'Chidi Eze',
+  role: 'Operator',
+  permissions: ['devices:read', 'alarms:read'],
+  mustChangePassword: true,
+  scope: { allSites: false, sites: ['Site B'] },
+}
+
+export function mockUserFor(staffId: string): AuthUser {
+  const id = staffId.trim().toUpperCase()
+  if (id.startsWith('OP')) return mockOperator
+  if (id.startsWith('NEW')) return mockNewStarter
+  return mockAdmin
 }

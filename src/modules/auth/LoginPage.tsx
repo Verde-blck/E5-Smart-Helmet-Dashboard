@@ -5,12 +5,14 @@ import { z } from 'zod'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { mockUserFor } from '@/shared/lib/mock-data'
 import { env } from '@/config/env'
-import { apiClient } from '@/shared/lib/api-client'
+import { login } from './api/auth.api'
 
 const schema = z.object({
-  email: z.string().email(),
+  // Deliberately permissive: staff ID formats are whatever the employer
+  // already uses, and rejecting a real badge number at the login screen is a
+  // support call. The backend decides what's valid.
+  staffId: z.string().trim().min(2, 'Enter your staff ID'),
   password: z.string().min(1, 'Required'),
 })
 type FormValues = z.infer<typeof schema>
@@ -35,27 +37,20 @@ export function LoginPage() {
 
   async function onSubmit(values: FormValues) {
     setFormError(null)
-
-    if (env.useMocks) {
-      setUser(mockUserFor(values.email))
-      navigate(returnTo, { replace: true })
-      return
-    }
-
     try {
-      const { data: user } = await apiClient.post('/auth/login', values)
+      const user = await login({ staffId: values.staffId.trim(), password: values.password })
       setUser(user)
+      // RequireAuth diverts to the change-password screen when the account is
+      // flagged, so there's nothing to branch on here.
       navigate(returnTo, { replace: true })
     } catch (error: unknown) {
-      // Previously this threw into the void: the promise rejected, the button
-      // reset, and the user was told nothing.
       const status =
         typeof error === 'object' && error !== null
           ? (error as { response?: { status?: number } }).response?.status
           : undefined
       setFormError(
         status === 401
-          ? 'Incorrect email or password.'
+          ? 'Incorrect staff ID or password.'
           : 'Could not sign in. Please try again.'
       )
     }
@@ -67,15 +62,22 @@ export function LoginPage() {
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6"
       >
-        <h1 className="mb-4 text-lg font-semibold text-slate-800">Sign in</h1>
+        <h1 className="mb-1 text-lg font-semibold text-slate-800">Sign in</h1>
+        <p className="mb-4 text-xs text-slate-500">
+          Accounts are created by your administrator.
+        </p>
 
-        <label className="mb-1 block text-xs text-slate-500">Email</label>
+        <label className="mb-1 block text-xs text-slate-500">Staff ID</label>
         <input
-          {...register('email')}
-          autoComplete="email"
+          {...register('staffId')}
+          autoComplete="username"
+          autoCapitalize="characters"
+          spellCheck={false}
           className="mb-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
         />
-        {errors.email && <p className="mb-2 text-xs text-red-600">{errors.email.message}</p>}
+        {errors.staffId && (
+          <p className="mb-2 text-xs text-red-600">{errors.staffId.message}</p>
+        )}
 
         <label className="mb-1 block text-xs text-slate-500">Password</label>
         <input
@@ -98,10 +100,14 @@ export function LoginPage() {
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
 
+        <p className="mt-3 text-center text-[11px] text-slate-400">
+          Forgotten your password? Your administrator can reset it.
+        </p>
+
         {env.useMocks && (
-          <p className="mt-3 text-center text-[11px] text-slate-400">
-            Mocks on — any password works. Use operator@example.com to sign in
-            with a restricted role.
+          <p className="mt-2 text-center text-[11px] text-slate-400">
+            Mocks on — any password works. Try ADM-001 (admin), OP-014
+            (restricted role) or NEW-001 (forced password change).
           </p>
         )}
       </form>

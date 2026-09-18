@@ -13,15 +13,57 @@ export interface Role {
    */
   isSystem: boolean
   userCount: number
+  /**
+   * When true, holders of this role see every site regardless of which one
+   * they're assigned to.
+   *
+   * Without it, site scoping locks administrators out of their own fleet: an
+   * admin assigned to Site A would lose sight of B and C, including the
+   * helmets they need to register and the users they need to manage.
+   */
+  allSites: boolean
 }
 
 export interface ManagedUser {
   id: string
+  /** Login identifier, issued by the employer. Unique per tenant. */
+  staffId: string
   name: string
-  email: string
+  /** Contact only. Many site workers won't have one. */
+  email?: string
+  phone?: string
+  assignedSite?: string
+  /**
+   * Helmets this person is responsible for.
+   *
+   * A record, not a permission. It answers "who was wearing the helmet that
+   * raised this SOS", which the alarm log alone can't tell you. It does NOT
+   * restrict what this user can see — every authenticated user still sees the
+   * whole fleet. Scoping visibility by assignment is a separate mechanism that
+   * has to be enforced on every device, alarm and media query server-side.
+   */
+  assignedDeviceIds: string[]
   roleId: string
   status: 'active' | 'invited' | 'disabled'
   lastActiveAt?: number
+  /** True until the person replaces the password their administrator issued. */
+  mustChangePassword?: boolean
+}
+
+export interface NewUserInput {
+  staffId: string
+  name: string
+  email?: string
+  phone?: string
+  assignedSite?: string
+  assignedDeviceIds: string[]
+  roleId: string
+  /**
+   * Set by the administrator and passed on in person. The account is flagged
+   * mustChangePassword, so this value stops being valid the moment the person
+   * signs in.
+   */
+  initialPassword: string
 }
 
 /**

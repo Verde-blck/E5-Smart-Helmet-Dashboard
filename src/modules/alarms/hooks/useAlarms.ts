@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { useNow } from '@/shared/hooks/useNow'
+import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { qk } from '@/shared/lib/query-keys'
 import { acknowledgeAlarm, fetchAlarms } from '../api/alarms.api'
@@ -10,6 +11,7 @@ import type { Alarm } from '../types'
 export function useAlarms() {
   const tenantId = useTenantId()
   const now = useNow()
+  const { inScope } = useSiteScope()
   const { data, isLoading, isError } = useQuery({
     queryKey: qk.alarms.all(tenantId),
     queryFn: fetchAlarms,
@@ -18,12 +20,12 @@ export function useAlarms() {
   // Newest first, active always above history — an operator opening this page
   // during an incident should not have to scroll to find the live event.
   const alarms = useMemo(() => {
-    const list = data ?? []
+    const list = (data ?? []).filter((a) => inScope(a.site))
     return [...list].sort((a, b) => {
       const activeDelta = Number(b.status === 'active') - Number(a.status === 'active')
       return activeDelta !== 0 ? activeDelta : b.raisedAt - a.raisedAt
     })
-  }, [data])
+  }, [data, inScope])
 
   const active = useMemo(() => alarms.filter((a) => a.status === 'active'), [alarms])
 

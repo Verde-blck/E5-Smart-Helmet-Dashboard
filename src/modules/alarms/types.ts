@@ -19,6 +19,8 @@ export interface Alarm {
   id: string
   deviceId: string
   deviceName: string
+  /** Site the helmet was at. Lets scope be checked without a join. */
+  site?: string
   type: AlarmType
   severity: AlarmSeverity
   status: AlarmStatus

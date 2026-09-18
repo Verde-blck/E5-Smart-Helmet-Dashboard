@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTenantId } from '@/shared/hooks/useTenant'
+import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
 import { deleteMedia, fetchMedia, fetchMediaUrl } from '../api/media.api'
 import type { MediaItem } from '../types'
@@ -13,12 +15,15 @@ const SIGNED_URL_CACHE_MS = 10 * 60_000
 
 export function useMediaList(deviceId?: string) {
   const tenantId = useTenantId()
+  const { inScope } = useSiteScope()
   const { data, isLoading, isError } = useQuery({
     queryKey: deviceId ? qk.media.byDevice(tenantId, deviceId) : qk.media.all(tenantId),
     queryFn: () => fetchMedia(deviceId),
   })
 
-  return { media: data ?? [], isLoading, isError }
+  const media = useMemo(() => (data ?? []).filter((m) => inScope(m.site)), [data, inScope])
+
+  return { media, isLoading, isError }
 }
 
 export function useMediaUrl(id: string | null) {

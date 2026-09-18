@@ -8,12 +8,32 @@ export interface TenantConfig {
   colors: { primary: string; secondary: string }
 }
 
+/**
+ * Which sites this user may see. Computed by the backend from their assigned
+ * site and whether their role is unscoped — NOT derived in the browser, so
+ * there is one authority for the rule rather than two that can drift.
+ */
+export interface SiteScope {
+  allSites: boolean
+  sites: string[]
+}
+
 export interface AuthUser {
   id: string
+  /** Login identifier. Site workers often have no reliable work email. */
+  staffId: string
   name: string
-  email: string
+  /** Contact only — not used to sign in. */
+  email?: string
   role: string
   permissions: Permission[] // e.g. ['devices:read', 'media:read']
+  /**
+   * Set when an administrator issued or reset the password. The app refuses to
+   * render anything but the change-password screen until it's cleared, so an
+   * admin never keeps working knowledge of someone else's credentials.
+   */
+  mustChangePassword?: boolean
+  scope?: SiteScope
 }
 
 interface AuthState {

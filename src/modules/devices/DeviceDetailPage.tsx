@@ -5,6 +5,7 @@ import { AlarmBadge, StatusDot } from './components/StatusDot'
 import { Can } from '@/shared/components/Can'
 import { MediaGrid } from '@/modules/media/components/MediaGrid'
 import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
+import { useDeviceAssignees } from '@/modules/users/hooks/useRoles'
 import { StatusHistory } from './components/StatusHistory'
 import type { Telemetry } from './types'
 
@@ -49,10 +50,25 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
 
 export function DeviceDetailPage() {
   const { id = '' } = useParams()
-  const { device, now, isLoading, isError } = useDevice(id)
+  const { device, outOfScope, now, isLoading, isError } = useDevice(id)
+  const assignees = useDeviceAssignees(id)
 
   if (isLoading) return <p className="text-sm text-slate-500">Loading…</p>
   if (isError) return <p className="text-sm text-red-600">Failed to load this device.</p>
+  if (outOfScope) {
+    return (
+      <div className="max-w-md">
+        <h1 className="mb-2 text-lg font-semibold text-slate-800">Not available</h1>
+        <p className="text-sm text-slate-500">
+          That helmet is at a site you don't have access to.{' '}
+          <Link to="/devices" className="text-brand-primary underline">
+            Back to devices
+          </Link>
+          .
+        </p>
+      </div>
+    )
+  }
   if (!device) return <p className="text-sm text-red-600">Device not found.</p>
 
   const rows = telemetryRows(device.telemetry)
@@ -83,6 +99,16 @@ export function DeviceDetailPage() {
           <dd className="uppercase text-slate-800">{device.connectivity}</dd>
           <dt className="text-slate-500">Last seen</dt>
           <dd className="text-slate-800">{formatLastSeen(device.lastSeenAt, now)}</dd>
+          {/* The payoff of recording helmet assignment: an SOS from this
+              device can name a person and a phone number, not just an ID. */}
+          <dt className="text-slate-500">Responsible</dt>
+          <dd className="text-slate-800">
+            {assignees.length === 0
+              ? 'Unassigned'
+              : assignees
+                  .map((u) => (u.phone ? `${u.name} · ${u.phone}` : u.name))
+                  .join(', ')}
+          </dd>
         </dl>
       </section>
 

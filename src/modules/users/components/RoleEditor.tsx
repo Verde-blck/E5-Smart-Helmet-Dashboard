@@ -17,6 +17,7 @@ export function RoleEditor({
 }) {
   const [name, setName] = useState(role.name)
   const [draft, setDraft] = useState<Permission[]>(role.permissions)
+  const [allSites, setAllSites] = useState(role.allSites)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const save = useSaveRole()
   const remove = useDeleteRole()
@@ -27,12 +28,14 @@ export function RoleEditor({
   useEffect(() => {
     setName(role.name)
     setDraft(role.permissions)
+    setAllSites(role.allSites)
     setConfirmingDelete(false)
-  }, [role.id, role.name, role.permissions])
+  }, [role.id, role.name, role.permissions, role.allSites])
 
   const locked = role.isSystem || !canEdit
   const dirty =
     name !== role.name ||
+    allSites !== role.allSites ||
     draft.length !== role.permissions.length ||
     draft.some((p) => !role.permissions.includes(p))
 
@@ -70,6 +73,26 @@ export function RoleEditor({
         </p>
       )}
 
+      <label className="mb-3 flex cursor-pointer items-start gap-2 rounded-md border border-slate-200 p-3">
+        <input
+          type="checkbox"
+          checked={allSites}
+          disabled={locked}
+          onChange={(e) => setAllSites(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-brand-primary disabled:opacity-40"
+        />
+        <span className="text-xs">
+          <span className="block font-medium text-slate-800">
+            Sees every site
+          </span>
+          <span className="block text-slate-500">
+            Off means holders of this role see only the helmets, alarms and
+            footage at the site they're assigned to. Anyone who needs to
+            register helmets or manage people across sites needs this on.
+          </span>
+        </span>
+      </label>
+
       <PermissionMatrix permissions={draft} disabled={locked} onChange={setDraft} />
 
       {lockoutWarning && (
@@ -82,7 +105,10 @@ export function RoleEditor({
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             onClick={() =>
-              save.mutate({ id: role.id, patch: { name: name.trim(), permissions: draft } })
+              save.mutate({
+                id: role.id,
+                patch: { name: name.trim(), permissions: draft, allSites },
+              })
             }
             disabled={!dirty || blocked || save.isPending}
             className="rounded bg-brand-primary px-3 py-2 text-sm font-medium text-white hover:bg-brand-primary/90 disabled:opacity-50"
@@ -93,6 +119,7 @@ export function RoleEditor({
             onClick={() => {
               setName(role.name)
               setDraft(role.permissions)
+              setAllSites(role.allSites)
             }}
             disabled={!dirty || save.isPending}
             className="text-sm text-slate-500 hover:text-slate-800 disabled:opacity-50"
