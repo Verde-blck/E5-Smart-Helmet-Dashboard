@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { features } from '@/config/features'
 import { useDeleteRole, useLockoutGuard, useSaveRole } from '../hooks/useRoles'
 import { PermissionMatrix } from './PermissionMatrix'
 import type { Permission } from '@/shared/constants/modules'
@@ -73,6 +74,7 @@ export function RoleEditor({
         </p>
       )}
 
+      {features.siteScoping && (
       <label className="mb-3 flex cursor-pointer items-start gap-2 rounded-md border border-slate-200 p-3">
         <input
           type="checkbox"
@@ -92,6 +94,7 @@ export function RoleEditor({
           </span>
         </span>
       </label>
+      )}
 
       <PermissionMatrix permissions={draft} disabled={locked} onChange={setDraft} />
 

@@ -1,21 +1,21 @@
 import { useState } from 'react'
+import { features } from '@/config/features'
 import { useDevices } from '@/modules/devices/hooks/useDevices'
 import { useCreateUser, useRoles, useUpdateUser } from '../hooks/useRoles'
 import type { ManagedUser } from '../types'
 
 interface Props {
-  /** Omit to create; pass a user to edit. */
+  /** Omit to create; pass an administrator to edit. */
   user?: ManagedUser
   onDone: () => void
 }
 
 const EMPTY = {
-  staffId: '',
+  username: '',
   name: '',
   email: '',
   phone: '',
   assignedSite: '',
-  assignedDeviceIds: [] as string[],
   roleId: '',
   initialPassword: '',
 }
@@ -38,8 +38,7 @@ function Field({
   )
 }
 
-const inputClass =
-  'w-full rounded border border-slate-300 px-2.5 py-1.5 text-sm'
+const inputClass = 'w-full rounded border border-slate-300 px-2.5 py-1.5 text-sm'
 
 export function UserForm({ user, onDone }: Props) {
   const { roles } = useRoles()
@@ -51,12 +50,11 @@ export function UserForm({ user, onDone }: Props) {
   const [values, setValues] = useState(() =>
     user
       ? {
-          staffId: user.staffId,
+          username: user.username,
           name: user.name,
           email: user.email ?? '',
           phone: user.phone ?? '',
           assignedSite: user.assignedSite ?? '',
-          assignedDeviceIds: user.assignedDeviceIds,
           roleId: user.roleId,
           initialPassword: '',
         }
@@ -64,36 +62,29 @@ export function UserForm({ user, onDone }: Props) {
   )
   const [error, setError] = useState<string | null>(null)
 
-  // Site options come from the fleet rather than a hardcoded list, so adding a
-  // site means registering a helmet there, not editing this file.
+  // Only rendered while site scoping is active. Options come from the fleet
+  // rather than a hardcoded list, so adding a site means registering a helmet
+  // there rather than editing this file.
   const sites = [...new Set(devices.map((d) => d.site))].sort()
 
   const set = <K extends keyof typeof values>(key: K, value: (typeof values)[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }))
 
-  const toggleDevice = (id: string) =>
-    set(
-      'assignedDeviceIds',
-      values.assignedDeviceIds.includes(id)
-        ? values.assignedDeviceIds.filter((d) => d !== id)
-        : [...values.assignedDeviceIds, id]
-    )
-
   function validate(): string | null {
-    if (values.staffId.trim().length < 2) return 'Staff ID is required'
+    if (values.username.trim().length < 2) return 'Username is required'
     if (values.name.trim().length < 2) return 'Name is required'
     if (!values.roleId) return 'Choose a role'
-    // A scoped role with no site means an empty dashboard and a confused new
-    // starter, so it's caught here rather than discovered on their first login.
-    const role = roles.find((r) => r.id === values.roleId)
-    if (role && !role.allSites && !values.assignedSite) {
-      return `${role.name} only sees its assigned site, so a site is required`
-    }
     if (!editing && values.initialPassword.length < 8) {
       return 'Initial password needs at least 8 characters'
     }
     if (values.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) {
       return 'That email address is not valid'
+    }
+    if (features.siteScoping) {
+      const role = roles.find((r) => r.id === values.roleId)
+      if (role && !role.allSites && !values.assignedSite) {
+        return `${role.name} only sees its assigned site, so a site is required`
+      }
     }
     return null
   }
@@ -103,38 +94,27 @@ export function UserForm({ user, onDone }: Props) {
     setError(problem)
     if (problem) return
 
+    const shared = {
+      username: values.username.trim(),
+      name: values.name.trim(),
+      email: values.email || undefined,
+      phone: values.phone || undefined,
+      assignedSite: features.siteScoping ? values.assignedSite || undefined : undefined,
+      roleId: values.roleId,
+    }
+
     try {
       if (editing && user) {
-        await update.mutateAsync({
-          id: user.id,
-          patch: {
-            staffId: values.staffId.trim(),
-            name: values.name.trim(),
-            email: values.email || undefined,
-            phone: values.phone || undefined,
-            assignedSite: values.assignedSite || undefined,
-            assignedDeviceIds: values.assignedDeviceIds,
-            roleId: values.roleId,
-          },
-        })
+        await update.mutateAsync({ id: user.id, patch: shared })
       } else {
-        await create.mutateAsync({
-          staffId: values.staffId.trim(),
-          name: values.name.trim(),
-          email: values.email || undefined,
-          phone: values.phone || undefined,
-          assignedSite: values.assignedSite || undefined,
-          assignedDeviceIds: values.assignedDeviceIds,
-          roleId: values.roleId,
-          initialPassword: values.initialPassword,
-        })
+        await create.mutateAsync({ ...shared, initialPassword: values.initialPassword })
       }
       onDone()
     } catch {
       setError(
         editing
-          ? 'Could not save. That staff ID may already be in use.'
-          : 'Could not create the account. That staff ID may already be in use.'
+          ? 'Could not save. That username may already be in use.'
+          : 'Could not create the account. That username may already be in use.'
       )
     }
   }
@@ -143,15 +123,19 @@ export function UserForm({ user, onDone }: Props) {
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-3 text-sm font-medium text-slate-800">
-        {editing ? `Edit ${user?.name}` : 'Add a person'}
+      <h2 className="mb-1 text-sm font-medium text-slate-800">
+        {editing ? `Edit ${user?.name}` : 'Add an administrator'}
       </h2>
+      <p className="mb-3 text-xs text-slate-500">
+        Dashboard accounts are for command-centre staff. Helmet wearers don't
+        sign in — they're recorded against the device instead.
+      </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Staff ID" hint="What they sign in with.">
+        <Field label="Username" hint="What they sign in with.">
           <input
-            value={values.staffId}
-            onChange={(e) => set('staffId', e.target.value)}
+            value={values.username}
+            onChange={(e) => set('username', e.target.value)}
             spellCheck={false}
             className={inputClass}
           />
@@ -182,25 +166,27 @@ export function UserForm({ user, onDone }: Props) {
           />
         </Field>
 
-        <Field
-          label="Assigned site"
-          hint="Determines which helmets, alarms and footage this person sees."
-        >
-          <select
-            value={values.assignedSite}
-            onChange={(e) => set('assignedSite', e.target.value)}
-            className={inputClass}
+        {features.siteScoping && (
+          <Field
+            label="Assigned site"
+            hint="Determines which helmets, alarms and footage this person sees."
           >
-            <option value="">Not set</option>
-            {sites.map((site) => (
-              <option key={site} value={site}>
-                {site}
-              </option>
-            ))}
-          </select>
-        </Field>
+            <select
+              value={values.assignedSite}
+              onChange={(e) => set('assignedSite', e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Not set</option>
+              {sites.map((site) => (
+                <option key={site} value={site}>
+                  {site}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
-        <Field label="Role">
+        <Field label="Role" hint="Decides which modules they can open.">
           <select
             value={values.roleId}
             onChange={(e) => set('roleId', e.target.value)}
@@ -231,36 +217,6 @@ export function UserForm({ user, onDone }: Props) {
           </Field>
         </div>
       )}
-
-      <div className="mt-4">
-        <p className="mb-1 text-xs text-slate-500">
-          Helmets they're responsible for{' '}
-          <span className="text-slate-400">
-            ({values.assignedDeviceIds.length} selected)
-          </span>
-        </p>
-        <div className="max-h-40 overflow-y-auto rounded border border-slate-200">
-          {devices.map((device) => (
-            <label
-              key={device.id}
-              className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-2.5 py-1.5 text-xs last:border-0 hover:bg-slate-50"
-            >
-              <input
-                type="checkbox"
-                checked={values.assignedDeviceIds.includes(device.id)}
-                onChange={() => toggleDevice(device.id)}
-                className="h-3.5 w-3.5 accent-brand-primary"
-              />
-              <span className="font-medium text-slate-700">{device.name}</span>
-              <span className="text-slate-400">{device.site}</span>
-            </label>
-          ))}
-        </div>
-        <p className="mt-1 text-[11px] text-slate-400">
-          A record of responsibility, not a permission — it does not limit which
-          helmets this person can see.
-        </p>
-      </div>
 
       {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
 

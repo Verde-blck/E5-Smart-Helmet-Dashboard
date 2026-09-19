@@ -9,10 +9,10 @@ import { env } from '@/config/env'
 import { login } from './api/auth.api'
 
 const schema = z.object({
-  // Deliberately permissive: staff ID formats are whatever the employer
-  // already uses, and rejecting a real badge number at the login screen is a
-  // support call. The backend decides what's valid.
-  staffId: z.string().trim().min(2, 'Enter your staff ID'),
+  // Deliberately permissive: usernames are whatever the employer already
+  // issues — a badge number, an initial-plus-surname — and rejecting a real
+  // one at the login screen is a support call. The backend decides validity.
+  username: z.string().trim().min(2, 'Enter your username'),
   password: z.string().min(1, 'Required'),
 })
 type FormValues = z.infer<typeof schema>
@@ -38,7 +38,7 @@ export function LoginPage() {
   async function onSubmit(values: FormValues) {
     setFormError(null)
     try {
-      const user = await login({ staffId: values.staffId.trim(), password: values.password })
+      const user = await login({ username: values.username.trim(), password: values.password })
       setUser(user)
       // RequireAuth diverts to the change-password screen when the account is
       // flagged, so there's nothing to branch on here.
@@ -50,7 +50,7 @@ export function LoginPage() {
           : undefined
       setFormError(
         status === 401
-          ? 'Incorrect staff ID or password.'
+          ? 'Incorrect username or password.'
           : 'Could not sign in. Please try again.'
       )
     }
@@ -67,16 +67,16 @@ export function LoginPage() {
           Accounts are created by your administrator.
         </p>
 
-        <label className="mb-1 block text-xs text-slate-500">Staff ID</label>
+        <label className="mb-1 block text-xs text-slate-500">Username</label>
         <input
-          {...register('staffId')}
+          {...register('username')}
           autoComplete="username"
           autoCapitalize="characters"
           spellCheck={false}
           className="mb-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
         />
-        {errors.staffId && (
-          <p className="mb-2 text-xs text-red-600">{errors.staffId.message}</p>
+        {errors.username && (
+          <p className="mb-2 text-xs text-red-600">{errors.username.message}</p>
         )}
 
         <label className="mb-1 block text-xs text-slate-500">Password</label>

@@ -39,10 +39,24 @@ export interface Telemetry {
  * §4 Real-Time Monitoring, and it means a device row still renders correctly
  * for a helmet that has been registered but has never connected.
  */
+/**
+ * Who wears this helmet.
+ *
+ * FRD §4 Device Management: "manage device assignment/ownership information".
+ * Deliberately not a link to a dashboard account — the worker wearing the
+ * helmet never signs in here. Every dashboard user is an administrator.
+ */
+export interface DeviceAssignment {
+  name: string
+  phone?: string
+  jobTitle?: string
+}
+
 export interface Device {
   id: string
   name: string
   site: string
+  assignedTo?: DeviceAssignment
   connectivity: ConnectivityType
   lastSeenAt: number
   activeAlarm: AlarmSeverity | null

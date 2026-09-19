@@ -5,7 +5,7 @@ import { RoleEditor } from './components/RoleEditor'
 import { UserList } from './components/UserList'
 import { moduleAccessSummary } from './types'
 
-type Tab = 'roles' | 'people'
+type Tab = 'roles' | 'accounts'
 
 export function UsersPage() {
   const [tab, setTab] = useState<Tab>('roles')
@@ -44,9 +44,9 @@ export function UsersPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-slate-800">Users &amp; roles</h1>
+        <h1 className="text-lg font-semibold text-slate-800">Administrators</h1>
         <div className="flex rounded-md border border-slate-200 bg-white p-0.5 text-xs">
-          {(['roles', 'people'] as const).map((option) => (
+          {(['roles', 'accounts'] as const).map((option) => (
             <button
               key={option}
               onClick={() => setTab(option)}
@@ -69,7 +69,7 @@ export function UsersPage() {
         </p>
       )}
 
-      {tab === 'people' && <UserList canEdit={canEdit} />}
+      {tab === 'accounts' && <UserList canEdit={canEdit} />}
 
       {tab === 'roles' && (
         <>

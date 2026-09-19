@@ -87,16 +87,6 @@ export function useResetPassword() {
   })
 }
 
-/**
- * Who is responsible for a given helmet. This is the payoff of recording
- * helmet assignment: an SOS from helmet 7 can name a person and a phone
- * number rather than just a device ID.
- */
-export function useDeviceAssignees(deviceId: string) {
-  const { users } = useUsers()
-  return users.filter((u) => u.assignedDeviceIds.includes(deviceId))
-}
-
 export function useAssignRole() {
   const invalidate = useInvalidateRbac()
   return useMutation({

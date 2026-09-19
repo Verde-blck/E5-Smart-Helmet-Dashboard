@@ -6,6 +6,13 @@ export interface TenantConfig {
   name: string
   logoUrl: string
   colors: { primary: string; secondary: string }
+  /**
+   * Per-tenant Maps key. One bundle serves every tenant in SaaS mode, so a
+   * build-time key can't differ per customer — it has to arrive at runtime.
+   * Standalone falls back to VITE_GOOGLE_MAPS_API_KEY.
+   */
+  mapsApiKey?: string
+  mapsMapId?: string
 }
 
 /**
@@ -20,13 +27,14 @@ export interface SiteScope {
 
 export interface AuthUser {
   id: string
-  /** Login identifier. Site workers often have no reliable work email. */
-  staffId: string
+  /** Login identifier, issued by the employer. Not an email — many site
+   *  workers have no reliable work address. */
+  username: string
   name: string
   /** Contact only — not used to sign in. */
   email?: string
   role: string
-  permissions: Permission[] // e.g. ['devices:read', 'media:read']
+  permissions: Permission[] // e.g. ['devices:read', 'photos:read']
   /**
    * Set when an administrator issued or reset the password. The app refuses to
    * render anything but the change-password screen until it's cleared, so an

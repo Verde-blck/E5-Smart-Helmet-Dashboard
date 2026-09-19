@@ -1,39 +1,46 @@
-import { useEffect } from 'react'
-import { env } from '@/config/env'
-import { Can } from '@/shared/components/Can'
-import { formatLastSeen } from '@/modules/devices/lib/presence'
-import { useMediaUrl } from '../hooks/useMedia'
-import { formatBytes, formatDuration } from '../types'
-import type { MediaItem } from '../types'
+import { useEffect } from "react";
+import { env } from "@/config/env";
+import { Can } from "@/shared/components/Can";
+import { formatLastSeen } from "@/modules/devices/lib/presence";
+import { useMediaUrl } from "../hooks/useMedia";
+import { formatBytes, formatDuration } from "../types";
+import type { MediaItem } from "../types";
 
 interface Props {
-  item: MediaItem
-  now: number
-  onClose: () => void
-  onPrev?: () => void
-  onNext?: () => void
-  onDelete?: (id: string) => void
+  item: MediaItem;
+  now: number;
+  onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Props) {
-  const { data: signed, isLoading, isError, refetch } = useMediaUrl(item.id)
+export function MediaViewer({
+  item,
+  now,
+  onClose,
+  onPrev,
+  onNext,
+  onDelete,
+}: Props) {
+  const { data: signed, isLoading, isError, refetch } = useMediaUrl(item.id);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-      if (event.key === 'ArrowLeft') onPrev?.()
-      if (event.key === 'ArrowRight') onNext?.()
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") onPrev?.();
+      if (event.key === "ArrowRight") onNext?.();
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, onPrev, onNext])
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, onPrev, onNext]);
 
   const meta = [
     item.deviceName,
     formatLastSeen(item.capturedAt, now),
     formatDuration(item.durationMs),
     formatBytes(item.sizeBytes),
-  ].filter(Boolean)
+  ].filter(Boolean);
 
   return (
     <div
@@ -49,13 +56,18 @@ export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Pr
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-slate-800">
-              {item.kind === 'video' ? 'Recording' : 'Photo'} · {item.deviceName}
+              {item.kind === "video" ? "Recording" : "Photo"} ·{" "}
+              {item.deviceName}
             </p>
-            <p className="truncate text-xs text-slate-500">{meta.join(' · ')}</p>
+            <p className="truncate text-xs text-slate-500">
+              {meta.join(" · ")}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {onDelete && (
-              <Can perm="media:delete">
+              <Can
+                perm={item.kind === "video" ? "videos:delete" : "photos:delete"}
+              >
                 <button
                   onClick={() => onDelete(item.id)}
                   className="rounded border border-slate-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
@@ -75,11 +87,15 @@ export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Pr
         </div>
 
         <div className="flex min-h-[18rem] items-center justify-center bg-slate-900">
-          {isLoading && <p className="text-sm text-slate-400">Requesting secure link…</p>}
+          {isLoading && (
+            <p className="text-sm text-slate-400">Requesting secure link…</p>
+          )}
 
           {isError && (
             <div className="p-6 text-center">
-              <p className="text-sm text-slate-300">That link couldn't be issued.</p>
+              <p className="text-sm text-slate-300">
+                That link couldn't be issued.
+              </p>
               <button
                 onClick={() => void refetch()}
                 className="mt-2 rounded border border-slate-600 px-3 py-1 text-xs text-slate-200"
@@ -89,11 +105,15 @@ export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Pr
             </div>
           )}
 
-          {signed && item.kind === 'photo' && (
-            <img src={signed.url} alt="" className="max-h-[60vh] w-full object-contain" />
+          {signed && item.kind === "photo" && (
+            <img
+              src={signed.url}
+              alt=""
+              className="max-h-[60vh] w-full object-contain"
+            />
           )}
 
-          {signed && item.kind === 'video' && !env.useMocks && (
+          {signed && item.kind === "video" && !env.useMocks && (
             <video
               src={signed.url}
               controls
@@ -105,12 +125,12 @@ export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Pr
             />
           )}
 
-          {signed && item.kind === 'video' && env.useMocks && (
+          {signed && item.kind === "video" && env.useMocks && (
             <div className="p-8 text-center">
               <img src={signed.url} alt="" className="mx-auto max-h-[40vh]" />
               <p className="mt-3 text-xs text-slate-400">
-                Mock mode — no video file exists. The real player mounts here once
-                VITE_USE_MOCKS is false.
+                Mock mode — no video file exists. The real player mounts here
+                once VITE_USE_MOCKS is false.
               </p>
             </div>
           )}
@@ -125,11 +145,11 @@ export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Pr
             ← Previous
           </button>
           <span>
-            {item.triggeredBy === 'alarm'
-              ? 'Captured by alarm trigger'
-              : item.triggeredBy === 'remote-command'
-                ? 'Captured by remote command'
-                : 'Captured manually'}
+            {item.triggeredBy === "alarm"
+              ? "Captured by alarm trigger"
+              : item.triggeredBy === "remote-command"
+                ? "Captured by remote command"
+                : "Captured manually"}
           </span>
           <button
             onClick={onNext}
@@ -141,5 +161,5 @@ export function MediaViewer({ item, now, onClose, onPrev, onNext, onDelete }: Pr
         </div>
       </div>
     </div>
-  )
+  );
 }

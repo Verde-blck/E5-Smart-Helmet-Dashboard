@@ -4,16 +4,16 @@ import { mockUserFor } from '@/shared/lib/mock-data'
 import type { AuthUser } from '@/shared/store/authStore'
 
 export interface Credentials {
-  staffId: string
+  username: string
   password: string
 }
 
 /**
- * Staff ID, not email. Users are provisioned by an administrator and many have
+ * Username, not email. Users are provisioned by an administrator and many have
  * no work email at all, so the identifier has to be one the employer issues.
  */
 export async function login(credentials: Credentials): Promise<AuthUser> {
-  if (env.useMocks) return mockUserFor(credentials.staffId)
+  if (env.useMocks) return mockUserFor(credentials.username)
   const { data } = await apiClient.post<AuthUser>('/auth/login', credentials)
   return data
 }

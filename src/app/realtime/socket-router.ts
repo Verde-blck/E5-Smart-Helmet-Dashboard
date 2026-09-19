@@ -67,8 +67,7 @@ export function routeEvent(qc: QueryClient, tenantId: string, incoming: unknown)
       break
 
     case 'media.ready':
-      // Both the device-scoped list and the all-devices gallery.
-      qc.invalidateQueries({ queryKey: qk.media.byDevice(tenantId, event.deviceId) })
+      // One prefix covers every filtered list — photos, videos, per-device.
       qc.invalidateQueries({ queryKey: qk.media.all(tenantId) })
       break
   }

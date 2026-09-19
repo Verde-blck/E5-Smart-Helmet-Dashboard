@@ -1,4 +1,5 @@
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
+import { features } from '@/config/features'
 
 /**
  * A scoped user seeing "Total devices 5" would reasonably conclude the fleet
@@ -8,7 +9,7 @@ import { useSiteScope } from '@/shared/hooks/useSiteScope'
 export function ScopeBanner() {
   const { isScoped, sites, hasNoSite } = useSiteScope()
 
-  if (!isScoped) return null
+  if (!features.siteScoping || !isScoped) return null
 
   if (hasNoSite) {
     return (

@@ -1,12 +1,24 @@
 import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
 import { deleteMockMedia, getMockMedia, getMockMediaUrl } from './media.mock'
-import type { MediaItem, SignedMediaUrl } from '../types'
+import { dayBounds } from '../types'
+import type { MediaItem, MediaQuery, SignedMediaUrl } from '../types'
 
-export async function fetchMedia(deviceId?: string): Promise<MediaItem[]> {
-  if (env.useMocks) return getMockMedia(deviceId)
+export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
+  if (env.useMocks) return getMockMedia(query)
+
+  // The date is expanded into an epoch range here rather than sent as a
+  // calendar day, so the server never has to guess the client's timezone.
+  const range = query.date ? dayBounds(query.date) : undefined
+
   const { data } = await apiClient.get<MediaItem[]>('/media', {
-    params: deviceId ? { deviceId } : undefined,
+    params: {
+      kind: query.kind,
+      deviceId: query.deviceId,
+      from: range?.from,
+      to: range?.to,
+      search: query.search || undefined,
+    },
   })
   return data
 }

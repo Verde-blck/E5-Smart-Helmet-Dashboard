@@ -10,6 +10,25 @@ export type MediaStatus = 'uploading' | 'available' | 'failed'
 
 export type MediaTrigger = 'manual' | 'alarm' | 'remote-command' | 'scheduled'
 
+/** Filters sent to the API and used as the cache key. */
+export interface MediaQuery {
+  /** Omit to fetch both kinds — the device detail strip does. */
+  kind?: MediaKind
+  deviceId?: string
+  /** A single calendar day, YYYY-MM-DD, matched against capturedAt. */
+  date?: string
+  /** Free text over the file name. Video Record only. */
+  search?: string
+}
+
+/** Local-day bounds for a YYYY-MM-DD string, since capturedAt is epoch ms. */
+export function dayBounds(date: string): { from: number; to: number } {
+  return {
+    from: new Date(`${date}T00:00:00`).getTime(),
+    to: new Date(`${date}T23:59:59.999`).getTime(),
+  }
+}
+
 export interface MediaItem {
   id: string
   deviceId: string
@@ -30,6 +49,8 @@ export interface MediaItem {
    * page and half of them expiring while the operator scrolls. Full assets are
    * fetched on demand instead — see fetchMediaUrl.
    */
+  /** What the file is called in storage. Shown and searched in Video Record. */
+  fileName?: string
   thumbnailUrl?: string
   triggeredBy?: MediaTrigger
   alarmId?: string

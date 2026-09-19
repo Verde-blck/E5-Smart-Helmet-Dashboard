@@ -1,6 +1,7 @@
 import type {
   ConnectivityType,
   Device,
+  DeviceAssignment,
   HistoryRange,
   TelemetrySample,
   TelemetryWindow,
@@ -20,6 +21,15 @@ const NAMES = [
 
 const SITES = ['Site A', 'Site B', 'Site C']
 
+const WEARERS: (DeviceAssignment | undefined)[] = [
+  { name: 'Tom Adewale', phone: '+234 801 445 9921', jobTitle: 'Rigger' },
+  { name: 'Joseph Eze', phone: '+234 802 118 3374', jobTitle: 'Site foreman' },
+  { name: 'Wale Balogun', phone: '+234 803 662 7781', jobTitle: 'Welder' },
+  { name: 'Lukman Yusuf', jobTitle: 'Scaffolder' },
+  { name: 'Sarah Koleosho', phone: '+234 805 229 4410', jobTitle: 'Safety officer' },
+  undefined, // unassigned helmet — spare in the store
+]
+
 /** Never heartbeats — demonstrates presence decaying to 'offline'. */
 export const OFFLINE_DEVICE_INDEX = 9
 /** Heartbeats rarely — oscillates online → degraded, like a real SIM link. */
@@ -36,6 +46,7 @@ const fleet: Device[] = NAMES.map((name, i) => {
     id: `8666520210${String(i).padStart(5, '0')}`,
     name,
     site: SITES[i % SITES.length],
+    assignedTo: WEARERS[i % WEARERS.length],
     connectivity,
     lastSeenAt:
       i === OFFLINE_DEVICE_INDEX

@@ -22,7 +22,14 @@ export const qk = {
   },
   media: {
     all: (t: string) => ['tenant', t, 'media'] as const,
-    byDevice: (t: string, id: string) => ['tenant', t, 'media', 'device', id] as const,
+    /**
+     * Filters live in the key, so switching date or device is a separate
+     * cache entry rather than a refetch that discards the previous view.
+     * React Query hashes the object deterministically, and it still sits
+     * under media.all() for invalidation.
+     */
+    list: (t: string, query: Record<string, unknown>) =>
+      ['tenant', t, 'media', query] as const,
     // Signed URLs are cached separately from the list so they can expire on
     // their own schedule without invalidating the gallery.
     url: (t: string, id: string) => ['tenant', t, 'media', 'url', id] as const,

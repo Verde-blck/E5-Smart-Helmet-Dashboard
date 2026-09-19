@@ -1,4 +1,5 @@
-import type { MediaItem, MediaKind, SignedMediaUrl } from '../types'
+import { dayBounds } from '../types'
+import type { MediaItem, MediaKind, MediaQuery, SignedMediaUrl } from '../types'
 import { getMockFleet } from '@/modules/devices/api/devices.mock'
 
 const MINUTE = 60_000
@@ -50,14 +51,35 @@ const items: MediaItem[] = Array.from({ length: 26 }, (_, i) => {
     uploadedAt: i === 1 ? undefined : capturedAt + uploadLagMs,
     durationMs: kind === 'video' ? 18_000 + (i % 7) * 11_000 : undefined,
     sizeBytes: kind === 'video' ? 4_200_000 + i * 310_000 : 180_000 + i * 9_000,
+    fileName: `${device.name}_${new Date(capturedAt).toISOString().slice(0, 10).replace(/-/g, '')}_${String(i + 1).padStart(4, '0')}.${kind === 'video' ? 'mp4' : 'jpg'}`,
     thumbnailUrl: placeholder(i, device.name, kind),
     triggeredBy: i === 0 ? 'alarm' : i % 5 === 0 ? 'remote-command' : 'manual',
     alarmId: i === 0 ? 'alm-001' : undefined,
   }
 })
 
-export function getMockMedia(deviceId?: string): MediaItem[] {
-  const list = deviceId ? items.filter((m) => m.deviceId === deviceId) : items
+export function getMockMedia(query: MediaQuery = {}): MediaItem[] {
+  let list = items
+
+  if (query.kind) list = list.filter((m) => m.kind === query.kind)
+  if (query.deviceId) list = list.filter((m) => m.deviceId === query.deviceId)
+
+  if (query.date) {
+    const { from, to } = dayBounds(query.date)
+    // Filtered on capture time, not upload time — a clip recorded on the 14th
+    // belongs to the 14th even if it only reached storage on the 16th.
+    list = list.filter((m) => m.capturedAt >= from && m.capturedAt <= to)
+  }
+
+  if (query.search) {
+    const needle = query.search.trim().toLowerCase()
+    list = list.filter(
+      (m) =>
+        m.fileName?.toLowerCase().includes(needle) ||
+        m.deviceName.toLowerCase().includes(needle)
+    )
+  }
+
   return list.map((m) => ({ ...m })).sort((a, b) => b.capturedAt - a.capturedAt)
 }
 

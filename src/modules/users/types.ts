@@ -27,22 +27,17 @@ export interface Role {
 export interface ManagedUser {
   id: string
   /** Login identifier, issued by the employer. Unique per tenant. */
-  staffId: string
+  username: string
   name: string
   /** Contact only. Many site workers won't have one. */
   email?: string
   phone?: string
-  assignedSite?: string
   /**
-   * Helmets this person is responsible for.
-   *
-   * A record, not a permission. It answers "who was wearing the helmet that
-   * raised this SOS", which the alarm log alone can't tell you. It does NOT
-   * restrict what this user can see — every authenticated user still sees the
-   * whole fleet. Scoping visibility by assignment is a separate mechanism that
-   * has to be enforced on every device, alarm and media query server-side.
+   * Dormant — see config/features.ts. Only meaningful if site scoping is
+   * reactivated; every dashboard user is currently an administrator with
+   * fleet-wide visibility.
    */
-  assignedDeviceIds: string[]
+  assignedSite?: string
   roleId: string
   status: 'active' | 'invited' | 'disabled'
   lastActiveAt?: number
@@ -51,12 +46,11 @@ export interface ManagedUser {
 }
 
 export interface NewUserInput {
-  staffId: string
+  username: string
   name: string
   email?: string
   phone?: string
   assignedSite?: string
-  assignedDeviceIds: string[]
   roleId: string
   /**
    * Set by the administrator and passed on in person. The account is flagged

@@ -7,7 +7,9 @@ import { LoginPage } from '@/modules/auth/LoginPage'
 import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
-import { MediaPage } from '@/modules/media/MediaPage'
+import { MapPage } from '@/modules/map/MapPage'
+import { PhotosPage } from '@/modules/media/PhotosPage'
+import { VideosPage } from '@/modules/media/VideosPage'
 import { AlarmsPage } from '@/modules/alarms/AlarmsPage'
 import { UsersPage } from '@/modules/users/UsersPage'
 import { ProfilePage } from '@/modules/profile/ProfilePage'
@@ -85,10 +87,26 @@ export function AppRoutes() {
           }
         />
         <Route
-          path="media"
+          path="map"
           element={
-            <ProtectedRoute perm="media:read">
-              <MediaPage />
+            <ProtectedRoute perm="map:read">
+              <MapPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="photos"
+          element={
+            <ProtectedRoute perm="photos:read">
+              <PhotosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="videos"
+          element={
+            <ProtectedRoute perm="videos:read">
+              <VideosPage />
             </ProtectedRoute>
           }
         />

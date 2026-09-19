@@ -1,7 +1,15 @@
 // The single source of truth for "what is a module" in this app.
 // Sidebar nav, route guards, and the RBAC editor all read from this list —
 // so adding a module means adding one entry here, not touching three files.
-export type ModuleKey = 'dashboard' | 'devices' | 'media' | 'alarms' | 'users' | 'profile'
+export type ModuleKey =
+  | 'dashboard'
+  | 'devices'
+  | 'map'
+  | 'photos'
+  | 'videos'
+  | 'alarms'
+  | 'users'
+  | 'profile'
 
 // Permissions are module + action, not just module. A supervisor who can view
 // users but not create them, or watch recordings but not delete them, has no
@@ -20,9 +28,11 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   { key: 'dashboard', label: 'Dashboard', route: '/', icon: 'layout-dashboard' },
   { key: 'devices', label: 'Devices', route: '/devices', icon: 'cpu' },
-  { key: 'media', label: 'Media', route: '/media', icon: 'photo' },
+  { key: 'map', label: 'Live Map', route: '/map', icon: 'map-pin' },
+  { key: 'photos', label: 'Photo Record', route: '/photos', icon: 'photo' },
+  { key: 'videos', label: 'Video Record', route: '/videos', icon: 'video' },
   { key: 'alarms', label: 'Alarms', route: '/alarms', icon: 'alert-triangle' },
-  { key: 'users', label: 'Users & Roles', route: '/users', icon: 'users' },
+  { key: 'users', label: 'Administrators', route: '/users', icon: 'users' },
   { key: 'profile', label: 'Company Profile', route: '/profile', icon: 'building' },
 ]
 

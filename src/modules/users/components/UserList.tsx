@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { features } from '@/config/features'
 import { DataCard } from '@/shared/components/DataCard'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { useNow } from '@/shared/hooks/useNow'
@@ -139,8 +140,9 @@ export function UserList({ canEdit }: { canEdit: boolean }) {
       {canEdit && (
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs text-slate-500">
-            {users.length} {users.length === 1 ? 'person' : 'people'}. Accounts
-            exist only when an administrator creates them.
+            {users.length} {users.length === 1 ? 'administrator' : 'administrators'}.
+            Accounts exist only when an administrator creates them — there is no
+            sign-up.
           </p>
           <button
             onClick={() => setMode({ kind: 'create' })}
@@ -158,10 +160,11 @@ export function UserList({ canEdit }: { canEdit: boolean }) {
             title={<span className="text-sm font-medium text-slate-800">{user.name}</span>}
             badges={<StatusChip user={user} />}
             rows={[
-              { label: 'Staff ID', value: <span className="font-mono">{user.staffId}</span> },
-              ...(user.assignedSite ? [{ label: 'Site', value: user.assignedSite }] : []),
+              { label: 'Username', value: <span className="font-mono">{user.username}</span> },
+              ...(features.siteScoping && user.assignedSite
+                ? [{ label: 'Site', value: user.assignedSite }]
+                : []),
               ...(user.phone ? [{ label: 'Phone', value: user.phone }] : []),
-              { label: 'Helmets', value: user.assignedDeviceIds.length || '—' },
               {
                 label: 'Last active',
                 value: user.lastActiveAt ? formatLastSeen(user.lastActiveAt, now) : 'Never',
@@ -184,8 +187,8 @@ export function UserList({ canEdit }: { canEdit: boolean }) {
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
               <th className="px-4 py-2 font-medium">Person</th>
-              <th className="px-4 py-2 font-medium">Site</th>
-              <th className="px-4 py-2 font-medium">Helmets</th>
+              {features.siteScoping && <th className="px-4 py-2 font-medium">Site</th>}
+              <th className="px-4 py-2 font-medium">Phone</th>
               <th className="px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 font-medium">Role</th>
               <th className="px-4 py-2" />
@@ -196,12 +199,12 @@ export function UserList({ canEdit }: { canEdit: boolean }) {
               <tr key={user.id} className="border-t border-slate-100">
                 <td className="px-4 py-2">
                   <p className="font-medium text-slate-800">{user.name}</p>
-                  <p className="font-mono text-xs text-slate-400">{user.staffId}</p>
+                  <p className="font-mono text-xs text-slate-400">{user.username}</p>
                 </td>
-                <td className="px-4 py-2 text-slate-600">{user.assignedSite ?? '—'}</td>
-                <td className="px-4 py-2 text-slate-600">
-                  {user.assignedDeviceIds.length || '—'}
-                </td>
+                {features.siteScoping && (
+                  <td className="px-4 py-2 text-slate-600">{user.assignedSite ?? '—'}</td>
+                )}
+                <td className="px-4 py-2 text-slate-600">{user.phone ?? '—'}</td>
                 <td className="px-4 py-2">
                   <StatusChip user={user} />
                 </td>

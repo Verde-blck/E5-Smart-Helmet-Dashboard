@@ -11,6 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_LOGO_URL?: string
   readonly VITE_BRAND_PRIMARY?: string
   readonly VITE_BRAND_SECONDARY?: string
+  readonly VITE_GOOGLE_MAPS_API_KEY?: string
+  readonly VITE_GOOGLE_MAPS_MAP_ID?: string
   readonly VITE_USE_MOCKS?: string
 }
 

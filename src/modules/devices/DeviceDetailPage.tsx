@@ -1,21 +1,22 @@
-import { Link, useParams } from 'react-router-dom'
-import { useDevice } from './hooks/useDevices'
-import { formatLastSeen } from './lib/presence'
-import { AlarmBadge, StatusDot } from './components/StatusDot'
-import { Can } from '@/shared/components/Can'
-import { MediaGrid } from '@/modules/media/components/MediaGrid'
-import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
-import { useDeviceAssignees } from '@/modules/users/hooks/useRoles'
-import { StatusHistory } from './components/StatusHistory'
-import type { Telemetry } from './types'
+import { Link, useParams } from "react-router-dom";
+import { useDevice } from "./hooks/useDevices";
+import { formatLastSeen } from "./lib/presence";
+import { AlarmBadge, StatusDot } from "./components/StatusDot";
+import { Can } from "@/shared/components/Can";
+import { MediaGrid } from "@/modules/media/components/MediaGrid";
+import { useMediaList } from "@/modules/media/hooks/useMedia";
+import { AlarmFeed } from "@/modules/alarms/components/AlarmFeed";
+import { StatusHistory } from "./components/StatusHistory";
+import { FleetMap } from "@/modules/map/components/FleetMap";
+import type { Telemetry } from "./types";
 
 const PRESENCE_LABEL = {
-  online: 'Online',
-  degraded: 'Intermittent',
-  offline: 'Offline',
-} as const
+  online: "Online",
+  degraded: "Intermittent",
+  offline: "Offline",
+} as const;
 
-const boolLabel = (v: boolean) => (v ? 'Yes' : 'No')
+const boolLabel = (v: boolean) => (v ? "Yes" : "No");
 
 /**
  * Rows are built from what the helmet actually reported, not from a fixed
@@ -24,58 +25,70 @@ const boolLabel = (v: boolean) => (v ? 'Yes' : 'No')
  * altitude row — not "Altitude: 0 m", which reads as ground level.
  */
 function telemetryRows(t: Telemetry): Array<[string, string]> {
-  const rows: Array<[string, string]> = []
+  const rows: Array<[string, string]> = [];
   const push = (label: string, value: string | null) => {
-    if (value !== null) rows.push([label, value])
-  }
+    if (value !== null) rows.push([label, value]);
+  };
 
-  push('Battery', t.batteryPercent != null ? `${t.batteryPercent}%` : null)
-  push('Battery voltage', t.batteryVoltage != null ? `${t.batteryVoltage.toFixed(2)} V` : null)
-  push('Charging', t.isCharging != null ? boolLabel(t.isCharging) : null)
-  push('Worn', t.isWorn != null ? boolLabel(t.isWorn) : null)
-  push('Recording', t.isRecording != null ? boolLabel(t.isRecording) : null)
+  push("Battery", t.batteryPercent != null ? `${t.batteryPercent}%` : null);
   push(
-    'Location',
-    t.lat != null && t.lng != null ? `${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}` : null
-  )
-  push('Altitude', t.altitude != null ? `${t.altitude} m` : null)
-  push('Speed', t.speed != null ? `${t.speed} m/s` : null)
-  push('Heading', t.heading != null ? `${t.heading}°` : null)
-  push('Network', t.networkType ?? null)
-  push('Carrier', t.carrier ?? null)
-  push('Signal', t.signalStrength != null ? `${t.signalStrength} dBm` : null)
+    "Battery voltage",
+    t.batteryVoltage != null ? `${t.batteryVoltage.toFixed(2)} V` : null,
+  );
+  push("Charging", t.isCharging != null ? boolLabel(t.isCharging) : null);
+  push("Worn", t.isWorn != null ? boolLabel(t.isWorn) : null);
+  push("Recording", t.isRecording != null ? boolLabel(t.isRecording) : null);
+  push(
+    "Location",
+    t.lat != null && t.lng != null
+      ? `${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}`
+      : null,
+  );
+  push("Altitude", t.altitude != null ? `${t.altitude} m` : null);
+  push("Speed", t.speed != null ? `${t.speed} m/s` : null);
+  push("Heading", t.heading != null ? `${t.heading}°` : null);
+  push("Network", t.networkType ?? null);
+  push("Carrier", t.carrier ?? null);
+  push("Signal", t.signalStrength != null ? `${t.signalStrength} dBm` : null);
 
-  return rows
+  return rows;
 }
 
 export function DeviceDetailPage() {
-  const { id = '' } = useParams()
-  const { device, outOfScope, now, isLoading, isError } = useDevice(id)
-  const assignees = useDeviceAssignees(id)
+  const { id = "" } = useParams();
+  const { device, outOfScope, now, isLoading, isError } = useDevice(id);
+  // Both kinds for this helmet, newest first, trimmed to a strip.
+  const { media } = useMediaList({ deviceId: id });
 
-  if (isLoading) return <p className="text-sm text-slate-500">Loading…</p>
-  if (isError) return <p className="text-sm text-red-600">Failed to load this device.</p>
+  if (isLoading) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (isError)
+    return <p className="text-sm text-red-600">Failed to load this device.</p>;
   if (outOfScope) {
     return (
       <div className="max-w-md">
-        <h1 className="mb-2 text-lg font-semibold text-slate-800">Not available</h1>
+        <h1 className="mb-2 text-lg font-semibold text-slate-800">
+          Not available
+        </h1>
         <p className="text-sm text-slate-500">
-          That helmet is at a site you don't have access to.{' '}
+          That helmet is at a site you don't have access to.{" "}
           <Link to="/devices" className="text-brand-primary underline">
             Back to devices
           </Link>
           .
         </p>
       </div>
-    )
+    );
   }
-  if (!device) return <p className="text-sm text-red-600">Device not found.</p>
+  if (!device) return <p className="text-sm text-red-600">Device not found.</p>;
 
-  const rows = telemetryRows(device.telemetry)
+  const rows = telemetryRows(device.telemetry);
 
   return (
     <div className="max-w-3xl">
-      <Link to="/devices" className="text-sm text-slate-500 hover:text-slate-800">
+      <Link
+        to="/devices"
+        className="text-sm text-slate-500 hover:text-slate-800"
+      >
         ← Back to devices
       </Link>
       <div className="mt-3 flex items-center gap-2">
@@ -98,16 +111,32 @@ export function DeviceDetailPage() {
           <dt className="text-slate-500">Link type</dt>
           <dd className="uppercase text-slate-800">{device.connectivity}</dd>
           <dt className="text-slate-500">Last seen</dt>
-          <dd className="text-slate-800">{formatLastSeen(device.lastSeenAt, now)}</dd>
-          {/* The payoff of recording helmet assignment: an SOS from this
-              device can name a person and a phone number, not just an ID. */}
-          <dt className="text-slate-500">Responsible</dt>
           <dd className="text-slate-800">
-            {assignees.length === 0
-              ? 'Unassigned'
-              : assignees
-                  .map((u) => (u.phone ? `${u.name} · ${u.phone}` : u.name))
-                  .join(', ')}
+            {formatLastSeen(device.lastSeenAt, now)}
+          </dd>
+          {/* Comes from the device record, not from a dashboard account —
+              the person wearing this helmet never signs in here. It's what
+              turns an SOS from a device ID into a person to call. */}
+          <dt className="text-slate-500">Worn by</dt>
+          <dd className="text-slate-800">
+            {device.assignedTo ? (
+              <>
+                {device.assignedTo.name}
+                {device.assignedTo.jobTitle && (
+                  <span className="text-slate-500">
+                    {" "}
+                    · {device.assignedTo.jobTitle}
+                  </span>
+                )}
+                {device.assignedTo.phone && (
+                  <span className="block text-slate-500">
+                    {device.assignedTo.phone}
+                  </span>
+                )}
+              </>
+            ) : (
+              "Unassigned"
+            )}
           </dd>
         </dl>
       </section>
@@ -132,6 +161,21 @@ export function DeviceDetailPage() {
         )}
       </section>
 
+      <Can perm="map:read">
+        {device.telemetry.lat != null && (
+          <section className="mt-4">
+            <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+              Location
+            </h2>
+            <FleetMap
+              devices={[device]}
+              focusDeviceId={device.id}
+              heightClass="h-64"
+            />
+          </section>
+        )}
+      </Can>
+
       <StatusHistory deviceId={device.id} />
 
       <Can perm="alarms:read">
@@ -140,7 +184,10 @@ export function DeviceDetailPage() {
             <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Alarm history
             </h2>
-            <Link to="/alarms" className="text-xs text-slate-500 hover:text-slate-800">
+            <Link
+              to="/alarms"
+              className="text-xs text-slate-500 hover:text-slate-800"
+            >
               View all →
             </Link>
           </div>
@@ -148,17 +195,31 @@ export function DeviceDetailPage() {
         </section>
       </Can>
 
-      <Can perm="media:read">
+      <Can perm="photos:read">
         <section className="mt-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Recent media
             </h2>
-            <Link to={`/media`} className="text-xs text-slate-500 hover:text-slate-800">
-              View all →
-            </Link>
+            <span className="flex gap-3 text-xs">
+              <Link
+                to="/photos"
+                className="text-slate-500 hover:text-slate-800"
+              >
+                Photos →
+              </Link>
+              <Link
+                to="/videos"
+                className="text-slate-500 hover:text-slate-800"
+              >
+                Videos →
+              </Link>
+            </span>
           </div>
-          <MediaGrid deviceId={device.id} limit={4} />
+          <MediaGrid
+            items={media.slice(0, 4)}
+            emptyMessage="Nothing captured from this helmet yet."
+          />
         </section>
       </Can>
 
@@ -167,5 +228,5 @@ export function DeviceDetailPage() {
         samples already carry lat/lng.
       </p>
     </div>
-  )
+  );
 }

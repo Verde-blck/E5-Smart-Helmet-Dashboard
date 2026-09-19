@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
 import { deleteMedia, fetchMedia, fetchMediaUrl } from '../api/media.api'
-import type { MediaItem } from '../types'
+import type { MediaItem, MediaQuery } from '../types'
 
 /**
  * Signed URLs are issued with a 15-minute TTL. Cache them for ten so React
@@ -13,17 +13,33 @@ import type { MediaItem } from '../types'
  */
 const SIGNED_URL_CACHE_MS = 10 * 60_000
 
-export function useMediaList(deviceId?: string) {
+export function useMediaList(query: MediaQuery = {}) {
   const tenantId = useTenantId()
   const { inScope } = useSiteScope()
-  const { data, isLoading, isError } = useQuery({
-    queryKey: deviceId ? qk.media.byDevice(tenantId, deviceId) : qk.media.all(tenantId),
-    queryFn: () => fetchMedia(deviceId),
+
+  // Spread into a plain object so the key is stable regardless of how the
+  // caller built the query, and so undefined fields don't create variants.
+  const key = useMemo(
+    () => ({
+      kind: query.kind ?? null,
+      deviceId: query.deviceId ?? null,
+      date: query.date ?? null,
+      search: query.search?.trim() || null,
+    }),
+    [query.kind, query.deviceId, query.date, query.search]
+  )
+
+  const { data, isLoading, isError, isFetching } = useQuery({
+    queryKey: qk.media.list(tenantId, key),
+    queryFn: () => fetchMedia(query),
+    // Keeps the previous page visible while a new filter loads, rather than
+    // flashing an empty grid every time the date changes.
+    placeholderData: (previous) => previous,
   })
 
   const media = useMemo(() => (data ?? []).filter((m) => inScope(m.site)), [data, inScope])
 
-  return { media, isLoading, isError }
+  return { media, isLoading, isFetching, isError, cacheKey: key }
 }
 
 export function useMediaUrl(id: string | null) {
@@ -38,10 +54,10 @@ export function useMediaUrl(id: string | null) {
   })
 }
 
-export function useDeleteMedia(deviceId?: string) {
+export function useDeleteMedia(cacheKey: Record<string, unknown>) {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
-  const key = deviceId ? qk.media.byDevice(tenantId, deviceId) : qk.media.all(tenantId)
+  const key = qk.media.list(tenantId, cacheKey)
 
   return useMutation({
     mutationFn: (id: string) => deleteMedia(id),
@@ -55,7 +71,7 @@ export function useDeleteMedia(deviceId?: string) {
       if (context?.previous) queryClient.setQueryData(key, context.previous)
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: key })
+      // Every filtered list, since a deleted item may appear in several.
       void queryClient.invalidateQueries({ queryKey: qk.media.all(tenantId) })
     },
   })

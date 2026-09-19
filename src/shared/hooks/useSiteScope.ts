@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useAuthStore } from '@/shared/store/authStore'
+import { features } from '@/config/features'
 
 /**
  * Site-level visibility.
@@ -20,8 +21,13 @@ import { useAuthStore } from '@/shared/store/authStore'
 export function useSiteScope() {
   const scope = useAuthStore((s) => s.user?.scope)
 
-  const allSites = scope?.allSites ?? true
-  const sites = useMemo(() => scope?.sites ?? [], [scope?.sites])
+  // Dormant by default — see config/features.ts. Everything below still works
+  // when it's switched on; this just makes every check pass while it's off.
+  const allSites = !features.siteScoping || (scope?.allSites ?? true)
+  const sites = useMemo(
+    () => (features.siteScoping ? (scope?.sites ?? []) : []),
+    [scope?.sites]
+  )
 
   const inScope = useCallback(
     (site?: string) => {
