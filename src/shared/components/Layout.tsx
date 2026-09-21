@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { ScopeBanner } from './ScopeBanner'
+import { ErrorBoundary } from './ErrorBoundary'
 
 // App-shell layout: the page itself never scrolls, only <main> does. That
 // removes the need for a sticky sidebar entirely — a sticky flex child can end
@@ -31,7 +32,11 @@ export function Layout() {
         <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
           {/* Shown once, above every page, rather than repeated per module. */}
           <ScopeBanner />
-          <Outlet />
+          {/* Keyed on the path so navigating away from a crashed page clears
+              the error, rather than leaving the fallback stuck there. */}
+          <ErrorBoundary key={location.pathname} label="This page">
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

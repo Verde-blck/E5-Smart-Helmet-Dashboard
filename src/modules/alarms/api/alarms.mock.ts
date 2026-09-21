@@ -1,5 +1,6 @@
-import type { Alarm } from '../types'
 import { getMockFleet } from '@/modules/devices/api/devices.mock'
+import { severityForType } from '../types'
+import type { Alarm, AlarmType } from '../types'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -7,79 +8,66 @@ const HOUR = 60 * MINUTE
 const fleet = getMockFleet()
 const device = (i: number) => fleet[i] ?? fleet[0]
 
+function make(
+  id: string,
+  deviceIndex: number,
+  type: AlarmType,
+  raisedAgoMs: number,
+  extras: Partial<Alarm> = {}
+): Alarm {
+  const d = device(deviceIndex)
+  return {
+    id,
+    deviceId: d.id,
+    deviceName: d.name,
+    site: d.site,
+    type,
+    severity: severityForType(type),
+    status: 'active',
+    raisedAt: Date.now() - raisedAgoMs,
+    lat: d.telemetry.lat,
+    lng: d.telemetry.lng,
+    ...extras,
+  }
+}
+
+// Covers every severity and both states, plus the three alarm types the
+// firmware raises that weren't modelled before this integration.
 const alarms: Alarm[] = [
-  {
-    id: 'alm-001',
-    deviceId: device(2).id,
-    deviceName: device(2).name,
-    site: device(2).site,
-    type: 'sos',
-    severity: 'critical',
-    status: 'active',
-    raisedAt: Date.now() - 4 * MINUTE,
-    lat: device(2).telemetry.lat,
-    lng: device(2).telemetry.lng,
-    note: 'SOS button held for 3s',
-  },
-  {
-    id: 'alm-002',
-    deviceId: device(7).id,
-    deviceName: device(7).name,
-    site: device(7).site,
-    type: 'helmet-removal',
-    severity: 'warning',
-    status: 'active',
-    raisedAt: Date.now() - 22 * MINUTE,
-  },
-  {
-    id: 'alm-003',
-    deviceId: device(9).id,
-    deviceName: device(9).name,
-    site: device(9).site,
-    type: 'low-power',
-    severity: 'warning',
-    status: 'acknowledged',
-    raisedAt: Date.now() - 2 * HOUR,
-    acknowledgedAt: Date.now() - 100 * MINUTE,
-    acknowledgedBy: 'NG_David',
-  },
-  {
-    id: 'alm-004',
-    deviceId: device(5).id,
-    deviceName: device(5).name,
-    site: device(5).site,
-    type: 'fall',
-    severity: 'critical',
+  make('alm-001', 2, 'sos', 4 * MINUTE, { note: 'SOS button held for 3s' }),
+  make('alm-002', 7, 'helmet-removal', 22 * MINUTE),
+  make('alm-003', 4, 'near-electric', 48 * MINUTE, { note: 'Proximity to live conductor' }),
+  make('alm-004', 6, 'silent', 90 * MINUTE),
+  make('alm-005', 9, 'low-power', 2 * HOUR, {
     status: 'resolved',
-    raisedAt: Date.now() - 5 * HOUR,
-    acknowledgedAt: Date.now() - 295 * MINUTE,
-    acknowledgedBy: 'NG_David',
+    resolvedAt: Date.now() - 100 * MINUTE,
+    resolvedBy: 'NG_David',
+  }),
+  make('alm-006', 5, 'fall', 5 * HOUR, {
+    status: 'resolved',
     resolvedAt: Date.now() - 4 * HOUR,
+    resolvedBy: 'NG_David',
     note: 'False positive — dropped helmet',
-  },
-  {
-    id: 'alm-005',
-    deviceId: device(12).id,
-    deviceName: device(12).name,
-    site: device(12).site,
-    type: 'geofence',
-    severity: 'warning',
+  }),
+  make('alm-007', 12, 'geofence', 26 * HOUR, {
     status: 'resolved',
-    raisedAt: Date.now() - 26 * HOUR,
     resolvedAt: Date.now() - 25 * HOUR,
-  },
+  }),
+  make('alm-008', 3, 'ascending', 30 * HOUR, {
+    status: 'resolved',
+    resolvedAt: Date.now() - 29 * HOUR,
+  }),
 ]
 
 export function getMockAlarms(): Alarm[] {
   return alarms.map((a) => ({ ...a }))
 }
 
-export function acknowledgeMockAlarm(id: string, by: string): Alarm | undefined {
+export function setMockAlarmResolved(id: string, resolved: boolean, by: string): void {
   const found = alarms.find((a) => a.id === id)
-  if (!found || found.status !== 'active') return found ? { ...found } : undefined
+  if (!found) return
 
-  found.status = 'acknowledged'
-  found.acknowledgedAt = Date.now()
-  found.acknowledgedBy = by
-  return { ...found }
+  found.status = resolved ? 'resolved' : 'active'
+  found.resolvedAt = resolved ? Date.now() : undefined
+  found.resolvedBy = resolved ? by : undefined
 }

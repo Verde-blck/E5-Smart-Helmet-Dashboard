@@ -19,7 +19,7 @@ export function AlarmsPage() {
               activeOnly ? 'bg-brand-primary/10 font-medium text-slate-900' : 'text-slate-500'
             }`}
           >
-            Active ({active.length})
+            Unresolved ({active.length})
           </button>
           <button
             onClick={() => setActiveOnly(false)}
@@ -34,8 +34,8 @@ export function AlarmsPage() {
 
       {critical > 0 && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {critical} unacknowledged critical {critical === 1 ? 'event' : 'events'} — SOS and
-          fall events need a response.
+          {critical} unresolved critical {critical === 1 ? 'event' : 'events'} — SOS,
+          fall, silent and near-electricity alarms need a response.
         </div>
       )}
 

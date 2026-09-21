@@ -77,3 +77,12 @@ export function parseGasData(raw: unknown): GasReading[] {
     })
     .filter((r): r is GasReading => r !== null)
 }
+
+/**
+ * The API has no device name, only the IMEI. "866652022956404" becomes
+ * "…56404", which an operator can at least recognise. Replace this the moment
+ * the backend has real names.
+ */
+export function shortDeviceName(deviceId: string): string {
+  return deviceId.length > 5 ? `…${deviceId.slice(-5)}` : deviceId
+}

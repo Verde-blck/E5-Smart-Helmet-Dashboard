@@ -3,6 +3,7 @@ import { SummaryCards } from '@/modules/devices/components/SummaryCards'
 import { DeviceList } from '@/modules/devices/components/DeviceList'
 import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
 import { Can } from '@/shared/components/Can'
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary'
 
 // Reuses the devices and alarms modules' components rather than duplicating
 // them — "Dashboard overview" and those modules show overlapping data by
@@ -21,7 +22,9 @@ export function DashboardOverviewPage() {
               View all →
             </Link>
           </div>
-          <AlarmFeed activeOnly />
+          <ErrorBoundary label="Active alarms">
+            <AlarmFeed activeOnly />
+          </ErrorBoundary>
         </section>
       </Can>
 
@@ -30,7 +33,9 @@ export function DashboardOverviewPage() {
         Map view goes here once a map provider is wired in — per-device lat/lng
         is already in the telemetry model.
       </p>
-      <DeviceList />
+      <ErrorBoundary label="The fleet list">
+        <DeviceList />
+      </ErrorBoundary>
     </div>
   )
 }

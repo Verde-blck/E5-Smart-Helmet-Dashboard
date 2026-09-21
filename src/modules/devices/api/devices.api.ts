@@ -1,6 +1,14 @@
 import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
-import { flag, millivoltsToVolts, num, pageContent, parseGasData, ts } from '@/shared/lib/api-normalize'
+import {
+  flag,
+  millivoltsToVolts,
+  num,
+  pageContent,
+  parseGasData,
+  shortDeviceName,
+  ts,
+} from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
 import { getMockDevice, getMockFleet, getMockTelemetryWindow } from './devices.mock'
 import { HISTORY_RANGES } from '../lib/history'
@@ -38,19 +46,10 @@ interface ApiTelemetry {
   recordedAt?: string | null
 }
 
-/**
- * The API has no device name, so one is derived from the tail of the IMEI.
- * "866652022956404" becomes "…56404", which is what an operator can actually
- * recognise at a glance. Replace this the moment the backend has real names.
- */
-function displayName(deviceId: string): string {
-  return deviceId.length > 5 ? `…${deviceId.slice(-5)}` : deviceId
-}
-
 function toDevice(api: ApiDevice): Device {
   return {
     id: api.deviceId,
-    name: displayName(api.deviceId),
+    name: shortDeviceName(api.deviceId),
     // site, assignedTo and activeAlarm have no source in the API yet.
     active: api.active ?? true,
     connectivity: 'sim',

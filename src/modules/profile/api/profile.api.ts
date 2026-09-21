@@ -16,8 +16,30 @@ import type { TenantProfile } from '../types'
  */
 export async function fetchProfile(): Promise<TenantProfile> {
   if (env.useMocks) return getMockProfile()
-  const { data } = await apiClient.get<TenantProfile>('/tenant/profile')
-  return data
+
+  try {
+    const { data } = await apiClient.get<TenantProfile>('/tenant/profile')
+    return data
+  } catch (error: unknown) {
+    // The endpoint doesn't exist on the backend yet. A 404 means "not built",
+    // not "broken", so fall back to the deployment's own branding rather than
+    // showing the operator a failed settings page.
+    const status =
+      typeof error === 'object' && error !== null
+        ? (error as { response?: { status?: number } }).response?.status
+        : undefined
+    if (status !== 404) throw error
+
+    return {
+      id: 'standalone',
+      name: env.standaloneAppName,
+      logoUrl: env.standaloneLogoUrl,
+      colors: {
+        primary: env.standaloneBrandPrimary,
+        secondary: env.standaloneBrandSecondary,
+      },
+    }
+  }
 }
 
 export async function updateProfile(patch: Partial<TenantProfile>): Promise<TenantProfile> {

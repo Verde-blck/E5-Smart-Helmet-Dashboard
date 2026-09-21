@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Can } from '@/shared/components/Can'
 import { DataCard } from '@/shared/components/DataCard'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
-import { useAcknowledgeAlarm, useAlarms } from '../hooks/useAlarms'
+import { useAlarms, useResolveAlarm } from '../hooks/useAlarms'
 import { alarmLabel } from '../types'
 import type { Alarm, AlarmSeverity, AlarmStatus } from '../types'
 
@@ -13,13 +13,11 @@ const SEVERITY_DOT: Record<AlarmSeverity, string> = {
 
 const STATUS_STYLE: Record<AlarmStatus, string> = {
   active: 'bg-red-50 text-red-700 ring-red-200',
-  acknowledged: 'bg-amber-50 text-amber-700 ring-amber-200',
   resolved: 'bg-slate-50 text-slate-500 ring-slate-200',
 }
 
 const STATUS_LABEL: Record<AlarmStatus, string> = {
-  active: 'Active',
-  acknowledged: 'Acknowledged',
+  active: 'Unresolved',
   resolved: 'Resolved',
 }
 
@@ -31,27 +29,29 @@ function StatusChip({ alarm }: { alarm: Alarm }) {
       >
         {STATUS_LABEL[alarm.status]}
       </span>
-      {alarm.acknowledgedBy && alarm.status !== 'active' && (
-        <span className="ml-2 text-xs text-slate-400">by {alarm.acknowledgedBy}</span>
+      {alarm.resolvedBy && alarm.status === 'resolved' && (
+        <span className="ml-2 text-xs text-slate-400">by {alarm.resolvedBy}</span>
       )}
     </>
   )
 }
 
-function AcknowledgeButton({ alarm, full }: { alarm: Alarm; full?: boolean }) {
-  const acknowledge = useAcknowledgeAlarm()
-  if (alarm.status !== 'active') return null
+function ResolveButton({ alarm, full }: { alarm: Alarm; full?: boolean }) {
+  const resolve = useResolveAlarm()
+  const resolved = alarm.status === 'resolved'
 
   return (
     <Can perm="alarms:write">
       <button
-        onClick={() => acknowledge.mutate(alarm.id)}
-        disabled={acknowledge.isPending}
-        className={`rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-white disabled:opacity-50 ${
-          full ? 'w-full' : ''
-        }`}
+        onClick={() => resolve.mutate({ id: alarm.id, resolved: !resolved })}
+        disabled={resolve.isPending}
+        className={`rounded border border-slate-300 px-2 py-1 text-xs hover:bg-white disabled:opacity-50 ${
+          resolved ? 'text-slate-500' : 'text-slate-700'
+        } ${full ? 'w-full' : ''}`}
       >
-        Acknowledge
+        {/* Reopening matters: an alarm closed by mistake during an incident
+            has to be recoverable without a database edit. */}
+        {resolved ? 'Reopen' : 'Mark resolved'}
       </button>
     </Can>
   )
@@ -89,7 +89,7 @@ export function AlarmFeed({
     return (
       <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
         {activeOnly
-          ? 'No active alarms.'
+          ? 'No unresolved alarms.'
           : deviceId
             ? 'No alarm events for this helmet.'
             : 'No alarm events recorded yet.'}
@@ -117,7 +117,7 @@ export function AlarmFeed({
               { label: 'Raised', value: formatLastSeen(alarm.raisedAt, now) },
               ...(alarm.note ? [{ label: 'Note', value: alarm.note }] : []),
             ]}
-            action={<AcknowledgeButton alarm={alarm} full />}
+            action={<ResolveButton alarm={alarm} full />}
           />
         ))}
       </div>
@@ -157,7 +157,7 @@ export function AlarmFeed({
                   <StatusChip alarm={alarm} />
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <AcknowledgeButton alarm={alarm} />
+                  <ResolveButton alarm={alarm} />
                 </td>
               </tr>
             ))}

@@ -54,6 +54,9 @@ export interface MediaItem {
   thumbnailUrl?: string
   triggeredBy?: MediaTrigger
   alarmId?: string
+  /** Where the helmet was when it captured this. */
+  lat?: number
+  lng?: number
 }
 
 /** What GET /media/:id/url returns. Never cached beyond its TTL. */
