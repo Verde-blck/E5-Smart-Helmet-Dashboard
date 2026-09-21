@@ -12,6 +12,11 @@ function Badges({ device }: { device: DeviceView }) {
       {device.telemetry.isRecording && (
         <span className="text-[11px] font-medium text-red-600">REC</span>
       )}
+      {!device.active && (
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+          Inactive
+        </span>
+      )}
     </>
   )
 }
@@ -44,7 +49,7 @@ export function DeviceList() {
             }
             badges={<Badges device={device} />}
             rows={[
-              { label: 'Site', value: device.site },
+              { label: 'Site', value: device.site ?? '—' },
               { label: 'Link', value: device.connectivity.toUpperCase() },
               { label: 'Battery', value: battery(device) },
               { label: 'Last seen', value: formatLastSeen(device.lastSeenAt, now) },
@@ -74,7 +79,7 @@ export function DeviceList() {
                     <Badges device={device} />
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-slate-600">{device.site}</td>
+                <td className="px-4 py-2 text-slate-600">{device.site ?? '—'}</td>
                 <td className="px-4 py-2 uppercase text-slate-600">{device.connectivity}</td>
                 <td className="px-4 py-2 text-slate-600">{battery(device)}</td>
                 <td

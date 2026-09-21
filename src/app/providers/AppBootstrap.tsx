@@ -5,6 +5,7 @@ import { defaultTheme } from '@/config/theme.default'
 import { applyBrandColors } from '@/shared/lib/color'
 import { mockAdmin, mockTenant } from '@/shared/lib/mock-data'
 import { apiClient } from '@/shared/lib/api-client'
+import { restoreSession } from '@/modules/auth/api/auth.api'
 import { endSession } from '@/shared/lib/session'
 import { startRealtime, stopRealtime } from '@/app/realtime/realtime'
 import { startMockHeartbeats } from '@/app/realtime/mock-heartbeats'
@@ -49,9 +50,9 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
           })
         }
 
-        // Relies on the httpOnly auth cookie; 401 here just means "not logged in"
-        const { data: user } = await apiClient.get('/auth/me')
-        setUser(user)
+        // No /auth/me endpoint: the session is reconstructed from the stored
+        // token, which carries the username and expiry in its payload.
+        setUser(restoreSession())
 
         // Standalone seeds its branding from env so the login screen is already
         // branded, but the saved tenant profile wins once a session exists.

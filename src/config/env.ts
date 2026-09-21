@@ -3,7 +3,9 @@
 // to one file.
 export const env = {
   multiTenant: import.meta.env.VITE_MULTI_TENANT === 'true',
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api',
+  apiBaseUrl:
+    import.meta.env.VITE_API_BASE_URL ??
+    'https://e5energy-production.up.railway.app/api',
   wsUrl: import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080/ws',
   standaloneAppName: import.meta.env.VITE_APP_NAME ?? 'Helmet Dashboard',
   standaloneLogoUrl: import.meta.env.VITE_APP_LOGO_URL ?? '',

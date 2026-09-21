@@ -15,15 +15,20 @@ export function SummaryCards() {
       d.telemetry.batteryPercent < 20
   ).length
 
+  // Registration state, not presence — a deactivated helmet can still be
+  // connected and reporting.
+  const inactive = devices.filter((d) => !d.active).length
+
   const cards = [
     { label: 'Total devices', value: devices.length, color: 'text-slate-900' },
     { label: 'Online now', value: online, color: 'text-emerald-600' },
     { label: 'Active alarms', value: alarms, color: 'text-red-600' },
     { label: 'Low battery', value: lowBattery, color: 'text-amber-600' },
+    { label: 'Deactivated', value: inactive, color: 'text-slate-500' },
   ]
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
       {cards.map((c) => (
         <div key={c.label} className="rounded-lg border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">{c.label}</p>

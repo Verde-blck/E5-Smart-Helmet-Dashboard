@@ -22,4 +22,21 @@ export const features = {
    * the unfiltered response from devtools.
    */
   siteScoping: false,
+
+  /**
+   * Live push over a dashboard WebSocket.
+   *
+   * Dormant. The backend's /ws is used by the helmets to report in, and is
+   * explicitly not for the dashboard — there is no dashboard-facing socket
+   * yet. The client, event router and reconnect logic are all still here and
+   * work; flip this on if one is added later.
+   *
+   * Until then the dashboard polls. Note the trade-off: at a 10s interval an
+   * SOS can be up to ten seconds stale, which is a product decision for a
+   * safety system rather than a purely technical one.
+   */
+  realtimeSocket: false,
+
+  /** How often the live views re-fetch while polling stands in for push. */
+  pollIntervalMs: 10_000,
 } as const

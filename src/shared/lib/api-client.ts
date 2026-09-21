@@ -1,12 +1,20 @@
 import axios from 'axios'
 import { env } from '@/config/env'
+import { tokenStore } from './token'
 
 // Every module's api/*.api.ts file should import THIS, not axios directly —
 // that keeps base URL, auth, and tenant-header logic in one place so it's
 // identical whether you're running SaaS or standalone.
 export const apiClient = axios.create({
   baseURL: env.apiBaseUrl,
-  withCredentials: true, // backend issues an httpOnly auth cookie
+})
+
+// Bearer token rather than a cookie, because that's what the API issues.
+// See shared/lib/token.ts for why it's stored where it is.
+apiClient.interceptors.request.use((config) => {
+  const token = tokenStore.get()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
 })
 
 // A hint for local dev on localhost, where there's no subdomain to read.
@@ -30,15 +38,16 @@ apiClient.interceptors.response.use(
 
     // A 401 from the login endpoint is "wrong password", not "session died" —
     // LoginPage surfaces that itself.
-    if (status === 401 && !url.includes('/auth/login')) {
+    // The API returns 403 as well as 401 for an expired or missing token, so
+    // both have to end the session — unlike a permissions 403, which this
+    // backend never sends, since every account is a full administrator.
+    if ((status === 401 || status === 403) && !url.includes('/auth/login')) {
       // AppBootstrap listens for this and ends the session. Reaching into the
       // store from here would import React state into a plain module and make
       // the teardown order impossible to follow.
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
     }
 
-    // 403 deliberately falls through: "you can't do that" must not log the
-    // user out, or a missing permission gets reported as a login bug.
     return Promise.reject(error)
   }
 )

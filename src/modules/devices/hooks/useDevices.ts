@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { useNow } from '@/shared/hooks/useNow'
+import { features } from '@/config/features'
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
-import { fetchDevice, fetchDevices } from '../api/devices.api'
+import { fetchDevice, fetchDevices, setDeviceActive } from '../api/devices.api'
 import { toDeviceView } from '../lib/presence'
 import type { DeviceView } from '../types'
 
@@ -16,9 +17,12 @@ export function useDevices() {
   const tenantId = useTenantId()
   const now = useNow()
   const { inScope } = useSiteScope()
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, dataUpdatedAt, isLoading, isError, refetch } = useQuery({
     queryKey: qk.devices.all(tenantId),
     queryFn: fetchDevices,
+    // Polling stands in for push: the backend's WebSocket is for helmets, not
+    // for the dashboard. See config/features.ts.
+    refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
   })
 
   const devices = useMemo<DeviceView[]>(
@@ -26,7 +30,7 @@ export function useDevices() {
     [data, now, inScope]
   )
 
-  return { devices, now, isLoading, isError, refetch }
+  return { devices, now, dataUpdatedAt, isLoading, isError, refetch }
 }
 
 export function useDevice(id: string) {
@@ -37,6 +41,7 @@ export function useDevice(id: string) {
     queryKey: qk.devices.detail(tenantId, id),
     queryFn: () => fetchDevice(id),
     enabled: !!id,
+    refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
   })
 
   const device = useMemo<DeviceView | null>(
@@ -49,4 +54,23 @@ export function useDevice(id: string) {
   const outOfScope = !!data && !inScope(data.site)
 
   return { device: outOfScope ? null : device, outOfScope, now, isLoading, isError }
+}
+
+/**
+ * Activate or deactivate a helmet — a registration state an administrator
+ * controls, not something the device reports. Both the fleet list and the
+ * detail view are refreshed, since either may be on screen.
+ */
+export function useSetDeviceActive() {
+  const queryClient = useQueryClient()
+  const tenantId = useTenantId()
+
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      setDeviceActive(id, active),
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: qk.devices.all(tenantId) })
+      void queryClient.invalidateQueries({ queryKey: qk.devices.detail(tenantId, id) })
+    },
+  })
 }

@@ -1,5 +1,4 @@
-import { env } from '@/config/env'
-import { apiClient } from './api-client'
+import { clearSession } from '@/modules/auth/api/auth.api'
 import { queryClient } from '@/app/providers/query-client'
 import { useAuthStore } from '@/shared/store/authStore'
 import { stopRealtime } from '@/app/realtime/realtime'
@@ -11,14 +10,11 @@ import { stopRealtime } from '@/app/realtime/realtime'
  * refetch lands.
  */
 export async function endSession({ notifyBackend = false } = {}) {
-  if (notifyBackend && !env.useMocks) {
-    try {
-      await apiClient.post('/auth/logout')
-    } catch {
-      // Cookie may already be expired or revoked — local teardown still runs.
-    }
-  }
+  // No logout endpoint exists, so notifyBackend is a no-op for now. Kept in
+  // the signature so call sites don't change when one is added.
+  void notifyBackend
 
+  clearSession()
   stopRealtime()
   useAuthStore.getState().clearUser()
   queryClient.clear()

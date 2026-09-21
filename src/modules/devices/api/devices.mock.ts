@@ -47,6 +47,7 @@ const fleet: Device[] = NAMES.map((name, i) => {
     name,
     site: SITES[i % SITES.length],
     assignedTo: WEARERS[i % WEARERS.length],
+    active: i !== 11, // one helmet deactivated, to exercise the state
     connectivity,
     lastSeenAt:
       i === OFFLINE_DEVICE_INDEX
@@ -69,6 +70,12 @@ const fleet: Device[] = NAMES.map((name, i) => {
             isWorn: i !== 7,
             isCharging: i === OFFLINE_DEVICE_INDEX,
             isRecording: i === 2,
+            gas: [
+              { gas: 'CH4', value: Number((Math.random() * 0.4).toFixed(1)) },
+              { gas: 'O2', value: Number((20.4 + Math.random() * 0.6).toFixed(1)) },
+              { gas: 'CO', value: Number((Math.random() * 3).toFixed(1)) },
+              { gas: 'H2S', value: Number((Math.random() * 1.2).toFixed(1)) },
+            ],
           },
   }
 })

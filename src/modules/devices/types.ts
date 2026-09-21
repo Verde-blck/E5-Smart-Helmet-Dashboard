@@ -1,4 +1,5 @@
 import type { AlarmSeverity } from '@/modules/alarms/types'
+import type { GasReading } from '@/shared/lib/api-normalize'
 
 export type { AlarmSeverity }
 
@@ -31,6 +32,12 @@ export interface Telemetry {
   isWorn?: boolean
   isCharging?: boolean
   isRecording?: boolean
+  /**
+   * Gas sensor readings. This helmet is a gas detector — the protocol reports
+   * up to twelve gases, of which a given unit carries only some. Sensors that
+   * aren't fitted are omitted rather than reported as zero.
+   */
+  gas?: GasReading[]
 }
 
 /**
@@ -54,9 +61,17 @@ export interface DeviceAssignment {
 
 export interface Device {
   id: string
+  /** Display name. The API has no name field yet, so this falls back to a
+   *  short form of the device ID — see devices.api.ts. */
   name: string
-  site: string
+  /** Not supplied by the API. Optional until it is. */
+  site?: string
   assignedTo?: DeviceAssignment
+  /**
+   * Registration state, set by an administrator — distinct from presence.
+   * A deactivated helmet can still be connected and reporting.
+   */
+  active: boolean
   connectivity: ConnectivityType
   lastSeenAt: number
   activeAlarm: AlarmSeverity | null
@@ -77,6 +92,11 @@ export interface TelemetrySample {
   signalStrength?: number
   lat?: number
   lng?: number
+  altitude?: number
+  isCharging?: boolean
+  isWorn?: boolean
+  /** Per-sample gas readings, so a history view can chart exposure over time. */
+  gas?: GasReading[]
 }
 
 export type HistoryRange = '1h' | '24h' | '7d'
