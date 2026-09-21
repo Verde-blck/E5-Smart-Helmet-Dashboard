@@ -3,11 +3,31 @@ import { DataCard } from '@/shared/components/DataCard'
 import { useDevices } from '../hooks/useDevices'
 import { formatLastSeen } from '../lib/presence'
 import { AlarmBadge, StatusDot } from './StatusDot'
+import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import type { DeviceView } from '../types'
+
+function GasBadge({ device }: { device: DeviceView }) {
+  const statuses = evaluateAll(device.telemetry.gas)
+  const worst = worstLevel(statuses)
+  // Only shown when there's something to say — a green "gas normal" badge on
+  // every row is noise that trains people to stop looking at the column.
+  if (worst !== 'danger' && worst !== 'warning') return null
+
+  const flagged = statuses.filter((s) => s.level === worst).map((s) => s.gas)
+  return (
+    <span
+      className={`rounded px-1.5 py-0.5 text-[10px] font-medium ring-1 ${GAS_LEVEL_STYLE[worst].chip}`}
+      title={`${flagged.join(', ')} out of range`}
+    >
+      {flagged.join(', ')}
+    </span>
+  )
+}
 
 function Badges({ device }: { device: DeviceView }) {
   return (
     <>
+      <GasBadge device={device} />
       {device.activeAlarm && <AlarmBadge severity={device.activeAlarm} />}
       {device.telemetry.isRecording && (
         <span className="text-[11px] font-medium text-red-600">REC</span>

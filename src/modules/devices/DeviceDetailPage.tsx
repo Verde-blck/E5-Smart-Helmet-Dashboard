@@ -8,6 +8,8 @@ import { useMediaList } from '@/modules/media/hooks/useMedia'
 import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
 import { StatusHistory } from './components/StatusHistory'
 import { DeviceCommands } from './components/DeviceCommands'
+import { GasPanel } from './components/GasPanel'
+import { useDeviceHistory } from './hooks/useDeviceHistory'
 import { FleetMap } from '@/modules/map/components/FleetMap'
 import type { Telemetry } from './types'
 
@@ -56,6 +58,14 @@ export function DeviceDetailPage() {
   // Both kinds for this helmet, newest first, trimmed to a strip.
   const { media } = useMediaList({ deviceId: id })
   const setActive = useSetDeviceActive()
+
+  // Gas only arrives on telemetry rows, not on the device record, so the most
+  // recent sample is the current reading. Worth asking the backend to include
+  // it on GET /devices — without it there's no way to flag gas across the
+  // fleet without one request per helmet.
+  const { window: recent } = useDeviceHistory(id, '1h')
+  const latestSample = recent?.samples[recent.samples.length - 1]
+  const gasReadings = device?.telemetry.gas ?? latestSample?.gas
 
   if (isLoading) return <p className="text-sm text-slate-500">Loading…</p>
   if (isError) return <p className="text-sm text-red-600">Failed to load this device.</p>
@@ -163,35 +173,7 @@ export function DeviceDetailPage() {
         )}
       </section>
 
-      {device.telemetry.gas && device.telemetry.gas.length > 0 && (
-        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-            Gas readings
-          </h2>
-          <p className="mb-3 text-[11px] text-slate-400">
-            Only sensors fitted to this helmet are listed. A missing gas means
-            no sensor, which is not the same as a reading of zero.
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {device.telemetry.gas.map((reading) => {
-              // Oxygen is the one that alarms when it drops: below 19.5% is a
-              // confined-space hazard. The others alarm when they rise.
-              const low = reading.gas === 'O2' && reading.value < 19.5
-              return (
-                <div key={reading.gas} className="rounded border border-slate-200 p-2">
-                  <p className="text-[11px] text-slate-500">{reading.gas}</p>
-                  <p
-                    className={`text-sm font-medium ${low ? 'text-red-600' : 'text-slate-800'}`}
-                  >
-                    {reading.value}
-                    {reading.gas === 'O2' ? '%' : ''}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      <GasPanel readings={gasReadings} capturedAt={latestSample?.ts} />
 
       <DeviceCommands device={device} />
 

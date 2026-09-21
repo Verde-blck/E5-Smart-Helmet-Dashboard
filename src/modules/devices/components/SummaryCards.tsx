@@ -1,4 +1,5 @@
 import { useDevices } from '../hooks/useDevices'
+import { evaluateAll, worstLevel } from '../lib/gas'
 
 export function SummaryCards() {
   const { devices } = useDevices()
@@ -19,16 +20,28 @@ export function SummaryCards() {
   // connected and reporting.
   const inactive = devices.filter((d) => !d.active).length
 
+  // Helmets reporting a gas reading outside its thresholds. Counted only for
+  // devices that actually carry sensors, so a fleet without gas detection
+  // never shows this card at all.
+  const gasReporting = devices.filter((d) => (d.telemetry.gas?.length ?? 0) > 0)
+  const gasAlerts = gasReporting.filter((d) => {
+    const worst = worstLevel(evaluateAll(d.telemetry.gas))
+    return worst === 'danger' || worst === 'warning'
+  }).length
+
   const cards = [
     { label: 'Total devices', value: devices.length, color: 'text-slate-900' },
     { label: 'Online now', value: online, color: 'text-emerald-600' },
     { label: 'Active alarms', value: alarms, color: 'text-red-600' },
     { label: 'Low battery', value: lowBattery, color: 'text-amber-600' },
     { label: 'Deactivated', value: inactive, color: 'text-slate-500' },
+    ...(gasReporting.length > 0
+      ? [{ label: 'Gas alerts', value: gasAlerts, color: 'text-red-600' }]
+      : []),
   ]
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
       {cards.map((c) => (
         <div key={c.label} className="rounded-lg border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">{c.label}</p>

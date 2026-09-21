@@ -3,6 +3,7 @@ import { useDeviceHistory } from '../hooks/useDeviceHistory'
 import { HISTORY_RANGES } from '../lib/history'
 import { BatteryChart } from './BatteryChart'
 import { ConnectionTimeline } from './ConnectionTimeline'
+import { GasHistoryChart } from './GasHistoryChart'
 import type { HistoryRange } from '../types'
 
 const RANGES: HistoryRange[] = ['1h', '24h', '7d']
@@ -85,6 +86,13 @@ export function StatusHistory({ deviceId }: { deviceId: string }) {
           </div>
 
           <BatteryChart window={win} />
+
+          <GasHistoryChart
+            samples={win.samples}
+            rangeStart={win.rangeStart}
+            rangeEnd={win.rangeEnd}
+            range={win.range}
+          />
 
           <p className="mt-2 text-[11px] text-slate-400">
             {HISTORY_RANGES[range].label} · one reading per{' '}

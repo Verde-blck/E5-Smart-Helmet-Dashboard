@@ -70,12 +70,30 @@ const fleet: Device[] = NAMES.map((name, i) => {
             isWorn: i !== 7,
             isCharging: i === OFFLINE_DEVICE_INDEX,
             isRecording: i === 2,
-            gas: [
-              { gas: 'CH4', value: Number((Math.random() * 0.4).toFixed(1)) },
-              { gas: 'O2', value: Number((20.4 + Math.random() * 0.6).toFixed(1)) },
-              { gas: 'CO', value: Number((Math.random() * 3).toFixed(1)) },
-              { gas: 'H2S', value: Number((Math.random() * 1.2).toFixed(1)) },
-            ],
+            // Device 6 is in a confined space with oxygen displaced and CO
+            // building — the scenario the thresholds exist for. Device 10 is
+            // borderline, to show the warning state as well as danger.
+            gas:
+              i === 6
+                ? [
+                    { gas: 'CH4', value: 2.1 },
+                    { gas: 'O2', value: 18.6 },
+                    { gas: 'CO', value: 142 },
+                    { gas: 'H2S', value: 3.4 },
+                  ]
+                : i === 10
+                  ? [
+                      { gas: 'CH4', value: 12.4 },
+                      { gas: 'O2', value: 20.6 },
+                      { gas: 'CO', value: 11 },
+                      { gas: 'H2S', value: 0.4 },
+                    ]
+                  : [
+                      { gas: 'CH4', value: Number((Math.random() * 0.4).toFixed(1)) },
+                      { gas: 'O2', value: Number((20.6 + Math.random() * 0.4).toFixed(1)) },
+                      { gas: 'CO', value: Number((Math.random() * 3).toFixed(1)) },
+                      { gas: 'H2S', value: Number((Math.random() * 1.2).toFixed(1)) },
+                    ],
           },
   }
 })
