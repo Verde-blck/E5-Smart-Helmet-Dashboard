@@ -7,6 +7,8 @@ import type {
   TelemetryWindow,
 } from '../types'
 import { HISTORY_RANGES } from '../lib/history'
+import { ONLINE_WINDOW_MS } from '../lib/presence'
+import type { FleetSummary } from '../types'
 import type { AlarmSeverity } from '@/modules/alarms/types'
 
 // A 15-helmet fleet so the whole app is browsable with VITE_USE_MOCKS=true and
@@ -100,6 +102,42 @@ const fleet: Device[] = NAMES.map((name, i) => {
 
 export function getMockFleet(): Device[] {
   return fleet.map((d) => ({ ...d, telemetry: { ...d.telemetry } }))
+}
+
+/** Mirrors what the backend counts, so mock and live behave the same way. */
+export function getMockSummary(): FleetSummary {
+  const now = Date.now()
+  const online = fleet.filter((d) => now - d.lastSeenAt < ONLINE_WINDOW_MS).length
+  const active = fleet.filter((d) => d.active).length
+
+  return {
+    total: fleet.length,
+    online,
+    offline: fleet.length - online,
+    active,
+    inactive: fleet.length - active,
+    alarms24h: fleet.filter((d) => d.activeAlarm !== null).length,
+  }
+}
+
+/** Commissioning a helmet that hasn't reported yet. */
+export function registerMockDevice(deviceId: string): Device {
+  const existing = fleet.find((d) => d.id === deviceId)
+  if (existing) return { ...existing, telemetry: { ...existing.telemetry } }
+
+  const device: Device = {
+    id: deviceId,
+    name: `…${deviceId.slice(-5)}`,
+    connectivity: 'sim',
+    // Never seen. Presence derives to offline, which is correct — it exists
+    // in the system but has not yet phoned home.
+    lastSeenAt: 0,
+    activeAlarm: null,
+    active: true,
+    telemetry: {},
+  }
+  fleet.push(device)
+  return { ...device }
 }
 
 export function getMockDevice(id: string): Device | undefined {

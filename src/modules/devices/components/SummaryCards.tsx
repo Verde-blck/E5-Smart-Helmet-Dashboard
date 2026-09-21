@@ -1,14 +1,23 @@
-import { useDevices } from '../hooks/useDevices'
+import { useDevices, useFleetSummary } from '../hooks/useDevices'
 import { evaluateAll, worstLevel } from '../lib/gas'
+
+interface Card {
+  label: string
+  value: number
+  color: string
+  /** Counted in the browser rather than reported by the backend. */
+  derived?: boolean
+}
 
 export function SummaryCards() {
   const { devices } = useDevices()
+  const { summary } = useFleetSummary()
 
-  // Presence and alarm state are counted independently. Previously a helmet in
-  // alarm was excluded from "Online now" because both lived in one enum, so a
-  // connected fleet of 14 reported 13.
-  const online = devices.filter((d) => d.presence === 'online').length
-  const alarms = devices.filter((d) => d.activeAlarm !== null).length
+  // Presence and alarm state are counted independently — a helmet in alarm is
+  // still connected, and collapsing the two under-reported the fleet.
+  const onlineLocal = devices.filter((d) => d.presence === 'online').length
+  const inactiveLocal = devices.filter((d) => !d.active).length
+
   const lowBattery = devices.filter(
     (d) =>
       d.presence !== 'offline' &&
@@ -16,27 +25,36 @@ export function SummaryCards() {
       d.telemetry.batteryPercent < 20
   ).length
 
-  // Registration state, not presence — a deactivated helmet can still be
-  // connected and reporting.
-  const inactive = devices.filter((d) => !d.active).length
-
-  // Helmets reporting a gas reading outside its thresholds. Counted only for
-  // devices that actually carry sensors, so a fleet without gas detection
-  // never shows this card at all.
+  // Only counted for helmets that actually carry sensors, so a fleet without
+  // gas detection never shows the card at all.
   const gasReporting = devices.filter((d) => (d.telemetry.gas?.length ?? 0) > 0)
   const gasAlerts = gasReporting.filter((d) => {
     const worst = worstLevel(evaluateAll(d.telemetry.gas))
     return worst === 'danger' || worst === 'warning'
   }).length
 
-  const cards = [
-    { label: 'Total devices', value: devices.length, color: 'text-slate-900' },
-    { label: 'Online now', value: online, color: 'text-emerald-600' },
-    { label: 'Active alarms', value: alarms, color: 'text-red-600' },
-    { label: 'Low battery', value: lowBattery, color: 'text-amber-600' },
-    { label: 'Deactivated', value: inactive, color: 'text-slate-500' },
+  /**
+   * The server's counts win where it provides them. It is the authority on
+   * what "online" means, and its totals stay correct even if the device list
+   * is ever paginated. Low battery and gas have no server-side equivalent, so
+   * those are still counted here.
+   */
+  const cards: Card[] = [
+    { label: 'Total devices', value: summary?.total ?? devices.length, color: 'text-slate-900' },
+    { label: 'Online now', value: summary?.online ?? onlineLocal, color: 'text-emerald-600' },
+    {
+      label: 'Alarms (24h)',
+      value: summary?.alarms24h ?? devices.filter((d) => d.activeAlarm !== null).length,
+      color: 'text-red-600',
+    },
+    { label: 'Low battery', value: lowBattery, color: 'text-amber-600', derived: true },
+    {
+      label: 'Deactivated',
+      value: summary?.inactive ?? inactiveLocal,
+      color: 'text-slate-500',
+    },
     ...(gasReporting.length > 0
-      ? [{ label: 'Gas alerts', value: gasAlerts, color: 'text-red-600' }]
+      ? [{ label: 'Gas alerts', value: gasAlerts, color: 'text-red-600', derived: true }]
       : []),
   ]
 

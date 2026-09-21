@@ -5,7 +5,13 @@ import { useNow } from '@/shared/hooks/useNow'
 import { features } from '@/config/features'
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
-import { fetchDevice, fetchDevices, setDeviceActive } from '../api/devices.api'
+import {
+  fetchDevice,
+  fetchDevices,
+  fetchFleetSummary,
+  registerDevice,
+  setDeviceActive,
+} from '../api/devices.api'
 import { toDeviceView } from '../lib/presence'
 import type { DeviceView } from '../types'
 
@@ -71,6 +77,36 @@ export function useSetDeviceActive() {
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: qk.devices.all(tenantId) })
       void queryClient.invalidateQueries({ queryKey: qk.devices.detail(tenantId, id) })
+    },
+  })
+}
+
+/**
+ * Fleet totals straight from the backend.
+ *
+ * Deliberately a separate query from the device list: the counts must stay
+ * correct even if /devices is ever paginated, and the server is the authority
+ * on what "online" means.
+ */
+export function useFleetSummary() {
+  const tenantId = useTenantId()
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [...qk.devices.all(tenantId), 'summary'] as const,
+    queryFn: fetchFleetSummary,
+    refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
+  })
+
+  return { summary: data ?? null, isLoading, isError }
+}
+
+export function useRegisterDevice() {
+  const queryClient = useQueryClient()
+  const tenantId = useTenantId()
+
+  return useMutation({
+    mutationFn: (deviceId: string) => registerDevice(deviceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: qk.devices.all(tenantId) })
     },
   })
 }

@@ -115,3 +115,19 @@ export interface TelemetryWindow {
   stepMs: number
   samples: TelemetrySample[]
 }
+
+/**
+ * Pre-counted fleet totals from GET /api/dashboard/summary.
+ *
+ * Using the server's numbers rather than counting locally means the overview
+ * can't drift from what the backend believes — and it stays correct if the
+ * device list is ever paginated.
+ */
+export interface FleetSummary {
+  total: number
+  online: number
+  offline: number
+  active: number
+  inactive: number
+  alarms24h: number
+}

@@ -10,9 +10,21 @@ import {
   ts,
 } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
-import { getMockDevice, getMockFleet, getMockTelemetryWindow } from './devices.mock'
+import {
+  getMockDevice,
+  getMockFleet,
+  getMockSummary,
+  getMockTelemetryWindow,
+  registerMockDevice,
+} from './devices.mock'
 import { HISTORY_RANGES } from '../lib/history'
-import type { Device, HistoryRange, TelemetrySample, TelemetryWindow } from '../types'
+import type {
+  Device,
+  FleetSummary,
+  HistoryRange,
+  TelemetrySample,
+  TelemetryWindow,
+} from '../types'
 
 /** Exactly what GET /api/devices returns — every value a string. */
 interface ApiDevice {
@@ -78,6 +90,47 @@ export async function fetchDevice(id: string): Promise<Device | undefined> {
   if (env.useMocks) return getMockDevice(id)
   const { data } = await apiClient.get<ApiDevice>(`/devices/${id}`)
   return data ? toDevice(data) : undefined
+}
+
+interface ApiSummary {
+  totalHelmets?: number
+  onlineHelmets?: number
+  offlineHelmets?: number
+  activeHelmets?: number
+  inactiveHelmets?: number
+  recentAlarmsCount24h?: number
+}
+
+export async function fetchFleetSummary(): Promise<FleetSummary> {
+  if (env.useMocks) return getMockSummary()
+
+  const { data } = await apiClient.get<ApiSummary>('/dashboard/summary')
+  return {
+    total: data.totalHelmets ?? 0,
+    online: data.onlineHelmets ?? 0,
+    offline: data.offlineHelmets ?? 0,
+    active: data.activeHelmets ?? 0,
+    inactive: data.inactiveHelmets ?? 0,
+    alarms24h: data.recentAlarmsCount24h ?? 0,
+  }
+}
+
+/**
+ * Commissions a helmet before it has ever connected, so an administrator
+ * unboxing a crate of units can enter them rather than waiting for each one
+ * to phone home.
+ *
+ * Idempotent on the backend: posting an ID that already exists returns the
+ * existing record rather than creating a duplicate. It does not validate the
+ * body, though — an empty or malformed request produces a 500 — so the ID is
+ * checked here before it's sent.
+ */
+export async function registerDevice(deviceId: string): Promise<Device> {
+  const id = deviceId.trim()
+  if (env.useMocks) return registerMockDevice(id)
+
+  const { data } = await apiClient.post<ApiDevice>('/devices', { deviceId: id })
+  return toDevice(data)
 }
 
 /** Registration state. Independent of whether the helmet is connected. */
