@@ -46,8 +46,20 @@ function Badges({ device }: { device: DeviceView }) {
 const battery = (device: DeviceView) =>
   device.telemetry.batteryPercent != null ? `${device.telemetry.batteryPercent}%` : '—'
 
-export function DeviceList() {
-  const { devices, now, isLoading, isError } = useDevices()
+export function DeviceList({ search = '' }: { search?: string } = {}) {
+  const { devices: all, now, isLoading, isError } = useDevices()
+
+  // Same filter as the tile view, so switching between them never changes
+  // which helmets are on screen.
+  const needle = search.trim().toLowerCase()
+  const devices = needle
+    ? all.filter(
+        (d) =>
+          d.name.toLowerCase().includes(needle) ||
+          d.id.toLowerCase().includes(needle) ||
+          (d.assignedTo?.name ?? '').toLowerCase().includes(needle)
+      )
+    : all
 
   if (isLoading) return <p className="text-sm text-slate-500">Loading devices…</p>
   if (isError) return <p className="text-sm text-red-600">Failed to load devices.</p>

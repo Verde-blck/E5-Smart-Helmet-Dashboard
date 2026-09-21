@@ -1,6 +1,8 @@
 // The single source of truth for "what is a module" in this app.
 // Sidebar nav, route guards, and the RBAC editor all read from this list —
 // so adding a module means adding one entry here, not touching three files.
+import type { IconName } from '@/shared/components/ModuleIcon'
+
 export type ModuleKey =
   | 'dashboard'
   | 'devices'
@@ -22,16 +24,19 @@ export interface ModuleDef {
   key: ModuleKey
   label: string
   route: string
-  icon: string // icon name, wire up to your icon set of choice
+  icon: IconName
 }
 
 export const MODULES: ModuleDef[] = [
-  { key: 'dashboard', label: 'Dashboard', route: '/', icon: 'layout-dashboard' },
-  { key: 'devices', label: 'Devices', route: '/devices', icon: 'cpu' },
-  { key: 'map', label: 'Live Map', route: '/map', icon: 'map-pin' },
+  { key: 'dashboard', label: 'Dashboard', route: '/', icon: 'dashboard' },
+  // Labelled Monitoring Center to match the vendor's console, which is what
+  // the client already recognises. The module key stays `devices` so every
+  // permission string and route keeps working.
+  { key: 'devices', label: 'Monitoring Center', route: '/devices', icon: 'monitoring' },
+  { key: 'map', label: 'Live Map', route: '/map', icon: 'map' },
   { key: 'photos', label: 'Photo Record', route: '/photos', icon: 'photo' },
   { key: 'videos', label: 'Video Record', route: '/videos', icon: 'video' },
-  { key: 'alarms', label: 'Alarms', route: '/alarms', icon: 'alert-triangle' },
+  { key: 'alarms', label: 'Alarm Record', route: '/alarms', icon: 'alarm' },
   { key: 'users', label: 'Administrators', route: '/users', icon: 'users' },
   { key: 'profile', label: 'Company Profile', route: '/profile', icon: 'building' },
 ]

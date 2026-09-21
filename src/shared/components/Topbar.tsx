@@ -17,7 +17,7 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
+    <header className="app-chrome flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 px-4 sm:px-6">
       <button
         onClick={onOpenNav}
         aria-label="Open navigation"

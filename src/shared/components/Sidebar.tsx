@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { MODULES } from '@/shared/constants/modules'
 import { usePermission } from '@/shared/hooks/usePermission'
 import { useTenant } from '@/shared/hooks/useTenant'
+import { ModuleIcon } from './ModuleIcon'
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const tenant = useTenant()
@@ -29,14 +30,22 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           to={m.route}
           end={m.route === '/'}
           className={({ isActive }) =>
-            `rounded-md px-3 py-2 text-sm ${
+            `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm ${
               isActive
                 ? 'bg-brand-primary/10 font-medium text-slate-900'
                 : 'text-slate-600 hover:bg-slate-50'
             }`
           }
         >
-          {m.label}
+          {({ isActive }) => (
+            <>
+              <ModuleIcon
+                name={m.icon}
+                className={`h-4 w-4 shrink-0 ${isActive ? 'text-brand-primary' : 'text-slate-400'}`}
+              />
+              <span className="truncate">{m.label}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -45,7 +54,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <>
       {/* Desktop: a column in the app shell's flex row. */}
-      <aside className="hidden h-full w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white md:flex">
+      <aside className="app-chrome hidden h-full w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 md:flex">
         {brand}
         {nav}
       </aside>

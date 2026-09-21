@@ -17,3 +17,44 @@
 body {
   @apply bg-slate-50 text-slate-900;
 }
+
+@layer components {
+  /*
+   * The app's backdrop.
+   *
+   * Three layers: a fine dot grid for texture, and two wide colour washes
+   * tinted with the tenant's own brand — so a white-labelled deployment gets
+   * its own atmosphere rather than ours. Because the channels are stored as
+   * RGB triplets, the opacity here follows whatever colour the tenant picks.
+   *
+   * Kept deliberately faint. This is a safety dashboard: the red and amber of
+   * an alarm state must remain the most salient thing on the screen, and a
+   * background that competes with them is actively harmful.
+   *
+   * Applied to the non-scrolling shell rather than the scrolling pane, so the
+   * washes stay put as content moves — the same effect as
+   * `background-attachment: fixed`, without its repaint cost on mobile.
+   */
+  .app-canvas {
+    background-color: #f8fafc;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgb(100 116 139 / 0.055) 1px, transparent 0),
+      radial-gradient(900px 520px at 10% -8%, rgb(var(--brand-primary) / 0.1), transparent 62%),
+      radial-gradient(760px 460px at 98% 2%, rgb(var(--brand-secondary) / 0.07), transparent 58%);
+    background-size:
+      22px 22px,
+      100% 100%,
+      100% 100%;
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-attachment: scroll;
+  }
+
+  /*
+   * Sidebar and topbar sit on the canvas rather than beside it — enough
+   * translucency for the wash to read through, enough blur that text behind
+   * them never interferes with the nav.
+   */
+  .app-chrome {
+    @apply bg-white/85 backdrop-blur-sm;
+  }
+}

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { AlarmFeed } from './components/AlarmFeed'
+import { GasOverviewPanel } from './components/GasOverviewPanel'
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary'
 import { useAlarms } from './hooks/useAlarms'
 
 export function AlarmsPage() {
@@ -11,7 +13,7 @@ export function AlarmsPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-slate-800">Alarm &amp; event centre</h1>
+        <h1 className="text-lg font-semibold text-slate-800">Alarm record</h1>
         <div className="flex rounded-md border border-slate-200 bg-white p-0.5 text-xs">
           <button
             onClick={() => setActiveOnly(true)}
@@ -38,6 +40,10 @@ export function AlarmsPage() {
           fall, silent and near-electricity alarms need a response.
         </div>
       )}
+
+      <ErrorBoundary label="Gas exposure">
+        <GasOverviewPanel />
+      </ErrorBoundary>
 
       <AlarmFeed activeOnly={activeOnly} />
     </div>

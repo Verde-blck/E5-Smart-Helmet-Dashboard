@@ -25,11 +25,12 @@ export function Layout() {
   }, [])
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="app-canvas flex h-screen overflow-hidden">
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar onOpenNav={() => setNavOpen(true)} />
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
+        {/* Transparent so the canvas behind shows through as this scrolls. */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Shown once, above every page, rather than repeated per module. */}
           <ScopeBanner />
           {/* Keyed on the path so navigating away from a crashed page clears

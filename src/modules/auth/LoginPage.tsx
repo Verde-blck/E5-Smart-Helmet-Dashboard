@@ -57,10 +57,10 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="app-canvas flex h-screen items-center justify-center px-4">
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6"
+        className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
       >
         <h1 className="mb-1 text-lg font-semibold text-slate-800">Sign in</h1>
         <p className="mb-4 text-xs text-slate-500">
