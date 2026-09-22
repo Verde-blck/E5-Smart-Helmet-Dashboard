@@ -7,6 +7,8 @@ export type IconName =
   | 'alarm'
   | 'users'
   | 'building'
+  | 'sliders'
+  | 'route'
 
 /**
  * Hand-drawn rather than a library.
@@ -64,6 +66,21 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M3 20a6 6 0 0 1 12 0" />
       <path d="M16 11.5a3 3 0 0 0 0-6" />
       <path d="M17.5 20a5.5 5.5 0 0 0-2-4.3" />
+    </>
+  ),
+  route: (
+    <>
+      <circle cx="6" cy="19" r="2.5" />
+      <circle cx="18" cy="5" r="2.5" />
+      <path d="M8.5 19h5a4 4 0 0 0 0-8h-3a4 4 0 0 1 0-8h5" />
+    </>
+  ),
+  sliders: (
+    <>
+      <line x1="4" y1="8" x2="20" y2="8" />
+      <line x1="4" y1="16" x2="20" y2="16" />
+      <circle cx="9" cy="8" r="2.4" />
+      <circle cx="16" cy="16" r="2.4" />
     </>
   ),
   building: (

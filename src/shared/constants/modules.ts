@@ -7,10 +7,12 @@ export type ModuleKey =
   | 'dashboard'
   | 'devices'
   | 'map'
+  | 'trackPlayback'
   | 'photos'
   | 'videos'
   | 'alarms'
   | 'users'
+  | 'unitSettings'
   | 'profile'
 
 // Permissions are module + action, not just module. A supervisor who can view
@@ -34,10 +36,12 @@ export const MODULES: ModuleDef[] = [
   // permission string and route keeps working.
   { key: 'devices', label: 'Monitoring Center', route: '/devices', icon: 'monitoring' },
   { key: 'map', label: 'Live Map', route: '/map', icon: 'map' },
+  { key: 'trackPlayback', label: 'Track Playback', route: '/track-playback', icon: 'route' },
   { key: 'photos', label: 'Photo Record', route: '/photos', icon: 'photo' },
   { key: 'videos', label: 'Video Record', route: '/videos', icon: 'video' },
   { key: 'alarms', label: 'Alarm Record', route: '/alarms', icon: 'alarm' },
   { key: 'users', label: 'Administrators', route: '/users', icon: 'users' },
+  { key: 'unitSettings', label: 'Unit Setting', route: '/unit-setting', icon: 'sliders' },
   { key: 'profile', label: 'Company Profile', route: '/profile', icon: 'building' },
 ]
 

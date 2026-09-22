@@ -8,10 +8,12 @@ import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
 import { MapPage } from '@/modules/map/MapPage'
+import { TrackPlaybackPage } from '@/modules/track-playback/TrackPlaybackPage'
 import { PhotosPage } from '@/modules/media/PhotosPage'
 import { VideosPage } from '@/modules/media/VideosPage'
 import { AlarmsPage } from '@/modules/alarms/AlarmsPage'
 import { UsersPage } from '@/modules/users/UsersPage'
+import { UnitSettingPage } from '@/modules/unit-settings/UnitSettingPage'
 import { ProfilePage } from '@/modules/profile/ProfilePage'
 
 function UnauthorizedPage() {
@@ -95,6 +97,14 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="track-playback"
+          element={
+            <ProtectedRoute perm="trackPlayback:read">
+              <TrackPlaybackPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="photos"
           element={
             <ProtectedRoute perm="photos:read">
@@ -123,6 +133,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute perm="users:read">
               <UsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="unit-setting"
+          element={
+            <ProtectedRoute perm="unitSettings:read">
+              <UnitSettingPage />
             </ProtectedRoute>
           }
         />

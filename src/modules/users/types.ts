@@ -1,100 +1,43 @@
-import type { Action, ModuleKey, Permission } from '@/shared/constants/modules'
-
-export interface Role {
-  id: string
-  name: string
-  description?: string
-  permissions: Permission[]
-  /**
-   * System roles can't be edited or deleted. There is always exactly one —
-   * Admin — and it always holds every permission. It's the reason a tenant
-   * can't configure itself out of its own dashboard: however badly the other
-   * roles are set up, this one is a way back in.
-   */
-  isSystem: boolean
-  userCount: number
-  /**
-   * When true, holders of this role see every site regardless of which one
-   * they're assigned to.
-   *
-   * Without it, site scoping locks administrators out of their own fleet: an
-   * admin assigned to Site A would lose sight of B and C, including the
-   * helmets they need to register and the users they need to manage.
-   */
-  allSites: boolean
-}
-
-export interface ManagedUser {
-  id: string
-  /** Login identifier, issued by the employer. Unique per tenant. */
-  username: string
-  name: string
-  /** Contact only. Many site workers won't have one. */
-  email?: string
-  phone?: string
-  /**
-   * Dormant — see config/features.ts. Only meaningful if site scoping is
-   * reactivated; every dashboard user is currently an administrator with
-   * fleet-wide visibility.
-   */
-  assignedSite?: string
-  roleId: string
-  status: 'active' | 'invited' | 'disabled'
-  lastActiveAt?: number
-  /** True until the person replaces the password their administrator issued. */
-  mustChangePassword?: boolean
-}
-
-export interface NewUserInput {
-  username: string
-  name: string
-  email?: string
-  phone?: string
-  assignedSite?: string
-  roleId: string
-  /**
-   * Set by the administrator and passed on in person. The account is flagged
-   * mustChangePassword, so this value stops being valid the moment the person
-   * signs in.
-   */
-  initialPassword: string
-}
+import type { ApiPermission } from './lib/permissions'
 
 /**
- * Toggling one cell of the matrix, with the two implications that make the
- * result coherent:
+ * An administrator account, matching GET /api/admins exactly.
  *
- *  - granting write or delete grants read, because "can delete recordings but
- *    can't see them" isn't a state any screen can render;
- *  - revoking read revokes write and delete with it, for the same reason.
- *
- * Doing this at toggle time means an incoherent combination never reaches the
- * backend, rather than being rejected after the fact.
+ * Note what isn't here: roles as entities. `role` and `department` are free
+ * text on the account, and permissions attach directly to the administrator
+ * rather than to a shared role. The earlier design had roles as reusable
+ * permission templates; the backend doesn't model them, so neither do we.
  */
-export function togglePermission(
-  permissions: Permission[],
-  moduleKey: ModuleKey,
-  action: Action
-): Permission[] {
-  const next = new Set(permissions)
-  const target = `${moduleKey}:${action}` as Permission
-
-  if (next.has(target)) {
-    next.delete(target)
-    if (action === 'read') {
-      next.delete(`${moduleKey}:write` as Permission)
-      next.delete(`${moduleKey}:delete` as Permission)
-    }
-  } else {
-    next.add(target)
-    if (action !== 'read') next.add(`${moduleKey}:read` as Permission)
-  }
-
-  return [...next]
+export interface Administrator {
+  id: number
+  username: string
+  department?: string | null
+  role?: string | null
+  mobilePhone?: string | null
+  groupId?: number | null
+  permissions: ApiPermission[]
+  /** Helmets this administrator is limited to. Empty means no restriction. */
+  deviceIds: string[]
 }
 
-export function moduleAccessSummary(permissions: Permission[]): string {
-  const modules = new Set(permissions.map((p) => p.split(':')[0]))
-  if (modules.size === 0) return 'No access'
-  return `${modules.size} module${modules.size === 1 ? '' : 's'}`
+export interface NewAdministrator {
+  username: string
+  password: string
+  department?: string
+  role?: string
+  mobilePhone?: string
+  groupId?: number | null
+  permissions: ApiPermission[]
+  deviceIds: string[]
+}
+
+/** Editing omits the password unless it's being changed. */
+export type AdministratorUpdate = Partial<Omit<NewAdministrator, 'password'>> & {
+  password?: string
+}
+
+export interface Group {
+  id: number
+  name: string
+  createdBy?: string | null
 }
