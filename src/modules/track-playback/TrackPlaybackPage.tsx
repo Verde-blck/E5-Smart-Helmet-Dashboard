@@ -3,6 +3,7 @@ import { useDevices } from '@/modules/devices/hooks/useDevices'
 import { useTrack } from './hooks/useTrack'
 import { TrackMap } from './components/TrackMap'
 import { PlaybackControls } from './components/PlaybackControls'
+import { AvailabilityChart } from './components/AvailabilityChart'
 import { downloadCsv, formatDistance, formatDuration, trackToCsv } from './lib/track'
 
 function isoDate(ts: number): string {
@@ -47,7 +48,7 @@ export function TrackPlaybackPage() {
 
   const selected = devices.find((d) => d.id === deviceId) ?? null
 
-  const { track, isFetching, isError } = useTrack(
+  const { track, availability, isFetching, isError } = useTrack(
     deviceId,
     requested?.from ?? 0,
     requested?.to ?? 0,
@@ -155,9 +156,17 @@ export function TrackPlaybackPage() {
 
           {isError && <p className="text-sm text-red-600">Failed to load this track.</p>}
 
+          {availability && (
+            <div className="mb-4">
+              <AvailabilityChart summary={availability} />
+            </div>
+          )}
+
           {track && track.points.length === 0 && (
             <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-              No position fixes recorded for {selected?.name} in that period.
+              No position fixes recorded for {selected?.name} in that period — so
+              there is no route to replay. The chart above still shows when it
+              was reporting.
             </p>
           )}
 
