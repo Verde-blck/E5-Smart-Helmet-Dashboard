@@ -19,11 +19,11 @@ fifteen-helmet fleet with live heartbeats and needs no backend.
 
 **Mock sign-ins** — any password works:
 
-| Username | What it shows |
-|---|---|
-| `ADM-001` | Full administrator |
-| `OP-014` | A restricted role — the sidebar and landing redirect adapt |
-| `NEW-001` | The forced password change on first sign-in |
+| Username  | What it shows                                              |
+| --------- | ---------------------------------------------------------- |
+| `ADM-001` | Full administrator                                         |
+| `OP-014`  | A restricted role — the sidebar and landing redirect adapt |
+| `NEW-001` | The forced password change on first sign-in                |
 
 **Live backend** — set `VITE_USE_MOCKS=false` and sign in as `admin` /
 `test1234`.
@@ -36,18 +36,18 @@ warning and danger, late uploads, a deactivated unit, restricted roles.
 
 Ten sidebar entries, each a folder under `src/modules`:
 
-| Module | What it does |
-|---|---|
-| Dashboard | Fleet counts, online gauge, alarm frequency, map, unresolved alarms |
-| Monitoring Center | Helmet tiles or table, search, registration, activate/deactivate |
-| Live Map | Google Maps, markers coloured by presence — needs an API key |
-| Track Playback | Route replay with scrubber, distance and uptime stats, CSV export |
-| Photo Record | Gallery filtered by device and capture date |
-| Video Record | File list — no backend source yet, see below |
-| Alarm Record | Nine event types, resolve and reopen, fleet gas panel |
-| Administrators | Accounts, permissions, groups |
-| Unit Setting | Twenty-six per-helmet settings — no endpoint yet, see below |
-| Company Profile | Name, logo, brand colours, applied live |
+| Module            | What it does                                                        |
+| ----------------- | ------------------------------------------------------------------- |
+| Dashboard         | Fleet counts, online gauge, alarm frequency, map, unresolved alarms |
+| Monitoring Center | Helmet tiles or table, search, registration, activate/deactivate    |
+| Live Map          | Google Maps, markers coloured by presence — needs an API key        |
+| Track Playback    | Route replay with scrubber, distance and uptime stats, CSV export   |
+| Photo Record      | Gallery filtered by device and capture date                         |
+| Video Record      | File list — no backend source yet, see below                        |
+| Alarm Record      | Nine event types, resolve and reopen, fleet gas panel               |
+| Administrators    | Accounts, permissions, groups                                       |
+| Unit Setting      | Twenty-six per-helmet settings — no endpoint yet, see below         |
+| Company Profile   | Name, logo, brand colours, applied live                             |
 
 Device detail also carries telemetry, gas readings, status history, alarm
 history, media, remote commands and voice messaging.
@@ -107,16 +107,16 @@ is enforced anywhere until the backend enforces it.
 
 ## Configuration
 
-| Variable | Notes |
-|---|---|
-| `VITE_USE_MOCKS` | `true` runs the simulated fleet with no backend |
-| `VITE_API_BASE_URL` | Leave as `/api` in development — see CORS below |
-| `VITE_API_PROXY_TARGET` | Where the dev server forwards `/api` |
-| `VITE_MULTI_TENANT` | `true` for SaaS, `false` for a single-org install |
-| `VITE_GOOGLE_MAPS_API_KEY` | Needed for the map. Restrict it by HTTP referrer |
-| `VITE_GOOGLE_MAPS_MAP_ID` | Advanced markers won't load without one |
-| `VITE_APP_NAME`, `VITE_APP_LOGO_URL`, `VITE_BRAND_*` | Standalone branding |
-| `VITE_WS_URL` | Unused while `realtimeSocket` is dormant |
+| Variable                                             | Notes                                             |
+| ---------------------------------------------------- | ------------------------------------------------- |
+| `VITE_USE_MOCKS`                                     | `true` runs the simulated fleet with no backend   |
+| `VITE_API_BASE_URL`                                  | Leave as `/api` in development — see CORS below   |
+| `VITE_API_PROXY_TARGET`                              | Where the dev server forwards `/api`              |
+| `VITE_MULTI_TENANT`                                  | `true` for SaaS, `false` for a single-org install |
+| `VITE_GOOGLE_MAPS_API_KEY`                           | Needed for the map. Restrict it by HTTP referrer  |
+| `VITE_GOOGLE_MAPS_MAP_ID`                            | Advanced markers won't load without one           |
+| `VITE_APP_NAME`, `VITE_APP_LOGO_URL`, `VITE_BRAND_*` | Standalone branding                               |
+| `VITE_WS_URL`                                        | Unused while `realtimeSocket` is dormant          |
 
 ### CORS
 
