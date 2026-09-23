@@ -31,33 +31,28 @@ export interface PermissionNode {
   /** Absent for a grouping that exists only in the form — "Set" has no code. */
   code?: ApiPermission
   children?: PermissionNode[]
-  /** True when this module isn't built in the dashboard yet. */
-  pending?: boolean
 }
 
 /**
- * The tree as the reference platform presents it.
+ * The permissions an administrator can actually be granted.
  *
- * Task Manager and Fence are both real permissions *and* parents; Set is a
- * grouping with no code of its own. Ticking a parent doesn't imply its
- * children — each is granted separately, which is why they render as
- * independent checkboxes rather than a cascade.
+ * Deliberately shorter than the backend's catalogue. GET /api/permissions
+ * offers eighteen codes, including modules this dashboard has no screen for —
+ * Surveillance, Task Manager, Group Call, Fence, Bluetooth Beacon and
+ * Attendance Record. Offering them would let an administrator grant access to
+ * something that does not exist, which is worse than not offering them.
+ *
+ * To restore one when its module is built: add a node here and map it in
+ * MODULE_PERMISSION below. Nothing else needs to change.
+ *
+ * "Set" is a grouping with no code of its own, matching the reference
+ * platform. Ticking a parent does not imply its children — each is granted
+ * separately, and the API stores them as a flat list.
  */
 export const PERMISSION_TREE: PermissionNode[] = [
   { label: 'Dashboard', code: 'DASHBOARD' },
   { label: 'Monitoring Center', code: 'MONITORING_CENTER' },
-  { label: 'Surveillance', code: 'SURVEILLANCE', pending: true },
   { label: 'Track Playback', code: 'TRACK_PLAYBACK' },
-  {
-    label: 'Task Manager',
-    code: 'TASK_MANAGE',
-    pending: true,
-    children: [
-      { label: 'Task List', code: 'TASK_LIST', pending: true },
-      { label: 'Release Task', code: 'RELEASE_TASK', pending: true },
-    ],
-  },
-  { label: 'Group Call', code: 'GROUP_CALL', pending: true },
   {
     label: 'Set',
     children: [
@@ -66,19 +61,9 @@ export const PERMISSION_TREE: PermissionNode[] = [
       { label: 'Unit Setting', code: 'UNIT_SETTING' },
     ],
   },
-  {
-    label: 'Fence',
-    code: 'FENCE',
-    pending: true,
-    children: [
-      { label: 'Geo-fence', code: 'GEO_FENCE', pending: true },
-      { label: 'Bluetooth Beacon', code: 'BLUETOOTH_BEACON', pending: true },
-    ],
-  },
   { label: 'Alarm Record', code: 'ALARM_RECORD' },
   { label: 'Photo Record', code: 'PHOTO_RECORD' },
   { label: 'Video Record', code: 'VIDEO_RECORD' },
-  { label: 'Attendance Record', code: 'ATTENDANCE_RECORD', pending: true },
 ]
 
 export function allPermissionCodes(): ApiPermission[] {

@@ -1,4 +1,4 @@
-import { PERMISSION_TREE } from '../lib/permissions'
+import { PERMISSION_TREE, allPermissionCodes } from '../lib/permissions'
 import type { ApiPermission, PermissionNode } from '../lib/permissions'
 
 interface Props {
@@ -53,15 +53,6 @@ function Row({
           <span className={isHeading ? 'text-xs font-medium uppercase tracking-wide text-slate-400' : 'text-slate-700'}>
             {node.label}
           </span>
-
-          {/* Honest about what the backend knows versus what this dashboard
-              can actually show. Granting Track Playback today stores the
-              permission; there is no screen behind it yet. */}
-          {node.pending && (
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
-              not built yet
-            </span>
-          )}
         </label>
       )}
 
@@ -93,7 +84,11 @@ export function PermissionTree({ granted, disabled, onChange, available }: Props
     onChange([...next])
   }
 
-  const selectable = available.length > 0 ? available : []
+  // Only what the tree offers. Using the API's full catalogue here would let
+  // "Select all" grant permissions for modules that have no screen.
+  const selectable = allPermissionCodes().filter(
+    (code) => offered.size === 0 || offered.has(code)
+  )
 
   return (
     <div>

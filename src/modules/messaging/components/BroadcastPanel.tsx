@@ -68,7 +68,6 @@ export function BroadcastPanel({
   const fileRef = useRef<HTMLInputElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const [pending, setPending] = useState<{ blob: Blob; url: string } | null>(null)
-  const [text, setText] = useState('')
   const [note, setNote] = useState<string | null>(null)
   const [missingCount, setMissingCount] = useState(0)
 
@@ -169,31 +168,13 @@ export function BroadcastPanel({
 
         <Can perm="devices:write">
           <div className="border-t border-slate-200 px-4 py-3">
-            <label className="mb-1 block text-xs text-slate-500">Type a message</label>
-            <div className="flex gap-2">
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                disabled
-                placeholder="Text-to-speech isn't available yet"
-                className="min-w-0 flex-1 rounded border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm"
-              />
-              <button
-                disabled
-                className="rounded border border-slate-200 px-3 py-1.5 text-sm text-slate-400"
-              >
-                Send
-              </button>
-            </div>
-            <p className="mt-1 text-[11px] text-amber-700">
-              {/* The client asked for typed text spoken aloud by the helmet.
-                  The backend has no text-to-speech step, so this stays
-                  disabled rather than silently doing nothing. */}
-              The helmet can only play an audio file. Sending typed text needs a
-              text-to-speech step on the backend, which doesn't exist yet.
+            <p className="mb-1 text-xs text-slate-500">
+              {/* Voice only, by design. The helmet plays an audio file; it has
+                  no speech synthesis, so there is nothing to type into. */}
+              Record a message and the helmet will play it aloud to the wearer.
             </p>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {recorder.state === 'recording' ? (
                 <>
                   <button
