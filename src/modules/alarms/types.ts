@@ -15,6 +15,7 @@ export type AlarmType =
   | 'silent'
   | 'near-electric'
   | 'ascending'
+  | 'voice-message'
   | 'other'
 
 export type AlarmSeverity = 'critical' | 'warning'
@@ -60,6 +61,9 @@ const CODE_TO_TYPE: Record<string, AlarmType> = {
   '11': 'near-electric',
   '12': 'ascending',
   manual_sos_button: 'sos',
+  // A wearer recording a message surfaces here so it's noticed, rather than
+  // sitting unseen in a conversation nobody has open.
+  voice_message: 'voice-message',
 }
 
 export function alarmTypeFromCode(code: unknown): AlarmType {
@@ -80,6 +84,7 @@ export const ALARM_LABELS: Record<AlarmType, string> = {
   silent: 'Silent alarm',
   'near-electric': 'Near electricity',
   ascending: 'Working at height',
+  'voice-message': 'Voice message from wearer',
   other: 'Other event',
 }
 

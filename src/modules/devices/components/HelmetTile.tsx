@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import { formatLastSeen } from '../lib/presence'
 import type { DeviceView, Presence } from '../types'
@@ -91,11 +92,14 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <span className="truncate text-sm font-medium text-slate-800">{device.name}</span>
-        {!device.active && (
-          <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
-            Inactive
-          </span>
-        )}
+        <span className="flex shrink-0 items-center gap-1">
+          {!device.active && (
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+              Inactive
+            </span>
+          )}
+          <BroadcastButton deviceId={device.id} deviceName={device.name} />
+        </span>
       </div>
 
       <HelmetGlyph presence={device.presence} className="mx-auto h-16 w-auto" />

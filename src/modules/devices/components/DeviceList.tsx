@@ -3,6 +3,7 @@ import { DataCard } from '@/shared/components/DataCard'
 import { useDevices } from '../hooks/useDevices'
 import { formatLastSeen } from '../lib/presence'
 import { AlarmBadge, StatusDot } from './StatusDot'
+import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import type { DeviceView } from '../types'
 
@@ -80,6 +81,13 @@ export function DeviceList({ search = '' }: { search?: string } = {}) {
               </span>
             }
             badges={<Badges device={device} />}
+            action={
+              <BroadcastButton
+                deviceId={device.id}
+                deviceName={device.name}
+                label="Voice message"
+              />
+            }
             rows={[
               { label: 'Site', value: device.site ?? '—' },
               { label: 'Link', value: device.connectivity.toUpperCase() },
@@ -99,6 +107,7 @@ export function DeviceList({ search = '' }: { search?: string } = {}) {
               <th className="px-4 py-2 font-medium">Link</th>
               <th className="px-4 py-2 font-medium">Battery</th>
               <th className="px-4 py-2 font-medium">Last seen</th>
+              <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>

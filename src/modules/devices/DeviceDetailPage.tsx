@@ -9,6 +9,7 @@ import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
 import { StatusHistory } from './components/StatusHistory'
 import { DeviceCommands } from './components/DeviceCommands'
 import { GasPanel } from './components/GasPanel'
+import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { useDeviceHistory } from './hooks/useDeviceHistory'
 import { FleetMap } from '@/modules/map/components/FleetMap'
 import type { Telemetry } from './types'
@@ -102,10 +103,18 @@ export function DeviceDetailPage() {
           </span>
         )}
         <Can perm="devices:write">
+          <BroadcastButton
+            deviceId={device.id}
+            deviceName={device.name}
+            label="Voice message"
+            className="ml-auto"
+          />
+        </Can>
+        <Can perm="devices:write">
           <button
             onClick={() => setActive.mutate({ id: device.id, active: !device.active })}
             disabled={setActive.isPending}
-            className="ml-auto rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
             {setActive.isPending
               ? 'Saving…'

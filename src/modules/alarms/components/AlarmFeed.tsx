@@ -3,6 +3,7 @@ import { Can } from '@/shared/components/Can'
 import { DataCard } from '@/shared/components/DataCard'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { useAlarms, useResolveAlarm } from '../hooks/useAlarms'
+import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { alarmLabel } from '../types'
 import type { Alarm, AlarmSeverity, AlarmStatus } from '../types'
 
@@ -33,6 +34,26 @@ function StatusChip({ alarm }: { alarm: Alarm }) {
         <span className="ml-2 text-xs text-slate-400">by {alarm.resolvedBy}</span>
       )}
     </>
+  )
+}
+
+/**
+ * A voice message from a wearer is an alarm you listen to, not one you read.
+ * Opening the conversation straight from the row is the whole point of
+ * surfacing it here.
+ */
+function AlarmActions({ alarm, full }: { alarm: Alarm; full?: boolean }) {
+  return (
+    <span className={`flex items-center gap-2 ${full ? 'w-full' : 'justify-end'}`}>
+      {alarm.type === 'voice-message' && (
+        <BroadcastButton
+          deviceId={alarm.deviceId}
+          deviceName={alarm.deviceName}
+          label="Listen"
+        />
+      )}
+      <ResolveButton alarm={alarm} full={full} />
+    </span>
   )
 }
 
@@ -117,7 +138,7 @@ export function AlarmFeed({
               { label: 'Raised', value: formatLastSeen(alarm.raisedAt, now) },
               ...(alarm.note ? [{ label: 'Note', value: alarm.note }] : []),
             ]}
-            action={<ResolveButton alarm={alarm} full />}
+            action={<AlarmActions alarm={alarm} full />}
           />
         ))}
       </div>
@@ -157,7 +178,7 @@ export function AlarmFeed({
                   <StatusChip alarm={alarm} />
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <ResolveButton alarm={alarm} />
+                  <AlarmActions alarm={alarm} />
                 </td>
               </tr>
             ))}
