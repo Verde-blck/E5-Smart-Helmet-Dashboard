@@ -64,9 +64,7 @@ export function LoginPage() {
         className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
       >
         <h1 className="mb-1 text-lg font-semibold text-slate-800">Sign in</h1>
-        <p className="mb-4 text-xs text-slate-500">
-          Sign in to the command centre.
-        </p>
+      
 
         <label className="mb-1 block text-xs text-slate-500">Username</label>
         <input
