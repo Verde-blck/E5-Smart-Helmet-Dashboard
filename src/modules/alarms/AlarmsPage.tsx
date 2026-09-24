@@ -13,7 +13,7 @@ export function AlarmsPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-slate-800">Alarm record</h1>
+        
         <div className="flex rounded-md border border-slate-200 bg-white p-0.5 text-xs">
           <button
             onClick={() => setActiveOnly(true)}
