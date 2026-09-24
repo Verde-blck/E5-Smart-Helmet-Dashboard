@@ -82,7 +82,7 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Enter the administrator account you are looking for"
+          placeholder="Enter the administrator account "
           className="w-72 max-w-full rounded border border-slate-300 px-2.5 py-1.5 text-sm"
         />
         {canEdit && (

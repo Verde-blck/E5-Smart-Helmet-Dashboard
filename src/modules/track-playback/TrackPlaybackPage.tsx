@@ -66,10 +66,6 @@ export function TrackPlaybackPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-semibold text-slate-800">Track Playback</h1>
-      <p className="mb-4 text-xs text-slate-500">
-        Replay where a helmet has been over a chosen period.
-      </p>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
         <aside>
@@ -150,7 +146,7 @@ export function TrackPlaybackPage() {
             </button>
 
             {!deviceId && (
-              <span className="text-xs text-slate-500">Select a helmet to begin.</span>
+              <span className="text-xs text-slate-500"> </span>
             )}
           </div>
 
@@ -177,8 +173,6 @@ export function TrackPlaybackPage() {
                   {track.stats.impossibleJumps} position{' '}
                   {track.stats.impossibleJumps === 1 ? 'fix was' : 'fixes were'} excluded as
                   physically impossible — a jump too far to have been travelled in the time.
-                  This device's history contains readings from where it was tested before
-                  shipping, and counting them would add thousands of kilometres to the total.
                 </p>
               )}
 

@@ -19,7 +19,6 @@ export function VideosPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-slate-800">Video record</h1>
         {pending > 0 && (
           <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
             {pending} still uploading from{" "}

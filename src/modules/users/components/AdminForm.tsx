@@ -110,7 +110,7 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)]">
         <div className="space-y-3">
-          <Field label="Account name" required hint="What they sign in with.">
+          <Field label="Account name" required>
             <input
               value={values.username}
               onChange={(e) => set('username', e.target.value)}
@@ -127,14 +127,6 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
             />
           </Field>
 
-          <Field label="Role" hint="A label, not a permission set — permissions are chosen alongside.">
-            <input
-              value={values.role}
-              onChange={(e) => set('role', e.target.value)}
-              className={input}
-            />
-          </Field>
-
           <Field label="Mobile phone number">
             <input
               value={values.mobilePhone}
@@ -146,7 +138,6 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
           <Field
             label={editing ? 'New password' : 'Login password'}
             required={!editing}
-            hint={editing ? 'Leave blank to keep the current password.' : undefined}
           >
             <input
               type="text"
@@ -221,9 +212,7 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
               <p className="px-2.5 py-2 text-xs text-slate-500">No helmets match.</p>
             )}
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">
-            Leaving this empty means no device restriction.
-          </p>
+      
         </div>
       </div>
 

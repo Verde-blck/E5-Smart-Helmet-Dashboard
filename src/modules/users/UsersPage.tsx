@@ -6,8 +6,8 @@ import { GroupList } from './components/GroupList'
 type Tab = 'admins' | 'groups'
 
 const TAB_LABEL: Record<Tab, string> = {
-  admins: 'Administrator Setting',
-  groups: 'Group Setting',
+  admins: '',
+  groups: '',
 }
 
 export function UsersPage() {

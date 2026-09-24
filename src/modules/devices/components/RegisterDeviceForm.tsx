@@ -41,11 +41,6 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
   return (
     <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4">
       <h2 className="mb-1 text-sm font-medium text-slate-800">Register a helmet</h2>
-      <p className="mb-3 text-xs text-slate-500">
-        Adds a helmet before it has ever connected, so a new unit can be
-        commissioned on arrival rather than appearing by surprise the first
-        time it reports in.
-      </p>
 
       <div className="flex flex-wrap items-start gap-2">
         <input

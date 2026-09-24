@@ -29,7 +29,7 @@ export function GroupList({ canEdit }: { canEdit: boolean }) {
     <div className="max-w-2xl">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-xs text-slate-500">
-          Groups organise administrators. {groups.length}{' '}
+          {groups.length}{' '}
           {groups.length === 1 ? 'group' : 'groups'}.
         </p>
         {canEdit && !adding && (

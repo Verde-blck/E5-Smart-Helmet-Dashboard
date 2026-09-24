@@ -235,10 +235,6 @@ export function DeviceDetailPage() {
         </section>
       </Can>
 
-      <p className="mt-4 text-xs text-slate-400">
-        Location trail plugs in here once a map provider is chosen — history
-        samples already carry lat/lng.
-      </p>
     </div>
   )
 }

@@ -52,7 +52,6 @@ export function GroupCallPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-semibold text-slate-800">Group Call</h1>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <aside>
@@ -313,11 +312,6 @@ export function GroupCallPage() {
         </section>
       </div>
 
-      <p className="mt-4 text-[11px] text-slate-400">
-        Live push-to-talk needs an audio channel the backend does not expose
-        yet. Until it does, a group call is delivered as a recorded message to
-        each helmet. Last refreshed {new Date(now).toLocaleTimeString()}.
-      </p>
     </div>
   )
 }

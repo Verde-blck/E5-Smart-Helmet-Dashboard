@@ -12,9 +12,6 @@ export function PhotosPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-slate-800">
-        Photo record
-      </h1>
 
       <MediaFilters
         query={query}

@@ -18,7 +18,6 @@ export function MapPage() {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-slate-800">Live map</h1>
         <p className="text-xs text-slate-500">
           {located.length} of {devices.length} helmets reporting a position
           {missing > 0 && ` · ${missing} without a fix`}

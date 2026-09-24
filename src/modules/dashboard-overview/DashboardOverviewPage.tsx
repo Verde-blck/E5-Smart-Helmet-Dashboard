@@ -27,7 +27,6 @@ export function DashboardOverviewPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-slate-800">Dashboard</h1>
 
       <SummaryCards />
 

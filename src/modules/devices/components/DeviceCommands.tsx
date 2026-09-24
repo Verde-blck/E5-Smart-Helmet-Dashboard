@@ -21,10 +21,7 @@ export function DeviceCommands({ device }: { device: DeviceView }) {
         <h2 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
           Remote commands
         </h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Commands are queued if the helmet is offline and delivered when it
-          next reports in — usually within a minute.
-        </p>
+        
 
         <div className="flex flex-wrap gap-2">
           {ORDER.map((command) => (
