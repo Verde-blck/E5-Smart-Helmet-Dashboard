@@ -8,6 +8,7 @@ export type ModuleKey =
   | 'devices'
   | 'map'
   | 'trackPlayback'
+  | 'groupCall'
   | 'photos'
   | 'videos'
   | 'alarms'
@@ -37,6 +38,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'devices', label: 'Monitoring Center', route: '/devices', icon: 'monitoring' },
   { key: 'map', label: 'Live Map', route: '/map', icon: 'map' },
   { key: 'trackPlayback', label: 'Track Playback', route: '/track-playback', icon: 'route' },
+  { key: 'groupCall', label: 'Group Call', route: '/group-call', icon: 'megaphone' },
   { key: 'photos', label: 'Photo Record', route: '/photos', icon: 'photo' },
   { key: 'videos', label: 'Video Record', route: '/videos', icon: 'video' },
   { key: 'alarms', label: 'Alarm Record', route: '/alarms', icon: 'alarm' },

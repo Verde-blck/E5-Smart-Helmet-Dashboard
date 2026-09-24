@@ -9,6 +9,7 @@ export type IconName =
   | 'building'
   | 'sliders'
   | 'route'
+  | 'megaphone'
 
 /**
  * Hand-drawn rather than a library.
@@ -66,6 +67,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M3 20a6 6 0 0 1 12 0" />
       <path d="M16 11.5a3 3 0 0 0 0-6" />
       <path d="M17.5 20a5.5 5.5 0 0 0-2-4.3" />
+    </>
+  ),
+  megaphone: (
+    <>
+      <path d="M4 9v6h3l6 4V5L7 9H4Z" />
+      <path d="M17 9.5a4 4 0 0 1 0 5" />
+      <path d="M19.5 7a7.5 7.5 0 0 1 0 10" />
     </>
   ),
   route: (

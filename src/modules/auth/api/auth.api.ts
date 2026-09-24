@@ -44,6 +44,40 @@ export async function login(credentials: Credentials): Promise<AuthUser> {
   return userFromToken(data.token, credentials.username)
 }
 
+export interface RegisterInput {
+  username: string
+  password: string
+}
+
+/**
+ * Creates an account through the public registration endpoint.
+ *
+ * Responds in plain text rather than JSON — "User created" on success, or a
+ * 409 with "Username already exists". No token comes back, so the caller
+ * signs in afterwards to get one.
+ *
+ * Worth knowing: an account made this way has no permissions attached. That
+ * currently grants full access rather than none, because the backend does not
+ * yet enforce the permission list.
+ */
+export async function registerAccount(input: RegisterInput): Promise<void> {
+  if (env.useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    if (input.username.trim().toLowerCase() === 'admin') {
+      const conflict = new Error('exists') as Error & { response?: { status: number } }
+      conflict.response = { status: 409 }
+      throw conflict
+    }
+    return
+  }
+
+  await apiClient.post('/auth/register', {
+    username: input.username.trim(),
+    password: input.password,
+    accountId: null,
+  })
+}
+
 /**
  * Restores a session after a page reload, from the stored token rather than
  * from the server. Returns null when there's no token or it has expired.

@@ -44,6 +44,32 @@ export function useGoogleMaps() {
   const mapId = tenant?.mapsMapId || env.googleMapsMapId
 
   const [status, setStatus] = useState<Status>(apiKey ? 'loading' : 'no-key')
+
+  /**
+   * Google reports authentication failures — a rejected key, a referrer the
+   * key doesn't allow, billing not enabled — by calling this global rather
+   * than by rejecting the loader's promise. Without it the loader resolves
+   * happily, the map reports itself ready, and the first marker constructed
+   * throws from inside Google's own code with an unreadable message.
+   *
+   * Catching it here turns that crash into the explanatory panel the
+   * components already know how to render.
+   */
+  useEffect(() => {
+    const previous = window.gm_authFailure
+    window.gm_authFailure = () => {
+      setStatus('error')
+      setError(
+        "Google rejected the key for this address. Check the key's HTTP " +
+          'referrer restrictions include this site, and that billing is ' +
+          'enabled on the project.'
+      )
+      previous?.()
+    }
+    return () => {
+      window.gm_authFailure = previous
+    }
+  }, [])
   const [libraries, setLibraries] = useState<MapsLibraries | null>(null)
   const [error, setError] = useState<string | null>(null)
 

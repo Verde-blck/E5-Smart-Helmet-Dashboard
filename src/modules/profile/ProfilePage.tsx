@@ -113,9 +113,7 @@ export function ProfilePage() {
       <h1 className="mb-1 text-lg font-semibold text-slate-800">
         Company profile
       </h1>
-      <p className="mb-4 text-sm text-slate-500">
-        Branding applies immediately across the dashboard — no redeploy.
-      </p>
+  
 
       {!canEdit && (
         <p className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
@@ -149,9 +147,7 @@ export function ProfilePage() {
               disabled={!canEdit}
               className="w-full max-w-sm rounded border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"
             />
-            <p className="mt-1 text-[11px] text-slate-400">
-              Shown to this company's users when they need help.
-            </p>
+            
             {errors.supportEmail && (
               <p className="mt-1 text-xs text-red-600">
                 {errors.supportEmail.message}

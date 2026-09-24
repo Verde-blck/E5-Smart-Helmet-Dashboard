@@ -38,8 +38,8 @@ export interface PermissionNode {
  *
  * Deliberately shorter than the backend's catalogue. GET /api/permissions
  * offers eighteen codes, including modules this dashboard has no screen for —
- * Surveillance, Task Manager, Group Call, Fence, Bluetooth Beacon and
- * Attendance Record. Offering them would let an administrator grant access to
+ * Surveillance, Task Manager, Fence, Bluetooth Beacon and Attendance
+ * Record. Offering them would let an administrator grant access to
  * something that does not exist, which is worse than not offering them.
  *
  * To restore one when its module is built: add a node here and map it in
@@ -53,6 +53,7 @@ export const PERMISSION_TREE: PermissionNode[] = [
   { label: 'Dashboard', code: 'DASHBOARD' },
   { label: 'Monitoring Center', code: 'MONITORING_CENTER' },
   { label: 'Track Playback', code: 'TRACK_PLAYBACK' },
+  { label: 'Group Call', code: 'GROUP_CALL' },
   {
     label: 'Set',
     children: [
@@ -92,6 +93,7 @@ export const MODULE_PERMISSION: Record<ModuleKey, ApiPermission> = {
   devices: 'MONITORING_CENTER',
   map: 'MONITORING_CENTER',
   trackPlayback: 'TRACK_PLAYBACK',
+  groupCall: 'GROUP_CALL',
   photos: 'PHOTO_RECORD',
   videos: 'VIDEO_RECORD',
   alarms: 'ALARM_RECORD',

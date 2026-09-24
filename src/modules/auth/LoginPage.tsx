@@ -6,6 +6,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { env } from '@/config/env'
+import { Link } from 'react-router-dom'
 import { login } from './api/auth.api'
 
 const schema = z.object({
@@ -64,14 +65,15 @@ export function LoginPage() {
       >
         <h1 className="mb-1 text-lg font-semibold text-slate-800">Sign in</h1>
         <p className="mb-4 text-xs text-slate-500">
-          Accounts are created by your administrator.
+          Sign in to the command centre.
         </p>
 
         <label className="mb-1 block text-xs text-slate-500">Username</label>
         <input
           {...register('username')}
           autoComplete="username"
-          autoCapitalize="characters"
+          autoCapitalize="none"
+          autoCorrect="off"
           spellCheck={false}
           className="mb-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
         />
@@ -101,7 +103,11 @@ export function LoginPage() {
         </button>
 
         <p className="mt-3 text-center text-[11px] text-slate-400">
-          Forgotten your password? Your administrator can reset it.
+          No account?{' '}
+          <Link to="/register" className="text-brand-primary hover:underline">
+            Create one
+          </Link>
+          . Forgotten your password? Your administrator can reset it.
         </p>
 
         {env.useMocks && (

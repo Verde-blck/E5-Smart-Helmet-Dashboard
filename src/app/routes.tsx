@@ -4,11 +4,13 @@ import { RequireAuth } from '@/shared/components/RequireAuth'
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute'
 import { LandingRedirect } from './LandingRedirect'
 import { LoginPage } from '@/modules/auth/LoginPage'
+import { RegisterPage } from '@/modules/auth/RegisterPage'
 import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
 import { MapPage } from '@/modules/map/MapPage'
 import { TrackPlaybackPage } from '@/modules/track-playback/TrackPlaybackPage'
+import { GroupCallPage } from '@/modules/group-call/GroupCallPage'
 import { PhotosPage } from '@/modules/media/PhotosPage'
 import { VideosPage } from '@/modules/media/VideosPage'
 import { AlarmsPage } from '@/modules/alarms/AlarmsPage'
@@ -52,6 +54,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* Authenticated but outside the app shell: no sidebar, nothing to
           navigate to until the password has been changed. */}
@@ -101,6 +104,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute perm="trackPlayback:read">
               <TrackPlaybackPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="group-call"
+          element={
+            <ProtectedRoute perm="groupCall:read">
+              <GroupCallPage />
             </ProtectedRoute>
           }
         />

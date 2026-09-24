@@ -20,3 +20,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+interface Window {
+  /**
+   * Called by the Google Maps script when it rejects the API key — a bad key,
+   * a disallowed referrer, or billing not enabled. Google reports these here
+   * rather than by failing the script load.
+   */
+  gm_authFailure?: () => void
+}
