@@ -1,3 +1,11 @@
+/*
+ * Fonts: Inter for UI text, Epilogue for headings (the typeface on
+ * e5energyng.com), and Geist Mono for readings and device IDs. @import has
+ * to be the first statement in the file or browsers ignore it. The family
+ * names here must match tailwind.config.js exactly.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@500..800&family=Geist+Mono:wght@400..600&family=Inter:wght@400..700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,14 +16,32 @@
  * `var(--brand-primary): #0f766e` the opacity modifiers (bg-brand-primary/10)
  * compile to nothing at all — no rule is emitted and the element renders
  * unstyled. Overwritten at runtime by applyTheme() in AppBootstrap.
+ *
+ * Defaults are E5 Energy's: the teal from their logo (#0A6659) and the deep
+ * green of their website hero (#0C352F). Their orange is deliberately not a
+ * UI colour here; see the note on .app-canvas about alarm colours.
  */
 :root {
-  --brand-primary: 15 118 110;
-  --brand-secondary: 30 41 59;
+  --brand-primary: 10 102 89;
+  --brand-secondary: 12 53 47;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900;
+  /* font-sans resolves to Inter via fontFamily.sans in tailwind.config.js. */
+  @apply font-sans bg-slate-50 text-slate-900 antialiased;
+}
+
+@layer base {
+  /*
+   * Headings get Epilogue. Kept in the base layer so a utility on the element
+   * (text-white on a dark panel, font-semibold on a card title) still wins.
+   */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-bold tracking-tight text-slate-900;
+  }
 }
 
 @layer components {
@@ -50,11 +76,20 @@ body {
   }
 
   /*
-   * Sidebar and topbar sit on the canvas rather than beside it — enough
+   * Sidebar and topbar sit on the canvas rather than beside it enough
    * translucency for the wash to read through, enough blur that text behind
    * them never interferes with the nav.
    */
   .app-chrome {
     @apply bg-white/85 backdrop-blur-sm;
+  }
+
+  /*
+   * Gas readings, device IDs, coordinates and status values. Tabular figures
+   * keep every digit the same width, so values that refresh every ten
+   * seconds don't make the layout jitter.
+   */
+  .data-numeric {
+    @apply font-mono tabular-nums tracking-wide;
   }
 }
