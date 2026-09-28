@@ -2,22 +2,25 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+
+const VENDOR_GROUPS: Array<[name: string, pattern: RegExp]> = [
+  [
+    'react',
+    /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|@remix-run[\\/]router)[\\/]/,
+  ],
+  [
+    'charts',
+    /[\\/]node_modules[\\/](recharts|recharts-scale|victory-vendor|d3-[^\\/]+|chart\.js|react-chartjs-2)[\\/]/,
+  ],
+  ['maps', /[\\/]node_modules[\\/](@googlemaps|@vis\.gl|@react-google-maps)[\\/]/],
+  ['forms', /[\\/]node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/],
+  ['data', /[\\/]node_modules[\\/](@tanstack|axios)[\\/]/],
+]
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
-  /**
-   * The deployed API does not send CORS headers, and its preflight OPTIONS
-   * returns 403 — so a browser blocks every request before it leaves. Curl
-   * works because curl doesn't enforce CORS; the browser does.
-   *
-   * In development the dev server proxies /api through to the backend, so the
-   * browser only ever talks to localhost and the request is same-origin. No
-   * preflight, no CORS.
-   *
-   * This is a development workaround only. Production still needs the backend
-   * to send Access-Control-Allow-Origin for the deployed dashboard's domain,
-   * or the dashboard has to be served from the same origin as the API.
-   */
+  
   const apiTarget =
     env.VITE_API_PROXY_TARGET || 'https://e5energy-production.up.railway.app'
 
@@ -32,6 +35,21 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: apiTarget,
           changeOrigin: true,
+        },
+      },
+    },
+    build: {
+     
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            for (const [name, pattern] of VENDOR_GROUPS) {
+              if (pattern.test(id)) return name
+            }
+            return undefined
+          },
         },
       },
     },
