@@ -58,9 +58,7 @@ export function ProfilePage() {
   const primary = watch("primary");
   const secondary = watch("secondary");
 
-  // Live preview: colours are pushed into the CSS variables as you pick them,
-  // so the sidebar and buttons repaint while you're still deciding. Only valid
-  // hex is applied — a half-typed "#0f7" would blank the brand mid-keystroke.
+  
   useEffect(() => {
     if (!canEdit) return;
     if (hex.safeParse(primary).success && hex.safeParse(secondary).success) {
@@ -68,7 +66,7 @@ export function ProfilePage() {
     }
   }, [primary, secondary, canEdit]);
 
-  // Leaving with unsaved colours must not take the preview with you.
+  
   const savedColorsRef = useRef(profile?.colors);
   savedColorsRef.current = profile?.colors;
   const dirtyRef = useRef(false);

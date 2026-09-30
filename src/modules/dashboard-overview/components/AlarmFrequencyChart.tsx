@@ -8,8 +8,6 @@ const VIEW_H = 170
 
 type Window = 7 | 31
 
-// One colour per series. Deliberately few: more than four lines on a chart
-// this size is decoration, not information.
 const SERIES_COLOURS = ['#dc2626', '#f59e0b', '#0f766e', '#6366f1']
 
 function startOfDay(ts: number): number {
@@ -18,13 +16,6 @@ function startOfDay(ts: number): number {
   return d.getTime()
 }
 
-/**
- * Alarms per day, split by type.
- *
- * The count on its own says how bad today is. The shape says whether it's a
- * bad day or a bad month — which is the difference between an incident and a
- * pattern worth investigating.
- */
 export function AlarmFrequencyChart({ alarms }: { alarms: Alarm[] }) {
   const [days, setDays] = useState<Window>(7)
   const isWide = useMediaQuery('(min-width: 640px)')
@@ -36,8 +27,7 @@ export function AlarmFrequencyChart({ alarms }: { alarms: Alarm[] }) {
 
     const inWindow = alarms.filter((a) => a.raisedAt >= bucketStarts[0])
 
-    // Only the types that actually occurred, most frequent first, capped at
-    // four so the chart stays readable.
+  
     const counts = new Map<AlarmType, number>()
     for (const alarm of inWindow) counts.set(alarm.type, (counts.get(alarm.type) ?? 0) + 1)
     const types = [...counts.entries()]

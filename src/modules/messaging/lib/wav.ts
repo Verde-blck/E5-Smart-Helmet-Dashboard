@@ -1,11 +1,5 @@
-/**
- * Browser recording produces WebM/Opus in Chrome and MP4/AAC in Safari.
- * The helmet plays WAV — every file the backend has received so far is one —
- * so recordings are decoded and re-encoded here before upload rather than
- * sending the device a container it can't open.
- */
 
-/** Voice only, so 16 kHz mono is plenty and keeps files small over a SIM. */
+
 export const TARGET_SAMPLE_RATE = 16_000
 
 function downmix(buffer: AudioBuffer): Float32Array {
@@ -20,7 +14,6 @@ function downmix(buffer: AudioBuffer): Float32Array {
   return mixed
 }
 
-/** Linear interpolation. Fine for speech; not intended for music. */
 function resample(input: Float32Array, fromRate: number, toRate: number): Float32Array {
   if (fromRate === toRate) return input
 
@@ -72,7 +65,6 @@ export function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   return new Blob([view], { type: 'audio/wav' })
 }
 
-/** Whatever the browser recorded → a WAV the helmet can play. */
 export async function toWav(recorded: Blob): Promise<Blob> {
   const AudioContextClass =
     window.AudioContext ??
@@ -89,12 +81,11 @@ export async function toWav(recorded: Blob): Promise<Blob> {
   }
 }
 
-/** A short tone, so mock mode has something that genuinely plays. */
 export function toneWav(seconds = 0.6, frequency = 660): Blob {
   const length = Math.floor(TARGET_SAMPLE_RATE * seconds)
   const samples = new Float32Array(length)
   for (let i = 0; i < length; i += 1) {
-    // Faded at both ends so it doesn't click on play.
+
     const fade = Math.min(1, Math.min(i, length - i) / (TARGET_SAMPLE_RATE * 0.05))
     samples[i] = Math.sin((2 * Math.PI * frequency * i) / TARGET_SAMPLE_RATE) * 0.3 * fade
   }

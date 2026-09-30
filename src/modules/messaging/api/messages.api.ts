@@ -35,13 +35,7 @@ export async function fetchMessages(deviceId: string): Promise<VoiceMessage[]> {
     .sort((a, b) => a.createdAt - b.createdAt)
 }
 
-/**
- * Uploads an audio file for the helmet to play aloud.
- *
- * Multipart rather than JSON, and Content-Type is deliberately not set —
- * the browser has to add its own multipart boundary, and setting the header
- * manually breaks the request.
- */
+
 export async function sendVoiceMessage(deviceId: string, file: Blob): Promise<SendResult> {
   if (env.useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 500))

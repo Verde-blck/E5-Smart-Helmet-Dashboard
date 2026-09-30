@@ -6,6 +6,7 @@ import { LandingRedirect } from './LandingRedirect'
 import { LoginPage } from '@/modules/auth/LoginPage'
 import { RegisterPage } from '@/modules/auth/RegisterPage'
 import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
+import { SecurityPage } from '@/modules/account/SecurityPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
 import { MapPage } from '@/modules/map/MapPage'
@@ -163,6 +164,11 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        {/* Every signed-in user manages their own sign-in security, so this
+            has no ProtectedRoute and no sidebar entry: it's reached from the
+            Security link in the top bar. */}
+        <Route path="account/security" element={<SecurityPage />} />
 
         {/* Both inside the Layout, so there's always a sidebar to escape with. */}
         <Route path="unauthorized" element={<UnauthorizedPage />} />

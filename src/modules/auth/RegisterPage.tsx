@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { login, registerAccount } from './api/auth.api'
+import { login, registerAccount, statusOf } from './api/auth.api'
 import {
   AuthLayout,
   FormError,
@@ -48,15 +48,18 @@ export function RegisterPage() {
       await registerAccount({ username: values.username, password: values.password })
 
       // Registration returns no token, so sign in straight away rather than
-      // making someone type the same details twice.
-      const user = await login({ username: values.username, password: values.password })
-      setUser(user)
-      navigate('/', { replace: true })
+      // making someone type the same details twice. A brand-new account can't
+      // have 2FA on yet, but if the backend ever turns it on by default, the
+      // sign-in page handles the code step.
+      const result = await login({ username: values.username, password: values.password })
+      if (result.status === 'signed-in') {
+        setUser(result.user)
+        navigate('/', { replace: true })
+      } else {
+        navigate('/login', { replace: true })
+      }
     } catch (error: unknown) {
-      const status =
-        typeof error === 'object' && error !== null
-          ? (error as { response?: { status?: number } }).response?.status
-          : undefined
+      const status = statusOf(error)
 
       setFormError(
         status === 409

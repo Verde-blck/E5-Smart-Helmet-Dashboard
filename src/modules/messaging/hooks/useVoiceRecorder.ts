@@ -3,8 +3,6 @@ import { toWav } from '../lib/wav'
 
 export type RecorderState = 'idle' | 'requesting' | 'recording' | 'converting' | 'error'
 
-// Order of preference. Chrome gives WebM/Opus, Safari MP4/AAC; both are
-// decoded and re-encoded to WAV afterwards, so either is fine here.
 const MIME_CANDIDATES = [
   'audio/webm;codecs=opus',
   'audio/webm',
@@ -30,8 +28,6 @@ export function useVoiceRecorder() {
   const cleanup = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
-    // Releasing the tracks is what turns off the browser's recording
-    // indicator; without it the tab looks like it's still listening.
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     recorderRef.current = null
@@ -65,14 +61,13 @@ export function useVoiceRecorder() {
       timerRef.current = setInterval(() => setElapsedMs(Date.now() - startedAt), 200)
       setState('recording')
     } catch {
-      // Almost always a denied microphone permission rather than a fault.
+      
       setError('Microphone access was blocked. Allow it in the browser and try again.')
       setState('error')
       cleanup()
     }
   }, [cleanup])
 
-  /** Stops and returns a WAV blob, or null if nothing was captured. */
   const stop = useCallback(async (): Promise<Blob | null> => {
     const recorder = recorderRef.current
     if (!recorder || recorder.state === 'inactive') {

@@ -1,16 +1,9 @@
-/**
- * The headline number, as a ring rather than a digit.
- *
- * "9" on its own means nothing without the fleet size beside it; the arc
- * carries the proportion at a glance, which is what a wall-mounted overview
- * is actually for.
- */
 export function OnlineGauge({ online, total }: { online: number; total: number }) {
   const ratio = total > 0 ? online / total : 0
   const radius = 42
   const circumference = 2 * Math.PI * radius
 
-  // Under half the fleet reporting is worth noticing from across a room.
+  
   const tone = ratio >= 0.8 ? '#10b981' : ratio >= 0.5 ? '#f59e0b' : '#ef4444'
 
   return (

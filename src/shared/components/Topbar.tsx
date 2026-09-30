@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useTenant } from '@/shared/hooks/useTenant'
 import { endSession } from '@/shared/lib/session'
@@ -38,6 +38,25 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
         <span className="hidden rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 sm:inline">
           {user?.role}
         </span>
+
+        {/* Account security (2FA). Just the shield on phones, where the top
+            bar has no room for another word. */}
+        <NavLink
+          to="/account/security"
+          aria-label="Account security"
+          className={({ isActive }) =>
+            `flex items-center gap-1.5 rounded text-sm ${
+              isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'
+            }`
+          }
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+          <span className="hidden sm:inline">Security</span>
+        </NavLink>
+
         <button
           onClick={handleLogout}
           className="text-sm text-slate-500 hover:text-slate-800"

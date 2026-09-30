@@ -9,14 +9,7 @@ import { FleetMap } from '@/modules/map/components/FleetMap'
 import { OnlineGauge } from './components/OnlineGauge'
 import { AlarmFrequencyChart } from './components/AlarmFrequencyChart'
 
-/**
- * A single screen that answers "is anything wrong right now" without
- * navigating anywhere: how much of the fleet is reporting, what has alarmed,
- * where everyone is, and whether today is unusual.
- *
- * Every panel is a view onto a module in the sidebar rather than a separate
- * data source, so nothing here can disagree with the page it links to.
- */
+
 export function DashboardOverviewPage() {
   const { devices } = useDevices()
   const { summary } = useFleetSummary()
@@ -83,8 +76,7 @@ export function DashboardOverviewPage() {
             </Link>
           </div>
           <ErrorBoundary label="The fleet list">
-            {/* Slice rather than a scroll pane: the overview is a summary, and
-                the full list is one click away. */}
+          
             <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
               {devices.slice(0, 6).map((d) => (
                 <li key={d.id}>

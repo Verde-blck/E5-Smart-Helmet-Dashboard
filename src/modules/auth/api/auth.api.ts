@@ -36,13 +36,179 @@ function userFromToken(token: string, fallbackUsername: string): AuthUser {
   }
 }
 
-export async function login(credentials: Credentials): Promise<AuthUser> {
-  if (env.useMocks) return mockUserFor(credentials.username)
+// ---------------------------------------------------------------------------
+// Sign-in, including the optional second step
+// ---------------------------------------------------------------------------
 
-  const { data } = await apiClient.post<{ token: string }>('/auth/login', credentials)
-  tokenStore.set(data.token)
-  return userFromToken(data.token, credentials.username)
+/** What the second sign-in step needs to carry forward from the first. */
+export interface TwoFactorChallenge {
+  username: string
+  /**
+   * One-time token proving the password step succeeded. The backend doesn't
+   * issue one yet; we've asked for it, because without it verify-2fa can be
+   * called with just a username. Passed through whenever it's present, so
+   * nothing here changes when it arrives.
+   */
+  mfaToken?: string
 }
+
+export type LoginResult =
+  | { status: 'signed-in'; user: AuthUser }
+  | { status: 'needs-code'; challenge: TwoFactorChallenge }
+
+interface LoginResponse {
+  token?: string
+  requires2fa?: boolean
+  mfaToken?: string
+  challengeToken?: string
+}
+
+/** Mock account that has 2FA switched on. Its code is always 123456. */
+const MOCK_2FA_USER = 'MFA-001'
+const MOCK_CODE = '123456'
+
+/**
+ * Step one. Resolves either with a signed-in user, or with a challenge when
+ * the account has 2FA on, in which case the caller asks for a code and then
+ * calls verifyTwoFactorLogin. No token is stored until that succeeds.
+ */
+export async function login(credentials: Credentials): Promise<LoginResult> {
+  if (env.useMocks) {
+    if (credentials.username === MOCK_2FA_USER) {
+      rememberTwoFactor(credentials.username, true)
+      return { status: 'needs-code', challenge: { username: credentials.username } }
+    }
+    return { status: 'signed-in', user: mockUserFor(credentials.username) }
+  }
+
+  const { data } = await apiClient.post<LoginResponse>('/auth/login', credentials)
+
+  if (data.requires2fa) {
+    rememberTwoFactor(credentials.username, true)
+    return {
+      status: 'needs-code',
+      challenge: {
+        username: credentials.username,
+        mfaToken: data.mfaToken ?? data.challengeToken,
+      },
+    }
+  }
+
+  if (!data.token) throw new Error('Sign-in response contained no token')
+  rememberTwoFactor(credentials.username, false)
+  tokenStore.set(data.token)
+  return { status: 'signed-in', user: userFromToken(data.token, credentials.username) }
+}
+
+/**
+ * Step two: the 6-digit code from the authenticator app. A wrong or expired
+ * code comes back as a 401.
+ */
+export async function verifyTwoFactorLogin(
+  challenge: TwoFactorChallenge,
+  code: string
+): Promise<AuthUser> {
+  if (env.useMocks) {
+    await delay(400)
+    if (code !== MOCK_CODE) throw httpError(401)
+    return mockUserFor(challenge.username)
+  }
+
+  const { data } = await apiClient.post<{ token: string }>('/auth/login/verify-2fa', {
+    username: challenge.username,
+    code,
+    ...(challenge.mfaToken ? { mfaToken: challenge.mfaToken } : {}),
+  })
+  tokenStore.set(data.token)
+  return userFromToken(data.token, challenge.username)
+}
+
+// ---------------------------------------------------------------------------
+// Managing 2FA from the account security page
+// ---------------------------------------------------------------------------
+
+export interface TwoFactorSetup {
+  /** Base32 key, for typing in by hand when the QR code won't scan. */
+  secret: string
+  /** otpauth:// URL, rendered as the QR code. */
+  otpAuthUrl: string
+}
+
+/**
+ * Generates a new secret. 2FA is not on yet: it only switches on when
+ * confirmTwoFactorSetup succeeds, which proves the app was set up correctly.
+ */
+export async function startTwoFactorSetup(username: string): Promise<TwoFactorSetup> {
+  if (env.useMocks) {
+    await delay(400)
+    const secret = 'JBSWY3DPEHPK3PXP'
+    const label = encodeURIComponent(`E5 Energy:${username}`)
+    return {
+      secret,
+      otpAuthUrl: `otpauth://totp/${label}?secret=${secret}&issuer=E5%20Energy`,
+    }
+  }
+
+  const { data } = await apiClient.post<TwoFactorSetup>('/auth/2fa/setup')
+  return data
+}
+
+export async function confirmTwoFactorSetup(username: string, code: string): Promise<void> {
+  if (env.useMocks) {
+    await delay(400)
+    if (code !== MOCK_CODE) throw httpError(401)
+  } else {
+    await apiClient.post('/auth/2fa/confirm', { code })
+  }
+  rememberTwoFactor(username, true)
+}
+
+/**
+ * Sends the current code even though the backend doesn't check it yet. We've
+ * asked for it to, so that someone at an unattended, signed-in browser can't
+ * switch 2FA off; asking for it in the UI now means nothing changes then.
+ */
+export async function disableTwoFactor(username: string, code: string): Promise<void> {
+  if (env.useMocks) {
+    await delay(400)
+    if (code !== MOCK_CODE) throw httpError(401)
+  } else {
+    await apiClient.post('/auth/2fa/disable', { code })
+  }
+  rememberTwoFactor(username, false)
+}
+
+/*
+ * Whether 2FA is on for an account.
+ *
+ * The API has no endpoint that reports this, so it's inferred: signing in
+ * tells us (requires2fa true or false), and so does confirming or disabling.
+ * The answer is kept per username on this browser. null means we haven't
+ * seen this account sign in here since the feature shipped. A status field
+ * on the login response, or GET /auth/2fa/status, would replace all of this.
+ */
+const stateKey = (username: string) => `e5.twoFactor.${username}`
+
+function rememberTwoFactor(username: string, enabled: boolean): void {
+  try {
+    localStorage.setItem(stateKey(username), enabled ? 'on' : 'off')
+  } catch {
+    // Storage unavailable (private mode); the page will show "unknown".
+  }
+}
+
+export function knownTwoFactorState(username: string): boolean | null {
+  try {
+    const value = localStorage.getItem(stateKey(username))
+    return value === 'on' ? true : value === 'off' ? false : null
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Registration and session
+// ---------------------------------------------------------------------------
 
 export interface RegisterInput {
   username: string
@@ -62,12 +228,8 @@ export interface RegisterInput {
  */
 export async function registerAccount(input: RegisterInput): Promise<void> {
   if (env.useMocks) {
-    await new Promise((resolve) => setTimeout(resolve, 400))
-    if (input.username.trim().toLowerCase() === 'admin') {
-      const conflict = new Error('exists') as Error & { response?: { status: number } }
-      conflict.response = { status: 409 }
-      throw conflict
-    }
+    await delay(400)
+    if (input.username.trim().toLowerCase() === 'admin') throw httpError(409)
     return
   }
 
@@ -103,4 +265,24 @@ export async function changeOwnPassword(input: {
 }): Promise<void> {
   if (env.useMocks) return
   await apiClient.post('/auth/password', input)
+}
+
+// ---------------------------------------------------------------------------
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Shaped like an Axios error, so callers handle mocks and live the same way. */
+function httpError(status: number) {
+  const error = new Error(`HTTP ${status}`) as Error & { response?: { status: number } }
+  error.response = { status }
+  return error
+}
+
+/** Reads the HTTP status off an Axios (or mock) error, if there is one. */
+export function statusOf(error: unknown): number | undefined {
+  return typeof error === 'object' && error !== null
+    ? (error as { response?: { status?: number } }).response?.status
+    : undefined
 }

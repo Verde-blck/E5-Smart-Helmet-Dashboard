@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { BroadcastPanel } from './BroadcastPanel'
 
-/**
- * The megaphone from the reference platform's Monitoring Center — the entry
- * point to the voice conversation with a helmet's wearer.
- */
+
+
 export function BroadcastButton({
   deviceId,
   deviceName,
@@ -22,7 +20,7 @@ export function BroadcastButton({
     <>
       <button
         onClick={(e) => {
-          // Sits inside cards and table rows that are themselves links.
+          
           e.preventDefault()
           e.stopPropagation()
           setOpen(true)

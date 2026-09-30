@@ -14,8 +14,7 @@ export function useMessages(deviceId: string | null) {
     queryKey: key(tenantId, deviceId ?? ''),
     queryFn: () => fetchMessages(deviceId as string),
     enabled: !!deviceId,
-    // Polled so a reply from the helmet appears without the operator
-    // reopening the panel.
+    
     refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
   })
   return { messages: data ?? [], isLoading, isError }

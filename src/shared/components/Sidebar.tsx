@@ -7,18 +7,22 @@ import { ModuleIcon } from './ModuleIcon'
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const tenant = useTenant()
   const can = usePermission()
-  // Nav is generated from the shared module registry filtered by the
-  // logged-in user's permissions — no per-role branching lives here.
   const visibleModules = MODULES.filter((m) => can(`${m.key}:read`))
 
-  const brand = (
+const brand = (
     <div className="flex min-w-0 items-center gap-2 px-4 py-4">
       {tenant?.logoUrl ? (
-        <img src={tenant.logoUrl} alt="" className="h-7 w-7 rounded object-contain" />
-      ) : (
-        <div className="h-7 w-7 shrink-0 rounded bg-brand-primary" />
-      )}
-      <span className="truncate font-medium text-slate-800">{tenant?.name}</span>
+   <img
+    src={tenant.logoUrl}
+    alt={tenant.name ?? 'Company logo'}
+    className="h-10 w-auto max-w-[10rem] object-contain"
+  />) 
+  : (
+  <>
+    <div className="h-7 w-7 shrink-0 rounded bg-brand-primary" />
+    <span className="truncate font-medium text-slate-800">{tenant?.name}</span>
+  </>
+)}
     </div>
   )
 

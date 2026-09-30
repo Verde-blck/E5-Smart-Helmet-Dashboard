@@ -23,12 +23,12 @@ export function useSaveHelmetSettings(deviceId: string | null) {
   const tenantId = useTenantId()
 
   return useMutation({
-    mutationFn: (settings: HelmetSettings) =>
-      saveHelmetSettings(deviceId as string, settings),
-    onSuccess: (saved) => {
-      // Write straight into the cache: the helmet may be offline, so a
-      // refetch would return the old values until it next reports in.
-      if (deviceId) queryClient.setQueryData(key(tenantId, deviceId), saved)
+    mutationFn: ({ before, after }: { before: HelmetSettings; after: HelmetSettings }) =>
+      saveHelmetSettings(deviceId as string, before, after),
+    onSuccess: (result) => {
+      // Write straight into the cache. The saved values are what the backend
+      // now holds, and they become the new baseline for the next diff.
+      if (deviceId) queryClient.setQueryData(key(tenantId, deviceId), result.settings)
     },
   })
 }

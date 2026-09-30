@@ -10,8 +10,6 @@ export function ProtectedRoute({
   children: React.ReactNode
 }) {
   const can = usePermission()
-  // /unauthorized now renders inside the Layout, so a user who lands there
-  // still has the sidebar and can navigate somewhere they do have access to.
   if (!can(perm)) return <Navigate to="/unauthorized" replace />
   return <>{children}</>
 }

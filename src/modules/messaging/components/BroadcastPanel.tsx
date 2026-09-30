@@ -29,9 +29,6 @@ function Bubble({
           }`}
         >
           {!message.audioUrl || missing ? (
-            // The message record outlives its audio file: the backend stores
-            // uploads on the server's own disk, which is wiped whenever the
-            // host restarts. Saying so beats a player stuck at 0:00.
             <span className="block text-xs text-slate-500">
               Recording no longer available on the server
             </span>
@@ -77,13 +74,11 @@ export function BroadcastPanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Keep the newest message in view as the conversation grows.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.length])
 
-  // A recorded clip lives in a blob URL; revoke it when it's replaced or the
-  // panel closes, or the memory is held for the life of the tab.
+
   useEffect(() => () => {
     if (pending) URL.revokeObjectURL(pending.url)
   }, [pending])
@@ -107,7 +102,7 @@ export function BroadcastPanel({
         setNote(
           result.delivered
             ? 'Delivered to the helmet.'
-            : // Not a failure: the backend queues it until the helmet reconnects.
+            : 
               'Queued — the helmet will play it when it next connects.'
         )
       },
@@ -169,8 +164,6 @@ export function BroadcastPanel({
         <Can perm="devices:write">
           <div className="border-t border-slate-200 px-4 py-3">
             <p className="mb-1 text-xs text-slate-500">
-              {/* Voice only, by design. The helmet plays an audio file; it has
-                  no speech synthesis, so there is nothing to type into. */}
               Record a message and the helmet will play it aloud to the wearer.
             </p>
 

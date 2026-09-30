@@ -1,8 +1,7 @@
 import { toneWav } from '../lib/wav'
 import type { SendResult, VoiceMessage } from '../types'
 
-// Real audio, so playback genuinely works in mock mode rather than showing a
-// dead player. Built once and reused — the blob URL lives for the session.
+
 let toneUrl: string | null = null
 function mockAudioUrl(): string {
   if (!toneUrl) toneUrl = URL.createObjectURL(toneWav())

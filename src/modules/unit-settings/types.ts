@@ -1,15 +1,31 @@
 /**
  * Per-helmet configuration, pushed down to the device.
  *
- * Field names and units are taken from the reference platform's Unit Setting
- * screen. There is no API for this yet — this shape is the contract proposed
- * to the backend, so the form and the endpoint are built against the same
- * thing rather than meeting in the middle later.
+ * This is the dashboard's own shape, with units in the names and the alarm
+ * switches grouped. The backend's field names differ (beatTime,
+ * enableLocalRecord, hatOffAlarm and so on); the translation both ways lives
+ * in api/unit-settings.api.ts, so nothing else in the module sees them.
+ *
+ * The helmet's HTTP request address and long link address are deliberately
+ * absent. They decide which server the helmet reports to at all, so editing
+ * one by mistake would silently cut a helmet off from this dashboard. They
+ * stay on the manufacturer's platform, where the redirect was set up.
  */
 
-export type UploadMethod = 'manual' | '4g' | 'wifi'
-export type PictureQuality = 'hd' | 'ultra'
-export type BroadcastLanguage = 'en' | 'zh'
+export type UploadMethod = 'none' | '4g' | 'wifi'
+
+/**
+ * Free text on the backend ("Chinese" in its own example), so kept as a
+ * string: a value the list below doesn't know is shown rather than lost.
+ */
+export type BroadcastLanguage = string
+
+/**
+ * Also free text on the backend, whose allowed values come from the device
+ * documentation. The options below are the reference platform's two levels;
+ * the exact strings the helmet expects still need confirming.
+ */
+export type PictureQuality = string
 
 /**
  * The alarms the helmet can raise, and whether each is armed.
@@ -34,9 +50,7 @@ export interface AlarmSwitches {
 }
 
 export interface HelmetSettings {
-  // --- Connection -------------------------------------------------------
-  httpAddress: string
-  longLinkAddress: string
+  // --- Reporting --------------------------------------------------------
   /** BEATTIM — how often the helmet reports in, in seconds. */
   heartbeatSeconds: number
 
@@ -64,20 +78,31 @@ export interface HelmetSettings {
   alarms: AlarmSwitches
 }
 
+/** Outcome of a save: stored, and whether the helmet received it straight away. */
+export interface SaveResult {
+  settings: HelmetSettings
+  /**
+   * True when the helmet was online and got the change immediately; false
+   * when it's queued for the helmet's next reconnect. Neither confirms the
+   * helmet has applied it; that is still unverified with the manufacturer.
+   */
+  delivered: boolean
+}
+
 export const UPLOAD_METHODS: { value: UploadMethod; label: string; note?: string }[] = [
-  { value: 'manual', label: 'Do not upload automatically', note: 'Footage stays on the helmet until collected' },
+  { value: 'none', label: 'Do not upload automatically', note: 'Footage stays on the helmet until collected' },
   { value: '4g', label: 'Upload when 4G is available', note: 'Uses the SIM — watch the data cost' },
   { value: 'wifi', label: 'Upload when Wi-Fi is available', note: 'Uploads only back at base' },
 ]
 
 export const PICTURE_QUALITIES: { value: PictureQuality; label: string }[] = [
-  { value: 'hd', label: 'HD' },
-  { value: 'ultra', label: 'Ultra-clear' },
+  { value: 'HD', label: 'HD' },
+  { value: 'Ultra-clear', label: 'Ultra-clear' },
 ]
 
 export const BROADCAST_LANGUAGES: { value: BroadcastLanguage; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'zh', label: 'Chinese' },
+  { value: 'English', label: 'English' },
+  { value: 'Chinese', label: 'Chinese' },
 ]
 
 export const ALARM_LABELS: { key: keyof AlarmSwitches; label: string; critical?: boolean }[] = [
@@ -94,10 +119,12 @@ export const ALARM_LABELS: { key: keyof AlarmSwitches; label: string; critical?:
   { key: 'localRecordingReminder', label: 'Local recording reminder' },
 ]
 
-/** What a helmet ships with, and what an unconfigured device reports. */
+/**
+ * Fallbacks for any field the backend leaves out, and the starting values in
+ * mock mode. The backend has its own defaults (most alarms on), which win
+ * whenever it sends a value.
+ */
 export const DEFAULT_SETTINGS: HelmetSettings = {
-  httpAddress: '',
-  longLinkAddress: '',
   heartbeatSeconds: 30,
   alarmTemperatureC: null,
   shutdownTemperatureC: null,
@@ -105,11 +132,11 @@ export const DEFAULT_SETTINGS: HelmetSettings = {
   hatOffDelaySeconds: 10,
   silenceDetectionMinutes: 45,
   hatOffDetectionMinutes: 45,
-  broadcastLanguage: 'en',
+  broadcastLanguage: 'English',
   localRecording: false,
   bluetoothBeaconScan: false,
-  uploadMethod: 'manual',
-  pictureQuality: 'hd',
+  uploadMethod: 'none',
+  pictureQuality: 'HD',
   videoSplit: false,
   alarms: {
     hatOff: true,

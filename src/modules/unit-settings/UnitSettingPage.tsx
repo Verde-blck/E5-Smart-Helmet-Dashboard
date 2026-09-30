@@ -13,7 +13,7 @@ export function UnitSettingPage() {
     const needle = search.trim().toLowerCase()
     if (!needle) return devices
     return devices.filter(
-      (d) => d.name.toLowerCase().includes(needle) || d.id.includes(needle.trim())
+      (d) => d.name.toLowerCase().includes(needle) || d.id.includes(needle)
     )
   }, [devices, search])
 
@@ -22,14 +22,19 @@ export function UnitSettingPage() {
 
   return (
     <div>
+      <h1 className="mb-1 text-lg font-semibold text-slate-800">Unit Setting</h1>
+      <p className="mb-4 text-xs text-slate-500">
+        Configuration pushed down to a helmet. Pick a device to edit its settings.
+      </p>
 
       {!env.useMocks && (
         <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {/* Better to say this than to let someone configure a crate of
-              helmets and discover later that nothing was sent. */}
-          There is no settings endpoint on the backend yet, so nothing saved
-          here reaches a helmet. The form and its contract are ready for
-          <span className="font-mono"> GET/PUT /api/devices/&#123;id&#125;/settings</span>.
+          {/* Saving and delivery work; the helmet acting on a change doesn't
+              yet have the manufacturer's confirmation, same as live video and
+              calling. Better said here than discovered on site. */}
+          Settings save and are sent to the helmet, but it hasn’t yet been confirmed with the
+          manufacturer that the helmet applies every change. Check a changed setting on the
+          device before relying on it.
         </p>
       )}
 
@@ -39,7 +44,7 @@ export function UnitSettingPage() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Please enter the device ID"
+            placeholder="Search by name or device ID"
             className="mb-2 w-full rounded border border-slate-300 px-2.5 py-1.5 text-sm"
           />
 

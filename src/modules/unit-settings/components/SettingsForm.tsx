@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Can } from '@/shared/components/Can'
 import { useSaveHelmetSettings } from '../hooks/useHelmetSettings'
 import {
@@ -71,6 +71,19 @@ function Toggle({ value, onChange, disabled }: {
   )
 }
 
+/**
+ * The known options, plus the helmet's current value if the list doesn't
+ * include it. The backend accepts free text for these, so an unexpected
+ * value is shown as-is rather than silently replaced on the next save.
+ */
+function withCurrent(options: { value: string; label: string }[], current: string) {
+  return options.some((o) => o.value === current)
+    ? options
+    : [...options, { value: current, label: current }]
+}
+
+type Outcome = 'delivered' | 'queued' | null
+
 export function SettingsForm({
   device,
   initial,
@@ -78,54 +91,35 @@ export function SettingsForm({
   device: DeviceView
   initial: HelmetSettings
 }) {
+  // The page keys this component on the device id, so picking another helmet
+  // mounts a fresh form. After a save, `initial` becomes the saved values and
+  // the draft already matches them, so nothing needs resetting here.
   const [draft, setDraft] = useState<HelmetSettings>(initial)
-  const [saved, setSaved] = useState(false)
+  const [outcome, setOutcome] = useState<Outcome>(null)
   const save = useSaveHelmetSettings(device.id)
-
-  // Reset when a different helmet is picked, or one device's edits would
-  // silently carry over onto the next.
-  useEffect(() => {
-    setDraft(initial)
-    setSaved(false)
-  }, [initial, device.id])
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial)
 
   const set = <K extends keyof HelmetSettings>(key: K, value: HelmetSettings[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }))
-    setSaved(false)
+    setOutcome(null)
   }
 
   const setAlarm = (key: keyof AlarmSwitches, value: boolean) => {
     setDraft((prev) => ({ ...prev, alarms: { ...prev.alarms, [key]: value } }))
-    setSaved(false)
+    setOutcome(null)
   }
 
-  const disarmed = ALARM_LABELS.filter((a) => !draft.alarms[a.key])
-  const criticalDisarmed = disarmed.filter((a) => a.critical)
+  const criticalDisarmed = ALARM_LABELS.filter((a) => a.critical && !draft.alarms[a.key])
+  const languages = withCurrent(BROADCAST_LANGUAGES, draft.broadcastLanguage)
+  const qualities = withCurrent(PICTURE_QUALITIES, draft.pictureQuality)
 
   return (
     <div className="space-y-4">
       <Section
-        title="Connection"
-        hint="Where the helmet reports, and how often."
+        title="Reporting"
+        hint="Which server the helmet reports to is managed on the manufacturer's platform, not here, so it can't be changed by mistake."
       >
-        <Row label="HTTP request address">
-          <input
-            value={draft.httpAddress}
-            onChange={(e) => set('httpAddress', e.target.value)}
-            spellCheck={false}
-            className={input}
-          />
-        </Row>
-        <Row label="Long link address">
-          <input
-            value={draft.longLinkAddress}
-            onChange={(e) => set('longLinkAddress', e.target.value)}
-            spellCheck={false}
-            className={input}
-          />
-        </Row>
         <Row
           label="Heartbeat (BEATTIM)"
           unit="seconds"
@@ -231,8 +225,8 @@ export function SettingsForm({
         </Row>
 
         <Row label="Picture quality">
-          <div className="flex gap-4 pt-1.5 text-sm">
-            {PICTURE_QUALITIES.map((option) => (
+          <div className="flex flex-wrap gap-4 pt-1.5 text-sm">
+            {qualities.map((option) => (
               <label key={option.value} className="flex cursor-pointer items-center gap-1.5">
                 <input
                   type="radio"
@@ -249,10 +243,10 @@ export function SettingsForm({
         <Row label="Hook broadcast language">
           <select
             value={draft.broadcastLanguage}
-            onChange={(e) => set('broadcastLanguage', e.target.value as HelmetSettings['broadcastLanguage'])}
+            onChange={(e) => set('broadcastLanguage', e.target.value)}
             className={`${input} sm:max-w-[12rem]`}
           >
-            {BROADCAST_LANGUAGES.map((option) => (
+            {languages.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -308,9 +302,10 @@ export function SettingsForm({
         <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm sm:-mx-6 sm:px-6">
           <button
             onClick={() =>
-              save.mutate(draft, {
-                onSuccess: () => setSaved(true),
-              })
+              save.mutate(
+                { before: initial, after: draft },
+                { onSuccess: (result) => setOutcome(result.delivered ? 'delivered' : 'queued') }
+              )
             }
             disabled={!dirty || save.isPending}
             className="rounded bg-brand-primary px-3 py-2 text-sm font-medium text-white hover:bg-brand-primary/90 disabled:opacity-50"
@@ -318,26 +313,30 @@ export function SettingsForm({
             {save.isPending ? 'Sending…' : 'Save to helmet'}
           </button>
           <button
-            onClick={() => setDraft(initial)}
+            onClick={() => {
+              setDraft(initial)
+              setOutcome(null)
+            }}
             disabled={!dirty || save.isPending}
             className="text-sm text-slate-500 hover:text-slate-800 disabled:opacity-50"
           >
             Discard
           </button>
 
-          {save.isError && (
-            <span className="text-xs text-red-600">Could not save. Try again.</span>
-          )}
-          {saved && !dirty && (
-            <span className="text-xs text-emerald-700">
-              {/* Same honesty as the remote commands: the helmet may be
-                  offline, so acceptance isn't confirmation. */}
-              Saved. Settings apply when the helmet next reports in.
-            </span>
-          )}
-          {dirty && !save.isPending && (
-            <span className="text-xs text-amber-700">Unsaved changes</span>
-          )}
+          <span aria-live="polite" className="text-xs">
+            {save.isError && !save.isPending && (
+              <span className="text-red-600">Could not save. Try again.</span>
+            )}
+            {outcome === 'delivered' && !dirty && (
+              <span className="text-emerald-700">Saved and sent to the helmet.</span>
+            )}
+            {outcome === 'queued' && !dirty && (
+              <span className="text-emerald-700">
+                Saved. The helmet is offline, so it will receive the changes when it next connects.
+              </span>
+            )}
+            {dirty && !save.isPending && <span className="text-amber-700">Unsaved changes</span>}
+          </span>
         </div>
       </Can>
     </div>
