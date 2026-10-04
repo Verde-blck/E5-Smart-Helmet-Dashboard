@@ -3,15 +3,7 @@ import { MODULES } from '@/shared/constants/modules'
 import { usePermission } from '@/shared/hooks/usePermission'
 import { DashboardOverviewPage } from '@/modules/dashboard-overview/DashboardOverviewPage'
 
-/**
- * "/" is not a page everyone can see. A role scoped to device monitoring — the
- * brief's own example — has no dashboard permission, and sending it to a guard
- * that redirects to "/" is an infinite loop; sending it to a bare
- * "Not authorized" screen is a dead end with no navigation.
- *
- * So: show the dashboard to those who can see it, otherwise drop them at the
- * first module they can, otherwise say so plainly.
- */
+
 export function LandingRedirect() {
   const can = usePermission()
 

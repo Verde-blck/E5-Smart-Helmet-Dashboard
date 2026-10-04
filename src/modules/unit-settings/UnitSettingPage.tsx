@@ -22,7 +22,6 @@ export function UnitSettingPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-semibold text-slate-800">Unit Setting</h1>
       <p className="mb-4 text-xs text-slate-500">
         Configuration pushed down to a helmet. Pick a device to edit its settings.
       </p>
@@ -104,7 +103,7 @@ export function UnitSettingPage() {
                 <span className="font-mono text-xs text-slate-400">{selected.id}</span>
                 {selected.presence !== 'online' && (
                   <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">
-                    Offline — changes queue until it reports in
+                    Offline 
                   </span>
                 )}
               </div>

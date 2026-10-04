@@ -16,7 +16,7 @@ export const mockTenant: TenantConfig = {
 export const mockAdmin: AuthUser = {
   id: 'user-1',
   username: 'ADM-001',
-  name: 'NG_David',
+  name: 'VERDEblck',
   email: 'david@example.com',
   role: 'Admin',
   permissions: ALL_PERMISSIONS,
