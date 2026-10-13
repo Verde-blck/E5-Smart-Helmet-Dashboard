@@ -56,10 +56,6 @@ export function DeviceDetailPage() {
   const { media } = useMediaList({ deviceId: id })
   const setActive = useSetDeviceActive()
 
-  // Gas only arrives on telemetry rows, not on the device record, so the most
-  // recent sample is the current reading. Worth asking the backend to include
-  // it on GET /devices — without it there's no way to flag gas across the
-  // fleet without one request per helmet.
   const { window: recent } = useDeviceHistory(id, '1h')
   const latestSample = recent?.samples[recent.samples.length - 1]
   const gasReadings = device?.telemetry.gas ?? latestSample?.gas
