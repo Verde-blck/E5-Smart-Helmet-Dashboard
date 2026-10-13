@@ -51,6 +51,9 @@ export function VideoList({
     )
   }
 
+  // Live recordings come without a duration; an all-dash column is noise.
+  const hasLength = items.some((m) => m.durationMs != null)
+
   const actions = (item: MediaItem, index: number) => (
     <div className="flex items-center justify-end gap-3 text-xs">
       <button
@@ -91,8 +94,10 @@ export function VideoList({
                   </Link>
                 ),
               },
-              { label: 'Captured', value: formatLastSeen(item.capturedAt, now) },
-              { label: 'Length', value: formatDuration(item.durationMs) ?? '—' },
+              { label: 'Recorded', value: formatLastSeen(item.capturedAt, now) },
+              ...(hasLength
+                ? [{ label: 'Length', value: formatDuration(item.durationMs) ?? '—' }]
+                : []),
               { label: 'Size', value: formatBytes(item.sizeBytes) ?? '—' },
             ]}
             action={actions(item, index)}
@@ -106,8 +111,8 @@ export function VideoList({
             <tr>
               <th className="px-4 py-2 font-medium">File name</th>
               <th className="px-4 py-2 font-medium">Device</th>
-              <th className="px-4 py-2 font-medium">Captured</th>
-              <th className="px-4 py-2 font-medium">Length</th>
+              <th className="px-4 py-2 font-medium">Recorded</th>
+              {hasLength && <th className="px-4 py-2 font-medium">Length</th>}
               <th className="px-4 py-2 font-medium">Size</th>
               <th className="px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2" />
@@ -137,9 +142,11 @@ export function VideoList({
                 <td className="px-4 py-2 text-slate-500">
                   {formatLastSeen(item.capturedAt, now)}
                 </td>
-                <td className="px-4 py-2 text-slate-600">
-                  {formatDuration(item.durationMs) ?? '—'}
-                </td>
+                {hasLength && (
+                  <td className="px-4 py-2 text-slate-600">
+                    {formatDuration(item.durationMs) ?? '—'}
+                  </td>
+                )}
                 <td className="px-4 py-2 text-slate-600">
                   {formatBytes(item.sizeBytes) ?? '—'}
                 </td>

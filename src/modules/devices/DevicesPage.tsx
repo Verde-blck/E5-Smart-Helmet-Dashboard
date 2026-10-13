@@ -5,13 +5,23 @@ import { DeviceList } from './components/DeviceList'
 import { HelmetTile } from './components/HelmetTile'
 import { RegisterDeviceForm } from './components/RegisterDeviceForm'
 import { useDevices } from './hooks/useDevices'
+import { LiveWall } from '@/modules/live/components/LiveWall'
 
-type View = 'tiles' | 'table'
+type View = 'tiles' | 'table' | 'wall'
+
+const VIEW_LABEL: Record<View, string> = {
+  tiles: 'Tiles',
+  table: 'Table',
+  wall: 'Live wall',
+}
 
 export function DevicesPage() {
   const [registering, setRegistering] = useState(false)
   const [view, setView] = useState<View>('tiles')
   const [search, setSearch] = useState('')
+  // Kept here rather than in the wall, so switching to Tiles and back
+  // remembers which helmets were on it. The streams themselves stop.
+  const [wallIds, setWallIds] = useState<string[]>([])
   const { devices, now, isLoading } = useDevices()
 
   const matches = useMemo(() => {
@@ -40,19 +50,31 @@ export function DevicesPage() {
             className="w-56 rounded border border-slate-300 px-2.5 py-1.5 text-sm"
           />
           <div className="flex rounded-md border border-slate-200 bg-white p-0.5 text-xs">
-            {(['tiles', 'table'] as const).map((option) => (
-              <button
-                key={option}
-                onClick={() => setView(option)}
-                className={`rounded px-2.5 py-1 capitalize ${
-                  view === option
-                    ? 'bg-brand-primary/10 font-medium text-slate-900'
-                    : 'text-slate-500'
-                }`}
-              >
-                {option}
-              </button>
-            ))}
+            {(['tiles', 'table', 'wall'] as const).map((option) => {
+              const button = (
+                <button
+                  key={option}
+                  onClick={() => setView(option)}
+                  aria-pressed={view === option}
+                  className={`rounded px-2.5 py-1 ${
+                    view === option
+                      ? 'bg-brand-primary/10 font-medium text-slate-900'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  {VIEW_LABEL[option]}
+                </button>
+              )
+              // Watching live sends commands to helmets, so it needs the same
+              // permission as the other remote controls.
+              return option === 'wall' ? (
+                <Can key={option} perm="devices:write">
+                  {button}
+                </Can>
+              ) : (
+                button
+              )
+            })}
           </div>
           <Can perm="devices:write">
             {!registering && (
@@ -69,15 +91,26 @@ export function DevicesPage() {
 
       {registering && <RegisterDeviceForm onDone={() => setRegistering(false)} />}
 
-      <SummaryCards />
+      {/* The wall wants the room, and its own picker shows the fleet. */}
+      {view !== 'wall' && <SummaryCards />}
 
-      {search && (
+      {search && view !== 'wall' && (
         <p className="mb-2 text-xs text-slate-500">
           {matches.length} of {devices.length} helmets match “{search}”
         </p>
       )}
 
-      {isLoading ? (
+      {view === 'wall' ? (
+        // Outside the loading/empty checks: a search that matches nothing
+        // only filters the picker; it mustn't unmount the wall and stop
+        // every stream on it.
+        <LiveWall
+          devices={matches}
+          allDevices={devices}
+          selected={wallIds}
+          onSelectedChange={setWallIds}
+        />
+      ) : isLoading ? (
         <p className="text-sm text-slate-500">Loading fleet…</p>
       ) : matches.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">

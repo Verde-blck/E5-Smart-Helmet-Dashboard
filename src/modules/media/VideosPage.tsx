@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useDeleteMedia, useMediaList } from "./hooks/useMedia";
+import { canDeleteMedia } from "./api/media.api";
 import { MediaFilters } from "./components/MediaFilters";
 import { VideoList } from "./components/VideoList";
 import type { MediaQuery } from "./types";
@@ -43,7 +44,10 @@ export function VideosPage() {
       )}
 
       {!isLoading && !isError && (
-        <VideoList items={media} onDelete={(id) => remove.mutate(id)} />
+        <VideoList
+          items={media}
+          onDelete={canDeleteMedia("video") ? (id) => remove.mutate(id) : undefined}
+        />
       )}
     </div>
   );

@@ -51,6 +51,12 @@ export interface MediaItem {
    */
   /** What the file is called in storage. Shown and searched in Video Record. */
   fileName?: string
+  /**
+   * A link that plays or displays the full file directly, with no signing
+   * step. Live recordings and photos come with one (a public Cloudflare R2
+   * URL); when absent, the viewer asks for a signed URL instead.
+   */
+  url?: string
   thumbnailUrl?: string
   triggeredBy?: MediaTrigger
   alarmId?: string

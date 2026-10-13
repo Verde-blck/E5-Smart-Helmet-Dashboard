@@ -19,13 +19,23 @@ export function useDeviceCommands(deviceId: string) {
       setPending(command)
       setFeedback(null)
     },
-    onSuccess: (_data, command) => {
+    onSuccess: ({ delivered }, command) => {
       setFeedback({
         command,
         ok: true,
-        // Deliberately not "photo taken". The backend queues commands for a
-        // helmet that's briefly offline, so acceptance is all we know.
-        message: `${COMMAND_LABELS[command]} sent. It will run when the helmet next reports in.`,
+        // Deliberately not "photo taken": the helmet has the instruction, which
+        // isn't the same as having carried it out.
+        message: `${COMMAND_LABELS[command]} ${
+          delivered === false
+            ? 'queued. The helmet is offline and will receive it when it reconnects.'
+            : delivered === true
+              ? 'sent to the helmet.'
+              : 'sent. It will run when the helmet next reports in.'
+        }${
+          command === 'stop-recording'
+            ? ' The clip appears in Video Record once the helmet uploads it, which can take a few minutes.'
+            : ''
+        }`,
       })
     },
     onError: (_error, command) => {

@@ -10,6 +10,7 @@ import { StatusHistory } from './components/StatusHistory'
 import { DeviceCommands } from './components/DeviceCommands'
 import { GasPanel } from './components/GasPanel'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
+import { LiveControls } from '@/modules/live/components/LiveControls'
 import { useDeviceHistory } from './hooks/useDeviceHistory'
 import { FleetMap } from '@/modules/map/components/FleetMap'
 import type { Telemetry } from './types'
@@ -22,12 +23,7 @@ const PRESENCE_LABEL = {
 
 const boolLabel = (v: boolean) => (v ? 'Yes' : 'No')
 
-/**
- * Rows are built from what the helmet actually reported, not from a fixed
- * template. FRD §4 Real-Time Monitoring qualifies nearly every field with
- * "where available", so a firmware that doesn't expose altitude should show no
- * altitude row — not "Altitude: 0 m", which reads as ground level.
- */
+
 function telemetryRows(t: Telemetry): Array<[string, string]> {
   const rows: Array<[string, string]> = []
   const push = (label: string, value: string | null) => {
@@ -93,7 +89,7 @@ export function DeviceDetailPage() {
       <Link to="/devices" className="text-sm text-slate-500 hover:text-slate-800">
         ← Back to devices
       </Link>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <StatusDot presence={device.presence} />
         <h1 className="text-lg font-semibold text-slate-800">{device.name}</h1>
         {device.activeAlarm && <AlarmBadge severity={device.activeAlarm} />}
@@ -102,12 +98,15 @@ export function DeviceDetailPage() {
             Deactivated
           </span>
         )}
+        {/* Pushes the action buttons to the right, and onto their own line
+            on a phone rather than squeezing the name. */}
+        <span className="ml-auto" />
+        <LiveControls device={device} />
         <Can perm="devices:write">
           <BroadcastButton
             deviceId={device.id}
             deviceName={device.name}
             label="Voice message"
-            className="ml-auto"
           />
         </Can>
         <Can perm="devices:write">

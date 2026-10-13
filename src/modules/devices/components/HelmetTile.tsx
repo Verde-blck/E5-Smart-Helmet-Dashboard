@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
+import { LiveControls } from '@/modules/live/components/LiveControls'
 import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import { formatLastSeen } from '../lib/presence'
 import type { DeviceView, Presence } from '../types'
@@ -16,14 +17,6 @@ const PRESENCE_LABEL: Record<Presence, string> = {
   offline: 'Offline',
 }
 
-/**
- * Drawn rather than photographed.
- *
- * The vendor's console shows a photo of a helmet in each tile, which looks
- * the part but carries no information — every tile is identical. An outline
- * that takes the device's own status as its colour says the same thing and
- * also tells you which helmet is in trouble from across the room.
- */
 function HelmetGlyph({ presence, className }: { presence: Presence; className?: string }) {
   return (
     <svg viewBox="0 0 96 64" className={className} aria-hidden="true">
@@ -92,12 +85,13 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <span className="truncate text-sm font-medium text-slate-800">{device.name}</span>
-        <span className="flex shrink-0 items-center gap-1">
+        <span className="flex shrink-0 items-center gap-0.5">
           {!device.active && (
             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
               Inactive
             </span>
           )}
+          <LiveControls device={device} variant="icons" />
           <BroadcastButton deviceId={device.id} deviceName={device.name} />
         </span>
       </div>

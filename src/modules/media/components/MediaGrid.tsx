@@ -59,8 +59,16 @@ export function MediaGrid({ items, onDelete, emptyMessage = 'Nothing captured ye
                     className="h-full w-full object-cover"
                   />
                 )}
+                {!item.thumbnailUrl && item.kind === 'video' && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 flex items-center justify-center bg-slate-800 text-2xl text-white/80"
+                  >
+                    ▶
+                  </span>
+                )}
                 <StatusOverlay item={item} />
-                {item.kind === 'video' && item.status === 'available' && (
+                {item.kind === 'video' && item.status === 'available' && item.durationMs != null && (
                   <span className="absolute bottom-1 right-1 rounded bg-slate-900/75 px-1 text-[10px] text-white">
                     {formatDuration(item.durationMs)}
                   </span>

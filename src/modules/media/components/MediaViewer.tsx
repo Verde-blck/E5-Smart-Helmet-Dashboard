@@ -23,7 +23,15 @@ export function MediaViewer({
   onNext,
   onDelete,
 }: Props) {
-  const { data: signed, isLoading, isError, refetch } = useMediaUrl(item.id);
+  // Items with a direct link play it as-is; only items without one need a
+  // signed URL from the backend.
+  const {
+    data: signedData,
+    isLoading,
+    isError,
+    refetch,
+  } = useMediaUrl(item.url ? null : item.id);
+  const signed = item.url ? { url: item.url } : signedData;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -35,9 +43,17 @@ export function MediaViewer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onPrev, onNext]);
 
+  // A clip recorded while the helmet was out of signal can arrive days
+  // later; saying so explains why it's only just appeared.
+  const arrivedLate =
+    item.uploadedAt != null && item.uploadedAt - item.capturedAt > 60 * 60_000;
+
   const meta = [
     item.deviceName,
-    formatLastSeen(item.capturedAt, now),
+    `${item.kind === "video" ? "Recorded" : "Captured"} ${formatLastSeen(item.capturedAt, now)}`,
+    arrivedLate && item.uploadedAt != null
+      ? `uploaded ${formatLastSeen(item.uploadedAt, now)}`
+      : null,
     formatDuration(item.durationMs),
     formatBytes(item.sizeBytes),
   ].filter(Boolean);
@@ -87,11 +103,11 @@ export function MediaViewer({
         </div>
 
         <div className="flex min-h-[18rem] items-center justify-center bg-slate-900">
-          {isLoading && (
+          {isLoading && !item.url && (
             <p className="text-sm text-slate-400">Requesting secure link…</p>
           )}
 
-          {isError && (
+          {isError && !item.url && (
             <div className="p-6 text-center">
               <p className="text-sm text-slate-300">
                 That link couldn't be issued.
@@ -113,19 +129,25 @@ export function MediaViewer({
             />
           )}
 
-          {signed && item.kind === "video" && !env.useMocks && (
+          {signed && item.kind === "video" && !(env.useMocks && !item.url) && (
             <video
+              key={signed.url}
               src={signed.url}
               controls
-              autoPlay
+              playsInline
+              // Clips run to ~117 MB, so nothing downloads until the operator
+              // presses play: only enough to show length and the first frame.
+              preload="metadata"
               className="max-h-[60vh] w-full"
               // A signed URL can lapse mid-playback on a long recording. One
               // refetch re-signs it rather than leaving a dead player.
-              onError={() => void refetch()}
+              onError={() => {
+                if (!item.url) void refetch();
+              }}
             />
           )}
 
-          {signed && item.kind === "video" && env.useMocks && (
+          {signed && item.kind === "video" && env.useMocks && !item.url && (
             <div className="p-8 text-center">
               <img src={signed.url} alt="" className="mx-auto max-h-[40vh]" />
               <p className="mt-3 text-xs text-slate-400">
