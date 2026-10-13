@@ -14,10 +14,12 @@ import { tokenStore } from '@/shared/lib/token'
  */
 
 export interface LiveStart {
-  /** false: helmet offline. The command is queued for when it reconnects. */
+  /** false: helmet offline. Not queued: the command is dropped. */
   delivered: boolean
   /** WebRTC play endpoint on the media server. */
   watchUrl: string
+  /** Someone is already watching; this viewer joins their stream. */
+  alreadyLive?: boolean
 }
 
 export interface CallStart extends LiveStart {
@@ -35,8 +37,14 @@ export async function startLive(deviceId: string): Promise<LiveStart> {
     await mockDelay()
     return { delivered: true, watchUrl: `${MOCK_URL_PREFIX}watch/${deviceId}` }
   }
+  // Every viewer calls start. If the helmet is already streaming, the
+  // backend doesn't restart it; the reply says alreadyLive and we just join.
   const { data } = await apiClient.post<Partial<LiveStart>>(`/devices/${deviceId}/live/start`)
-  return { delivered: data?.delivered === true, watchUrl: data?.watchUrl ?? '' }
+  return {
+    delivered: data?.delivered === true,
+    watchUrl: data?.watchUrl ?? '',
+    alreadyLive: data?.alreadyLive === true,
+  }
 }
 
 export async function startCall(deviceId: string): Promise<CallStart> {
@@ -60,28 +68,20 @@ export async function startCall(deviceId: string): Promise<CallStart> {
 
 export type SessionMode = 'watch' | 'call'
 
-const STOP_PATH: Record<SessionMode, string> = {
-  watch: 'live/stop',
-  call: 'webrtc-call/stop',
-}
-
 /**
- * Tells the helmet to stop streaming, or to leave call mode.
+ * Takes the helmet out of call mode. Sent on every way a call ends,
+ * including the tab closing: a normal request is cancelled as the page
+ * unloads, so `keepalive` hands it to the browser to finish. sendBeacon
+ * can't carry the auth header, so the backend would answer 403.
  *
- * This matters more than it looks: a helmet keeps streaming, on its own
- * mobile data, until it's told to stop. So it's sent on every way out,
- * including the tab closing. In that last case a normal request is cancelled
- * as the page unloads, so `keepalive` hands it to the browser to finish.
- * sendBeacon would be the usual tool, but it can't carry the auth header.
+ * Live view has no equivalent on close, deliberately: see endLiveForEveryone.
  */
-export function stopSession(
+export function stopCall(
   deviceId: string,
-  mode: SessionMode,
   { unloading = false }: { unloading?: boolean } = {}
 ): Promise<void> {
   if (env.useMocks) return Promise.resolve()
-
-  const path = `/devices/${deviceId}/${STOP_PATH[mode]}`
+  const path = `/devices/${deviceId}/webrtc-call/stop`
 
   if (unloading) {
     const base = (apiClient.defaults.baseURL ?? '/api').replace(/\/$/, '')
@@ -98,8 +98,19 @@ export function stopSession(
 
   return apiClient.post(path).then(
     () => undefined,
-    // Nothing useful to do if stop fails; the helmet also stops by itself
-    // once the media server stops receiving video.
     () => undefined
   )
+}
+
+/**
+ * Stops a helmet's live stream for every viewer, not just this one.
+ *
+ * Closing a player never calls this. Several people can watch one helmet,
+ * and the media server stops the helmet by itself about 20 seconds after
+ * the last viewer leaves, closed tabs and crashed browsers included. This is
+ * only for an operator who explicitly wants the helmet to stop streaming now.
+ */
+export async function endLiveForEveryone(deviceId: string): Promise<void> {
+  if (env.useMocks) return
+  await apiClient.post(`/devices/${deviceId}/live/stop`)
 }

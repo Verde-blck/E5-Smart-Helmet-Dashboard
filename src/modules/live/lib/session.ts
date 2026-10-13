@@ -1,7 +1,8 @@
-import { startCall, startLive, stopSession } from '../api/live.api'
+import { startCall, startLive, stopCall } from '../api/live.api'
 import type { SessionMode } from '../api/live.api'
 import { NotReadyError, connectWithRetry, play, push } from './webrtc'
 import type { MediaConnection } from './webrtc'
+import { getLocalMedia } from './localMedia'
 
 export type SessionStatus =
   | 'requesting-media' // call only: waiting for camera/mic permission
@@ -45,10 +46,14 @@ const INITIAL: SessionState = {
  * One live view or one call with one helmet, from start to hang-up.
  *
  * A plain object rather than React state, because its lifetime is the
- * session's, not a component's. Above all it guarantees the stop command:
- * a helmet streams on its own mobile data until it's told to stop, so end()
- * sends stop whenever start was sent, whether the user closed the player,
- * navigated away, or closed the tab mid-stream.
+ * session's, not a component's.
+ *
+ * Ending works differently for the two modes, as the backend specifies:
+ * - Live view: end() only closes this browser's connection. Others may be
+ *   watching the same helmet, and the media server stops the helmet itself
+ *   about 20 seconds after the last viewer leaves.
+ * - Call: end() also takes the helmet out of call mode, on every way out,
+ *   including the tab closing mid-call.
  */
 export class HelmetSession {
   private state: SessionState
@@ -70,7 +75,9 @@ export class HelmetSession {
       status: mode === 'call' ? 'requesting-media' : 'starting',
       cameraOn: mode === 'call' && withCamera,
     }
-    window.addEventListener('pagehide', this.onPageHide)
+    // A closing tab drops the connection by itself; only a call has
+    // something to tell the backend.
+    if (mode === 'call') window.addEventListener('pagehide', this.onPageHide)
   }
 
   // --- For useSyncExternalStore -----------------------------------------
@@ -105,21 +112,21 @@ export class HelmetSession {
         this.set({ localStream: local, status: 'starting' })
       }
 
-      // Marked before the request goes out, so a session ended mid-request
-      // still sends stop.
+      // Marked before the request goes out, so a call ended mid-request
+      // still takes the helmet out of call mode.
       this.startSent = true
       const call = this.mode === 'call' ? await startCall(this.deviceId) : null
       const started = call ?? (await startLive(this.deviceId))
 
       if (this.signal.aborted) {
-        // Ended while the start request was in flight; make sure the stop
+        // Hung up while the start request was in flight; make sure the stop
         // lands after the start.
-        void stopSession(this.deviceId, this.mode)
+        if (this.mode === 'call') void stopCall(this.deviceId)
         return
       }
       if (!started.delivered) {
-        // Queued for when the helmet reconnects. Retrying wouldn't help; the
-        // stop sent on close cancels the queued start.
+        // Offline. Live view and call commands aren't queued, so nothing
+        // will happen later; the operator can try again once it's online.
         this.set({ status: 'offline' })
         return
       }
@@ -156,7 +163,8 @@ export class HelmetSession {
     // Turns the camera light off; leaving tracks running keeps the camera on.
     this.state.localStream?.getTracks().forEach((t) => t.stop())
 
-    if (this.startSent) void stopSession(this.deviceId, this.mode, { unloading })
+    // Live view sends nothing: see the class comment.
+    if (this.mode === 'call' && this.startSent) void stopCall(this.deviceId, { unloading })
 
     this.state = { ...this.state, status: 'ended', remoteStream: null, localStream: null }
     this.listeners.forEach((l) => l())
@@ -229,31 +237,14 @@ export class HelmetSession {
   }
 
   private async getLocalMedia(): Promise<MediaStream> {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error(
-        'This browser can’t use the camera or microphone here. It needs the dashboard on https:// (or localhost).'
-      )
-    }
-    try {
-      return await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: this.withCamera ? { width: { ideal: 640 }, height: { ideal: 480 } } : false,
-      })
-    } catch (error) {
-      const name = (error as DOMException)?.name
-      // No camera on this computer: carry on as a voice call.
-      if (this.withCamera && (name === 'NotFoundError' || name === 'OverconstrainedError')) {
-        const audio = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        this.set({ noCamera: true, cameraOn: false })
-        return audio
-      }
-      throw error
-    }
+    const { stream, noCamera } = await getLocalMedia(this.withCamera)
+    if (noCamera) this.set({ noCamera: true, cameraOn: false })
+    return stream
   }
 }
 
 /** A sentence an operator can act on, for anything that can go wrong. */
-function describe(error: unknown): string {
+export function describe(error: unknown): string {
   const name = (error as { name?: string })?.name
   if (name === 'NotAllowedError') {
     return 'The browser was refused access to the microphone or camera. Allow it from the icon in the address bar, then try again.'

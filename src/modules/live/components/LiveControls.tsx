@@ -2,6 +2,7 @@ import { useRef, useState, type MouseEvent } from 'react'
 import { Can } from '@/shared/components/Can'
 import type { DeviceView } from '@/modules/devices/types'
 import { useHelmetSession } from '../hooks/useHelmetSession'
+import { endLiveForEveryone } from '../api/live.api'
 import { CallModal } from './CallModal'
 import { LiveViewModal } from './LiveViewModal'
 import { PhoneIcon, VideoIcon } from './icons'
@@ -79,6 +80,7 @@ export function LiveControls({
           onRetry={() => session?.retry()}
           onStartAgain={() => begin('watch')}
           onClose={close}
+          onEndForEveryone={() => endLiveForEveryone(device.id)}
         />
       )}
 

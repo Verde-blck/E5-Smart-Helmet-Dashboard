@@ -32,9 +32,12 @@ export function Overlay({
       aria-modal="true"
       aria-label={label}
       onClick={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-6"
+      // The layer scrolls, not the page: on a short screen (a laptop with a
+      // small window, a phone on its side) a call is taller than the view,
+      // and hang-up must stay reachable. Centred when it fits.
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80"
     >
-      {children}
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-6">{children}</div>
     </div>,
     document.body
   )

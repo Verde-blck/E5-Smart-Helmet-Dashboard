@@ -13,7 +13,8 @@ const PAUSE_AFTER_HIDDEN_MS = 60_000
  * Kept in a ref-held map rather than per-tile hooks so sessions are only ever
  * started by a click or by returning to the tab, never by a component
  * mounting (see useHelmetSession for why that matters). Leaving the wall
- * ends every session, which sends stop to every helmet.
+ * disconnects from every helmet; the server stops the ones nobody else is
+ * watching.
  */
 export function useWallSessions() {
   const sessions = useRef(new Map<string, HelmetSession>())
@@ -46,8 +47,9 @@ export function useWallSessions() {
   const get = useCallback((deviceId: string) => sessions.current.get(deviceId) ?? null, [])
 
   // Six helmets streaming to a tab nobody is looking at is about 5 GB an hour
-  // of their mobile data. After a minute hidden, stop them; when the tab
-  // comes back, start the same ones again.
+  // of their mobile data. After a minute hidden, disconnect from them; the
+  // media server then stops each helmet about 20 seconds later, unless
+  // someone else is watching it. When the tab comes back, rejoin the same ones.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
 

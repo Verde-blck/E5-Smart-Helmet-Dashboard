@@ -4,6 +4,8 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { ScopeBanner } from './ScopeBanner'
 import { ErrorBoundary } from './ErrorBoundary'
+import { Can } from './Can'
+import { SosBanner } from '@/modules/alarms/components/SosBanner'
 
 // App-shell layout: the page itself never scrolls, only <main> does. That
 // removes the need for a sticky sidebar entirely — a sticky flex child can end
@@ -29,6 +31,13 @@ export function Layout() {
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar onOpenNav={() => setNavOpen(true)} />
+        {/* Outside <main>, so an emergency never scrolls out of view. Its own
+            error boundary: a fault here mustn't take the page down with it. */}
+        <Can perm="alarms:read">
+          <ErrorBoundary label="SOS alerts">
+            <SosBanner />
+          </ErrorBoundary>
+        </Can>
         {/* Transparent so the canvas behind shows through as this scrolls. */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Shown once, above every page, rather than repeated per module. */}

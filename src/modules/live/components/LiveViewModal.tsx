@@ -10,13 +10,33 @@ interface Props {
   onRetry: () => void
   onStartAgain: () => void
   onClose: () => void
+  /** Stops the helmet streaming for every viewer, not just this one. */
+  onEndForEveryone: () => Promise<void>
 }
 
-export function LiveViewModal({ deviceName, state, onRetry, onStartAgain, onClose }: Props) {
+export function LiveViewModal({
+  deviceName,
+  state,
+  onRetry,
+  onStartAgain,
+  onClose,
+  onEndForEveryone,
+}: Props) {
   // Starts muted: browsers only autoplay video without sound. One click to unmute.
   const [muted, setMuted] = useState(true)
   const onBlocked = useCallback(() => setMuted(true), [])
   const live = state.status === 'live'
+  const [confirmEnd, setConfirmEnd] = useState(false)
+  const [ending, setEnding] = useState(false)
+
+  async function endForEveryone() {
+    setEnding(true)
+    try {
+      await onEndForEveryone()
+    } finally {
+      onClose()
+    }
+  }
 
   return (
     <Overlay label={`Live view, ${deviceName}`} onDismiss={onClose}>
@@ -31,7 +51,7 @@ export function LiveViewModal({ deviceName, state, onRetry, onStartAgain, onClos
             autoFocus
             className="shrink-0 rounded-md bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A3E2D7]"
           >
-            Stop and close
+            Close
           </button>
         </div>
 
@@ -55,7 +75,36 @@ export function LiveViewModal({ deviceName, state, onRetry, onStartAgain, onClos
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs text-slate-400">
-          <p>Streaming uses the helmet’s mobile data. Close the player when you’re done.</p>
+          {confirmEnd ? (
+            <p className="flex flex-wrap items-center gap-2 text-slate-200">
+              Stop the helmet streaming for everyone watching it?
+              <button
+                onClick={() => void endForEveryone()}
+                disabled={ending}
+                className="rounded-md bg-white px-2.5 py-1 font-medium text-slate-900 hover:bg-slate-200 disabled:opacity-60"
+              >
+                {ending ? 'Ending…' : 'End stream'}
+              </button>
+              <button
+                onClick={() => setConfirmEnd(false)}
+                disabled={ending}
+                className="rounded-md px-2 py-1 text-slate-300 hover:bg-white/10"
+              >
+                Keep it running
+              </button>
+            </p>
+          ) : (
+            <p>
+              Others can watch this helmet at the same time. It stops streaming by itself about
+              20 seconds after the last viewer closes.{' '}
+              <button
+                onClick={() => setConfirmEnd(true)}
+                className="text-slate-300 underline underline-offset-2 hover:text-white"
+              >
+                End stream for everyone
+              </button>
+            </p>
+          )}
           <button
             onClick={() => setMuted((m) => !m)}
             disabled={!live}

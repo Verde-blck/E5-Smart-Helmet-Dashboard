@@ -38,6 +38,8 @@ export interface Telemetry {
    * aren't fitted are omitted rather than reported as zero.
    */
   gas?: GasReading[]
+  /** When the gas readings were taken; can be older than lastSeenAt. */
+  gasAt?: number
 }
 
 /**

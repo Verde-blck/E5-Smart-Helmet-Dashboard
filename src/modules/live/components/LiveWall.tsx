@@ -66,7 +66,7 @@ export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Pr
             helmets on the wall
             <span className="ml-2 text-xs text-slate-400">
               Each uses about 0.9 GB of its mobile data per hour.
-            </span>
+            </span> 
           </p>
           <div className="flex gap-2">
             {idle.length > 0 && (
@@ -248,11 +248,7 @@ function WallTile({
   )
 }
 
-/**
- * One wall tile, enlarged and with sound. Uses the tile's own connection, so
- * opening and closing it doesn't restart anything; closing returns to the
- * wall without stopping the helmet.
- */
+
 function FocusView({
   name,
   session,

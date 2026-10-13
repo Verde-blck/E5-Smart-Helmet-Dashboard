@@ -2,8 +2,8 @@ import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
 import { pageContent, ts } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
-import { getMockMessages, sendMockMessage } from './messages.mock'
-import type { MessageDirection, SendResult, VoiceMessage } from '../types'
+import { getMockMessages, sendMockBroadcast, sendMockMessage } from './messages.mock'
+import type { BroadcastDelivery, MessageDirection, SendResult, VoiceMessage } from '../types'
 
 interface ApiMessage {
   id: number
@@ -36,6 +36,39 @@ export async function fetchMessages(deviceId: string): Promise<VoiceMessage[]> {
 }
 
 
+function asFile(file: Blob): File {
+  return file instanceof File
+    ? file
+    : new File([file], `message-${Date.now()}.wav`, { type: 'audio/wav' })
+}
+
+/**
+ * Walkie-talkie: one clip, played on every chosen helmet. One request rather
+ * than one per helmet, and the backend reports each helmet's outcome.
+ * Offline helmets get it queued, and it plays when they reconnect.
+ *
+ * deviceIds is always sent explicitly: leaving it out would send to every
+ * active helmet in the fleet, which is never what a selection means.
+ */
+export async function sendBroadcast(deviceIds: string[], file: Blob): Promise<BroadcastDelivery[]> {
+  if (env.useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    return sendMockBroadcast(deviceIds, file)
+  }
+  if (deviceIds.length === 0) return []
+
+  const form = new FormData()
+  form.append('file', asFile(file))
+  form.append('deviceIds', deviceIds.join(','))
+
+  const { data } = await apiClient.post<{ helmets?: BroadcastDelivery[] }>('/broadcast', form)
+  return (data?.helmets ?? []).map((h) => ({
+    deviceId: h.deviceId,
+    delivered: h.delivered === true,
+    messageId: h.messageId,
+  }))
+}
+
 export async function sendVoiceMessage(deviceId: string, file: Blob): Promise<SendResult> {
   if (env.useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 500))
@@ -43,9 +76,7 @@ export async function sendVoiceMessage(deviceId: string, file: Blob): Promise<Se
   }
 
   const form = new FormData()
-  const named =
-    file instanceof File ? file : new File([file], `message-${Date.now()}.wav`, { type: 'audio/wav' })
-  form.append('file', named)
+  form.append('file', asFile(file))
 
   const { data } = await apiClient.post<SendResult>(
     `/devices/${deviceId}/messages/audio`,

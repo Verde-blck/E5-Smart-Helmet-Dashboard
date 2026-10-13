@@ -48,14 +48,15 @@ interface ApiVideo {
   videoUrl?: string | null
   fileName?: string | null
   fileSizeBytes?: number | string | null
+  /** Helmet clock, no timezone: "2026-08-31T13:01:52". */
+  recordedAt?: string | null
+  recordedDate?: string | null
   uploadedAt?: string | null
 }
 
 /**
- * The helmet names each clip after the moment recording started, on its own
- * clock: "20260831130152.mp4" is 31 Aug 2026, 13:01:52. That's the capture
- * time, which can be days before uploadedAt if the helmet was out of signal.
- * Read as local time, since the helmet has no timezone in the name.
+ * Fallback for rows without recordedAt. The helmet names each clip after the
+ * moment recording started: "20260831130152.mp4" is 31 Aug 2026, 13:01:52.
  */
 function recordedAtFromFileName(fileName?: string | null): number | undefined {
   const m = fileName?.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/)
@@ -77,7 +78,10 @@ function toVideo(api: ApiVideo): MediaItem {
     kind: 'video',
     // Rows only exist once the upload has finished.
     status: /^https?:\/\//i.test(url) ? 'available' : 'failed',
-    capturedAt: recordedAtFromFileName(api.fileName) ?? uploadedAt ?? 0,
+    // When the helmet recorded it, which can be days before it uploaded.
+    // recordedAt has no timezone, so it parses as local time: the helmet's
+    // clock reading, shown as-is.
+    capturedAt: ts(api.recordedAt) ?? recordedAtFromFileName(api.fileName) ?? uploadedAt ?? 0,
     uploadedAt,
     sizeBytes: num(api.fileSizeBytes),
     fileName: api.fileName ?? undefined,
@@ -91,10 +95,12 @@ function toVideo(api: ApiVideo): MediaItem {
 const PAGE_SIZE = 100
 const MAX_PAGES = 5
 
-async function fetchAllPages<T>(path: string): Promise<T[]> {
+async function fetchAllPages<T>(path: string, params: Record<string, string> = {}): Promise<T[]> {
   const items: T[] = []
   for (let page = 0; page < MAX_PAGES; page++) {
-    const { data } = await apiClient.get<Page<T>>(path, { params: { page, size: PAGE_SIZE } })
+    const { data } = await apiClient.get<Page<T>>(path, {
+      params: { ...params, page, size: PAGE_SIZE },
+    })
     items.push(...pageContent(data))
     if (!data || Array.isArray(data) || data.last !== false) break
   }
@@ -120,7 +126,12 @@ export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
   const lists = await Promise.all(
     deviceIds.flatMap((id) =>
       kinds.map((kind) =>
-        fetchAllPages<never>(`/devices/${id}/${ENDPOINT[kind].path}`)
+        fetchAllPages<never>(
+          `/devices/${id}/${ENDPOINT[kind].path}`,
+          // Videos filter by recording date on the server (inclusive), so a
+          // day with hundreds of clips doesn't page the whole history down.
+          kind === 'video' && query.date ? { from: query.date, to: query.date } : {}
+        )
           .then((rows) => rows.map(ENDPOINT[kind].map))
           // One helmet failing shouldn't blank the whole gallery.
           .catch(() => [] as MediaItem[])
@@ -147,6 +158,72 @@ export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
   return items.sort((a, b) => b.capturedAt - a.capturedAt)
 }
 
+// --- Calendar -----------------------------------------------------------
+
+export interface CalendarDay {
+  count: number
+  totalBytes: number
+}
+
+/** Days in a month (YYYY-MM) that have recordings, keyed by YYYY-MM-DD. */
+export interface VideoCalendar {
+  month: string
+  totalClips: number
+  days: Record<string, CalendarDay>
+}
+
+interface ApiCalendar {
+  month?: string
+  totalClips?: number
+  days?: { date: string; count: number | string; totalBytes?: number | string }[]
+}
+
+/**
+ * Which days of a month have clips, by recording date. One call per helmet;
+ * for "all devices" it fans out and adds the counts together, like the list.
+ */
+export async function fetchVideoCalendar(month: string, deviceId?: string): Promise<VideoCalendar> {
+  if (env.useMocks) return mockCalendar(month, deviceId)
+
+  const deviceIds = deviceId ? [deviceId] : (await fetchDevices()).map((d) => d.id)
+  const results = await Promise.all(
+    deviceIds.map((id) =>
+      apiClient
+        .get<ApiCalendar>(`/devices/${id}/videos/calendar`, { params: { month } })
+        .then((res) => res.data)
+        .catch(() => null)
+    )
+  )
+
+  const days: Record<string, CalendarDay> = {}
+  let totalClips = 0
+  for (const result of results) {
+    for (const day of result?.days ?? []) {
+      const count = num(day.count) ?? 0
+      const entry = (days[day.date] ??= { count: 0, totalBytes: 0 })
+      entry.count += count
+      entry.totalBytes += num(day.totalBytes) ?? 0
+      totalClips += count
+    }
+  }
+  return { month, totalClips, days }
+}
+
+function mockCalendar(month: string, deviceId?: string): VideoCalendar {
+  const days: Record<string, CalendarDay> = {}
+  let totalClips = 0
+  for (const item of getMockMedia({ kind: 'video', deviceId })) {
+    const d = new Date(item.capturedAt)
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    if (!date.startsWith(month)) continue
+    const entry = (days[date] ??= { count: 0, totalBytes: 0 })
+    entry.count++
+    entry.totalBytes += item.sizeBytes ?? 0
+    totalClips++
+  }
+  return { month, totalClips, days }
+}
+
 /**
  * The storage contract in one function.
  *
@@ -157,7 +234,8 @@ export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
  * its own, which is the only revocation path you get with object storage.
  *
  * Not used for items that already carry a direct `url` — which today is
- * every live photo and video, since the backend serves public R2 links.
+ * every live photo and video. Those links are signed by the backend and
+ * expire after an hour, so they're never stored; see useMediaList.
  */
 export async function fetchMediaUrl(id: string): Promise<SignedMediaUrl> {
   if (env.useMocks) return getMockMediaUrl(id)
@@ -167,10 +245,11 @@ export async function fetchMediaUrl(id: string): Promise<SignedMediaUrl> {
 
 /**
  * Whether the backend can delete this kind of item. There's no delete
- * endpoint for videos, so the button is hidden rather than left to fail.
+ * endpoint yet (E5 are deciding who may delete), so on the live backend the
+ * button is hidden rather than left to fail.
  */
-export function canDeleteMedia(kind: MediaKind): boolean {
-  return env.useMocks || kind === 'photo'
+export function canDeleteMedia(_kind: MediaKind): boolean {
+  return env.useMocks
 }
 
 export async function deleteMedia(id: string): Promise<void> {

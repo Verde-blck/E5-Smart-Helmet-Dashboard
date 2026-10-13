@@ -3,6 +3,8 @@ import { Can } from '@/shared/components/Can'
 import { useMessages, useSendVoiceMessage } from '../hooks/useMessages'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
 import type { VoiceMessage } from '../types'
+import { VoicePlayer, looksLikeAmr } from './VoicePlayer'
+import { env } from '@/config/env'
 
 function Bubble({
   message,
@@ -33,15 +35,18 @@ function Bubble({
               Recording no longer available on the server
             </span>
           ) : (
-            <audio
-              controls
-              preload="none"
-              src={message.audioUrl}
-              onError={() => {
+            <VoicePlayer
+              url={message.audioUrl}
+              // Helmets record AMR. The file name usually says so; on the
+              // live backend, anything from a helmet is treated as AMR too.
+              amr={
+                looksLikeAmr(message.audioUrl) ||
+                (!env.useMocks && message.direction === 'FROM_HELMET')
+              }
+              onMissing={() => {
                 setMissing(true)
                 onMissing()
               }}
-              className="h-8 w-64 max-w-full"
             />
           )}
         </div>
@@ -153,10 +158,9 @@ export function BroadcastPanel({
 
           {missingCount > 0 && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-              {missingCount} older {missingCount === 1 ? 'recording is' : 'recordings are'}{' '}
-              no longer on the server. Audio is currently kept on the host's own
-              disk, which is cleared when it restarts — permanent storage is
-              still to be set up.
+              {missingCount} {missingCount === 1 ? 'recording' : 'recordings'} couldn’t be
+              loaded. Links expire after an hour; close and reopen this panel to get fresh
+              ones.
             </p>
           )}
         </div>

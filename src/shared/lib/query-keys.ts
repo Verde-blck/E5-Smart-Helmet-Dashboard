@@ -33,5 +33,8 @@ export const qk = {
     // Signed URLs are cached separately from the list so they can expire on
     // their own schedule without invalidating the gallery.
     url: (t: string, id: string) => ['tenant', t, 'media', 'url', id] as const,
+    /** Days with recordings in one month; deviceId null means the whole fleet. */
+    calendar: (t: string, deviceId: string | null, month: string) =>
+      ['tenant', t, 'media', 'calendar', deviceId, month] as const,
   },
 } as const

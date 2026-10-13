@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDeleteMedia, useMediaList } from "./hooks/useMedia";
 import { canDeleteMedia } from "./api/media.api";
 import { MediaFilters } from "./components/MediaFilters";
+import { VideoCalendar } from "./components/VideoCalendar";
 import { VideoList } from "./components/VideoList";
 import type { MediaQuery } from "./types";
 
@@ -19,14 +20,14 @@ export function VideosPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        {pending > 0 && (
+      {pending > 0 && (
+        <div className="mb-4">
           <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
             {pending} still uploading from{" "}
             {pending === 1 ? "a helmet" : "helmets"}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       <MediaFilters
         query={query}
@@ -36,19 +37,34 @@ export function VideosPage() {
         isFetching={isFetching && !isLoading}
       />
 
-      {isLoading && (
-        <p className="text-sm text-slate-500">Loading recordings…</p>
-      )}
-      {isError && (
-        <p className="text-sm text-red-600">Failed to load recordings.</p>
-      )}
+      <div className="grid items-start gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        {/* Same state as the date filter above, so the two always agree. */}
+        <div className="lg:sticky lg:top-4">
+          <VideoCalendar
+            deviceId={query.deviceId}
+            date={query.date}
+            onDateChange={(date) => setQuery({ ...query, date })}
+          />
+        </div>
 
-      {!isLoading && !isError && (
-        <VideoList
-          items={media}
-          onDelete={canDeleteMedia("video") ? (id) => remove.mutate(id) : undefined}
-        />
-      )}
+        <div className="min-w-0">
+          {isLoading && (
+            <p className="text-sm text-slate-500">Loading recordings…</p>
+          )}
+          {isError && (
+            <p className="text-sm text-red-600">Failed to load recordings.</p>
+          )}
+
+          {!isLoading && !isError && (
+            <VideoList
+              items={media}
+              onDelete={
+                canDeleteMedia("video") ? (id) => remove.mutate(id) : undefined
+              }
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

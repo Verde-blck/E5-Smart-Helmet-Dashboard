@@ -39,6 +39,9 @@ interface ApiDevice {
   accountId?: string | null
   active?: boolean
   online?: boolean
+  /** Same "GAS--value;GAS--value" format as telemetry. Null until a sensor reports. */
+  lastRawGasData?: string | null
+  lastGasAt?: string | null
 }
 
 interface ApiTelemetry {
@@ -76,6 +79,10 @@ function toDevice(api: ApiDevice): Device {
       lng: num(api.lastLongitude),
       isWorn: flag(api.lastWearStatus),
       signalStrength: num(api.lastNetStrength),
+      // Empty until a helmet with a gas sensor reports, so the gas slot
+      // shows "no reading" rather than a false all-clear of zeros.
+      gas: parseGasData(api.lastRawGasData),
+      gasAt: ts(api.lastGasAt),
     },
   }
 }

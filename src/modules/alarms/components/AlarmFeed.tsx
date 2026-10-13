@@ -4,6 +4,7 @@ import { DataCard } from '@/shared/components/DataCard'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { useAlarms, useResolveAlarm } from '../hooks/useAlarms'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
+import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { alarmLabel } from '../types'
 import type { Alarm, AlarmSeverity, AlarmStatus } from '../types'
 
@@ -37,14 +38,26 @@ function StatusChip({ alarm }: { alarm: Alarm }) {
   )
 }
 
+/** An SOS that still needs a response: its row stands out and offers the call. */
+function isOpenSos(alarm: Alarm): boolean {
+  return alarm.type === 'sos' && alarm.status === 'active'
+}
+
 /**
  * A voice message from a wearer is an alarm you listen to, not one you read.
  * Opening the conversation straight from the row is the whole point of
- * surfacing it here.
+ * surfacing it here. An open SOS likewise gets its call button on the row.
  */
 function AlarmActions({ alarm, full }: { alarm: Alarm; full?: boolean }) {
   return (
-    <span className={`flex items-center gap-2 ${full ? 'w-full' : 'justify-end'}`}>
+    <span className={`flex flex-wrap items-center gap-2 ${full ? 'w-full' : 'justify-end'}`}>
+      {isOpenSos(alarm) && (
+        <SosCallButton
+          deviceId={alarm.deviceId}
+          deviceName={alarm.deviceName}
+          className={full ? 'w-full justify-center' : ''}
+        />
+      )}
       {alarm.type === 'voice-message' && (
         <BroadcastButton
           deviceId={alarm.deviceId}
@@ -156,7 +169,14 @@ export function AlarmFeed({
           </thead>
           <tbody>
             {rows.map((alarm) => (
-              <tr key={alarm.id} className="border-t border-slate-100 hover:bg-slate-50">
+              <tr
+                key={alarm.id}
+                className={`border-t ${
+                  isOpenSos(alarm)
+                    ? 'border-red-100 bg-red-50/70 hover:bg-red-50'
+                    : 'border-slate-100 hover:bg-slate-50'
+                }`}
+              >
                 <td className="px-4 py-2">
                   <AlarmTitle alarm={alarm} />
                   {alarm.note && (

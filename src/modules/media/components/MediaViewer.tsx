@@ -1,5 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { env } from "@/config/env";
+import { useTenantId } from "@/shared/hooks/useTenant";
+import { qk } from "@/shared/lib/query-keys";
 import { Can } from "@/shared/components/Can";
 import { formatLastSeen } from "@/modules/devices/lib/presence";
 import { useMediaUrl } from "../hooks/useMedia";
@@ -32,6 +35,17 @@ export function MediaViewer({
     refetch,
   } = useMediaUrl(item.url ? null : item.id);
   const signed = item.url ? { url: item.url } : signedData;
+
+  const queryClient = useQueryClient();
+  const tenantId = useTenantId();
+  // Once per item: if the fresh link fails too, the file itself is the
+  // problem, and refetching again would just loop.
+  const refreshedFor = useRef<string | null>(null);
+  const refreshLinks = () => {
+    if (refreshedFor.current === item.id) return;
+    refreshedFor.current = item.id;
+    void queryClient.invalidateQueries({ queryKey: qk.media.all(tenantId) });
+  };
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -125,6 +139,9 @@ export function MediaViewer({
             <img
               src={signed.url}
               alt=""
+              onError={() => {
+                if (item.url) refreshLinks();
+              }}
               className="max-h-[60vh] w-full object-contain"
             />
           )}
@@ -142,7 +159,10 @@ export function MediaViewer({
               // A signed URL can lapse mid-playback on a long recording. One
               // refetch re-signs it rather than leaving a dead player.
               onError={() => {
-                if (!item.url) void refetch();
+                // Signed URL lapsed: re-sign it, or for a list link, reload
+                // the list, which brings fresh links for everything on screen.
+                if (item.url) refreshLinks();
+                else void refetch();
               }}
             />
           )}
