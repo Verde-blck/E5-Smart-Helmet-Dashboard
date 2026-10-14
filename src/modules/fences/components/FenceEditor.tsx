@@ -320,9 +320,9 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
 
       {/* Warning clip */}
       <div>
-        <span className={label}>Warning played on the helmet (optional)</span>
+        <span className={label}>Warning played on the helmet</span>
         <p className="mb-1.5 text-[11px] text-slate-400">
-           “You have left the work area.” 
+            You have entered a no-entry zone. Please leave immediately.
         </p>
         {clip ? (
           <div className="space-y-1.5">
