@@ -118,7 +118,7 @@ export function SettingsForm({
     <div className="space-y-4">
       <Section
         title="Reporting"
-        hint="Which server the helmet reports to is managed on the manufacturer's platform, not here, so it can't be changed by mistake."
+        hint="These settings control how often the helmet reports its status to the dashboard."
       >
         <Row
           label="Heartbeat (BEATTIM)"

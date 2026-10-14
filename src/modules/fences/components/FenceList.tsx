@@ -32,10 +32,6 @@ export function FenceList({ fences, isLoading, isError, selectedId, onSelect, on
           </button>
         </Can>
       </div>
-      <p className="mb-3 text-[11px] text-slate-400">
-        A breach raises a “Left work area” or “Entered restricted area” alarm. Not yet tested on a
-        real helmet.
-      </p>
 
       {isLoading ? (
         <p className="text-sm text-slate-500">Loading fences…</p>

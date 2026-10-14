@@ -208,7 +208,7 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
           ))}
         </select>
         <p className="mt-1 text-[11px] text-slate-400">
-          The first breach always alarms straight away.
+      
           {draft.frequencyMinutes === 0 && ' Every report is about every 10 seconds, which can be a lot of alarms.'}
         </p>
       </div>
@@ -322,7 +322,7 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
       <div>
         <span className={label}>Warning played on the helmet (optional)</span>
         <p className="mb-1.5 text-[11px] text-slate-400">
-          For example: “You have left the work area.” Played to the wearer when they breach this fence.
+           “You have left the work area.” 
         </p>
         {clip ? (
           <div className="space-y-1.5">
