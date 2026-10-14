@@ -37,4 +37,7 @@ export const qk = {
     calendar: (t: string, deviceId: string | null, month: string) =>
       ['tenant', t, 'media', 'calendar', deviceId, month] as const,
   },
-} as const
+  fences: {
+    all: (t: string) => ['tenant', t, 'fences'] as const,
+  },
+}

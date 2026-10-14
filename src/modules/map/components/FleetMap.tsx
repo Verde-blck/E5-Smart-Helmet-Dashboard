@@ -18,14 +18,31 @@ interface Props {
   /** Centre on one helmet instead of fitting the whole fleet. */
   focusDeviceId?: string
   heightClass?: string
+  /** Hands over the map once it exists, for layers drawn on top (fences). */
+  onMapReady?: (map: google.maps.Map) => void
+  /**
+   * False while drawing a fence: a click meant for the map mustn't open a
+   * helmet's page and lose the drawing.
+   */
+  markersClickable?: boolean
 }
 
-export function FleetMap({ devices, focusDeviceId, heightClass = 'h-[28rem]' }: Props) {
+export function FleetMap({
+  devices,
+  focusDeviceId,
+  heightClass = 'h-[28rem]',
+  onMapReady,
+  markersClickable = true,
+}: Props) {
   const { status, libraries, mapId, error } = useGoogleMaps()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map())
   const navigate = useNavigate()
+  // Read by the click listeners at click time, so toggling it doesn't mean
+  // rebuilding every marker.
+  const clickableRef = useRef(markersClickable)
+  clickableRef.current = markersClickable
 
   const located = devices.filter((d) => d.telemetry.lat != null && d.telemetry.lng != null)
 
@@ -43,7 +60,8 @@ export function FleetMap({ devices, focusDeviceId, heightClass = 'h-[28rem]' }: 
       streetViewControl: false,
       fullscreenControl: true,
     })
-  }, [status, libraries, mapId])
+    onMapReady?.(mapRef.current)
+  }, [status, libraries, mapId, onMapReady])
 
   // Markers are reconciled in place — updated, added or removed — rather than
   // cleared and rebuilt, so a marker the operator has open doesn't vanish
@@ -82,7 +100,9 @@ export function FleetMap({ devices, focusDeviceId, heightClass = 'h-[28rem]' }: 
         title: `${device.name} · ${device.site}`,
         gmpClickable: true,
       })
-      marker.addListener('click', () => navigate(`/devices/${device.id}`))
+      marker.addListener('click', () => {
+        if (clickableRef.current) navigate(`/devices/${device.id}`)
+      })
       markersRef.current.set(device.id, marker)
     }
 
