@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { toWav } from '../lib/wav'
+import { toMp3 } from '../lib/mp3'
 
 export type RecorderState = 'idle' | 'requesting' | 'recording' | 'converting' | 'error'
 
@@ -15,7 +16,15 @@ function pickMimeType(): string | undefined {
   return MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type))
 }
 
-export function useVoiceRecorder() {
+export type RecordingFormat = 'mp3' | 'wav'
+
+/**
+ * Records from the microphone and returns a file the helmet can play.
+ *
+ * MP3 by default: every clip sent to helmets (voice messages, broadcasts,
+ * fence warnings) goes out as MP3. WAV is kept for anything that needs it.
+ */
+export function useVoiceRecorder({ format = 'mp3' }: { format?: RecordingFormat } = {}) {
   const [state, setState] = useState<RecorderState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -87,15 +96,15 @@ export function useVoiceRecorder() {
     cleanup()
 
     try {
-      const wav = await toWav(recorded)
+      const file = format === 'mp3' ? await toMp3(recorded) : await toWav(recorded)
       setState('idle')
-      return wav
+      return file
     } catch {
       setError('Could not process the recording.')
       setState('error')
       return null
     }
-  }, [cleanup])
+  }, [cleanup, format])
 
   const cancel = useCallback(() => {
     recorderRef.current?.stop()

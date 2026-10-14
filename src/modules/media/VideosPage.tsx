@@ -4,9 +4,13 @@ import { canDeleteMedia } from "./api/media.api";
 import { MediaFilters } from "./components/MediaFilters";
 import { VideoCalendar } from "./components/VideoCalendar";
 import { VideoList } from "./components/VideoList";
+import { HelmetVideos } from "./components/HelmetVideos";
 import type { MediaQuery } from "./types";
 
+type Tab = "uploaded" | "helmet";
+
 export function VideosPage() {
+  const [tab, setTab] = useState<Tab>("uploaded");
   const [query, setQuery] = useState<MediaQuery>({ kind: "video" });
   const { media, isLoading, isFetching, isError, cacheKey } =
     useMediaList(query);
@@ -18,8 +22,46 @@ export function VideosPage() {
   // than leaving an operator to wonder why the list looks short.
   const pending = media.filter((m) => m.status === "uploading").length;
 
+  const tabs = (
+    <div
+      className="mb-4 inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-sm"
+      role="group"
+      aria-label="Which recordings"
+    >
+      {(
+        [
+          ["uploaded", "Uploaded"],
+          ["helmet", "Videos on helmet"],
+        ] as const
+      ).map(([value, label]) => (
+        <button
+          key={value}
+          onClick={() => setTab(value)}
+          aria-pressed={tab === value}
+          className={`rounded px-3 py-1.5 ${
+            tab === value
+              ? "bg-brand-primary/10 font-medium text-slate-900"
+              : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (tab === "helmet") {
+    return (
+      <div>
+        {tabs}
+        <HelmetVideos />
+      </div>
+    );
+  }
+
   return (
     <div>
+      {tabs}
       {pending > 0 && (
         <div className="mb-4">
           <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">

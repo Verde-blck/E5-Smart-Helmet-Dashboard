@@ -8,9 +8,11 @@ import { useMediaList } from '@/modules/media/hooks/useMedia'
 import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
 import { StatusHistory } from './components/StatusHistory'
 import { DeviceCommands } from './components/DeviceCommands'
+import { WifiPanel } from './components/WifiPanel'
 import { GasPanel } from './components/GasPanel'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { LiveControls } from '@/modules/live/components/LiveControls'
+import { signalQuality } from './lib/signal'
 import { useDeviceHistory } from './hooks/useDeviceHistory'
 import { FleetMap } from '@/modules/map/components/FleetMap'
 import type { Telemetry } from './types'
@@ -23,7 +25,12 @@ const PRESENCE_LABEL = {
 
 const boolLabel = (v: boolean) => (v ? 'Yes' : 'No')
 
-
+/**
+ * Rows are built from what the helmet actually reported, not from a fixed
+ * template. FRD §4 Real-Time Monitoring qualifies nearly every field with
+ * "where available", so a firmware that doesn't expose altitude should show no
+ * altitude row — not "Altitude: 0 m", which reads as ground level.
+ */
 function telemetryRows(t: Telemetry): Array<[string, string]> {
   const rows: Array<[string, string]> = []
   const push = (label: string, value: string | null) => {
@@ -44,7 +51,8 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
   push('Heading', t.heading != null ? `${t.heading}°` : null)
   push('Network', t.networkType ?? null)
   push('Carrier', t.carrier ?? null)
-  push('Signal', t.signalStrength != null ? `${t.signalStrength} dBm` : null)
+  const signal = signalQuality(t.signalStrength)
+  push('Signal', signal ? `${signal.label} (${signal.detail})` : null)
 
   return rows
 }
@@ -56,6 +64,10 @@ export function DeviceDetailPage() {
   const { media } = useMediaList({ deviceId: id })
   const setActive = useSetDeviceActive()
 
+  // Gas only arrives on telemetry rows, not on the device record, so the most
+  // recent sample is the current reading. Worth asking the backend to include
+  // it on GET /devices — without it there's no way to flag gas across the
+  // fleet without one request per helmet.
   const { window: recent } = useDeviceHistory(id, '1h')
   const latestSample = recent?.samples[recent.samples.length - 1]
   const gasReadings = device?.telemetry.gas ?? latestSample?.gas
@@ -180,6 +192,7 @@ export function DeviceDetailPage() {
       <GasPanel readings={gasReadings} capturedAt={latestSample?.ts} />
 
       <DeviceCommands device={device} />
+      <WifiPanel device={device} />
 
       <Can perm="map:read">
         {device.telemetry.lat != null && (

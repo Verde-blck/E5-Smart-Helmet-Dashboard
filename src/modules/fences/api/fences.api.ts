@@ -166,9 +166,14 @@ export async function uploadWarningAudio(id: number, clip: Blob): Promise<void> 
     return
   }
   const form = new FormData()
+  const mp3 = clip.type === 'audio/mpeg'
   form.append(
     'file',
-    clip instanceof File ? clip : new File([clip], `fence-${id}-warning.wav`, { type: 'audio/wav' })
+    clip instanceof File
+      ? clip
+      : new File([clip], `fence-${id}-warning.${mp3 ? 'mp3' : 'wav'}`, {
+          type: mp3 ? 'audio/mpeg' : clip.type || 'audio/wav',
+        })
   )
   await apiClient.post(`/fences/${id}/warning-audio`, form)
 }

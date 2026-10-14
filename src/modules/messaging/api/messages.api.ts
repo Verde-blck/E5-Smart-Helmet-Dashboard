@@ -36,10 +36,13 @@ export async function fetchMessages(deviceId: string): Promise<VoiceMessage[]> {
 }
 
 
+/** Names the upload by what it actually is: recordings are MP3 now. */
 function asFile(file: Blob): File {
-  return file instanceof File
-    ? file
-    : new File([file], `message-${Date.now()}.wav`, { type: 'audio/wav' })
+  if (file instanceof File) return file
+  const mp3 = file.type === 'audio/mpeg' || file.type === 'audio/mp3'
+  return new File([file], `message-${Date.now()}.${mp3 ? 'mp3' : 'wav'}`, {
+    type: mp3 ? 'audio/mpeg' : file.type || 'audio/wav',
+  })
 }
 
 /**

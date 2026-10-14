@@ -3,6 +3,8 @@ import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { LiveControls } from '@/modules/live/components/LiveControls'
 import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import { formatLastSeen } from '../lib/presence'
+import { signalQuality } from '../lib/signal'
+import { SignalBars } from './SignalBars'
 import type { DeviceView, Presence } from '../types'
 
 const SHELL: Record<Presence, string> = {
@@ -17,6 +19,14 @@ const PRESENCE_LABEL: Record<Presence, string> = {
   offline: 'Offline',
 }
 
+/**
+ * Drawn rather than photographed.
+ *
+ * The vendor's console shows a photo of a helmet in each tile, which looks
+ * the part but carries no information — every tile is identical. An outline
+ * that takes the device's own status as its colour says the same thing and
+ * also tells you which helmet is in trouble from across the room.
+ */
 function HelmetGlyph({ presence, className }: { presence: Presence; className?: string }) {
   return (
     <svg viewBox="0 0 96 64" className={className} aria-hidden="true">
@@ -71,6 +81,10 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
   const gasLevel = worstLevel(gas)
   const gasAlarming = gasLevel === 'danger' || gasLevel === 'warning'
   const battery = device.telemetry.batteryPercent
+  // Only meaningful while connected: an offline helmet's last reading is
+  // stale, so it shows no bars rather than a strength it no longer has.
+  const connected = device.presence !== 'offline'
+  const signal = connected ? signalQuality(device.telemetry.signalStrength) : null
 
   return (
     <Link
@@ -111,7 +125,18 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
           />
           {PRESENCE_LABEL[device.presence]}
         </span>
-        <span className="text-slate-500">{battery != null ? `${battery}%` : '—'}</span>
+        <span className="flex items-center gap-2 text-slate-500">
+          {connected && (
+            <span className="flex items-center gap-1">
+              <SignalBars
+                bars={signal?.bars ?? null}
+                label={signal ? `Signal: ${signal.label} (${signal.detail})` : 'Signal: not reported'}
+              />
+              <span className="hidden text-[10px] sm:inline">{signal?.label ?? '—'}</span>
+            </span>
+          )}
+          <span>{battery != null ? `${battery}%` : '—'}</span>
+        </span>
       </div>
 
       <p className="mt-0.5 text-[11px] text-slate-400">

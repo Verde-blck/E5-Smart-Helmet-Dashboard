@@ -2,7 +2,7 @@
 
 export const TARGET_SAMPLE_RATE = 16_000
 
-function downmix(buffer: AudioBuffer): Float32Array {
+export function downmix(buffer: AudioBuffer): Float32Array {
   if (buffer.numberOfChannels === 1) return buffer.getChannelData(0)
 
   const length = buffer.length
@@ -14,7 +14,7 @@ function downmix(buffer: AudioBuffer): Float32Array {
   return mixed
 }
 
-function resample(input: Float32Array, fromRate: number, toRate: number): Float32Array {
+export function resample(input: Float32Array, fromRate: number, toRate: number): Float32Array {
   if (fromRate === toRate) return input
 
   const ratio = fromRate / toRate
