@@ -25,13 +25,6 @@ export function UnitSettingPage() {
   return (
     <div>
 
-      {!env.useMocks && (
-        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {/* Saving and delivery work; the helmet acting on a change doesn't
-              yet have the manufacturer's confirmation, same as live video and
-              calling. Better said here than discovered on site. */}
-        </p>
-      )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <aside>
