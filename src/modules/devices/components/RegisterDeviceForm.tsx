@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useRegisterDevice } from '../hooks/useDevices'
+import { DEVICE_NAME_MAX } from '../api/devices.api'
 
 /**
  * Device IDs are IMEIs — fifteen digits in practice, but the check is kept
@@ -19,8 +20,9 @@ function validate(id: string): string | null {
 
 export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
   const [deviceId, setDeviceId] = useState('')
+  const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [registered, setRegistered] = useState<string | null>(null)
+  const [registered, setRegistered] = useState<{ id: string; name: string; named: boolean } | null>(null)
   const register = useRegisterDevice()
 
   function submit() {
@@ -29,10 +31,11 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
     setRegistered(null)
     if (problem) return
 
-    register.mutate(deviceId.trim(), {
-      onSuccess: (device) => {
-        setRegistered(device.id)
+    register.mutate({ deviceId: deviceId.trim(), name: name.trim() || undefined }, {
+      onSuccess: ({ device, named }) => {
+        setRegistered({ id: device.id, name: name.trim(), named })
         setDeviceId('')
+        setName('')
       },
       onError: () => setError('Could not register that helmet. Check the ID and try again.'),
     })
@@ -53,7 +56,19 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
           placeholder="866652022956404"
           inputMode="numeric"
           spellCheck={false}
+          aria-label="Device ID"
           className="w-56 rounded border border-slate-300 px-2.5 py-1.5 font-mono text-sm"
+        />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value.slice(0, DEVICE_NAME_MAX))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submit()
+            if (e.key === 'Escape') onDone()
+          }}
+          placeholder="Name (optional), e.g. John - Site A"
+          aria-label="Helmet name"
+          className="w-64 rounded border border-slate-300 px-2.5 py-1.5 text-sm"
         />
         <button
           onClick={submit}
@@ -76,8 +91,13 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
         <p className="mt-2 text-xs text-emerald-700">
           {/* Registering an existing ID returns it unchanged rather than
               erroring, so the wording covers both cases honestly. */}
-          Helmet {registered} is registered. It will show as offline until it
-          first reports in.
+          {registered.name && registered.named ? `${registered.name} (${registered.id})` : `Helmet ${registered.id}`}{' '}
+          is registered. It will show as offline until it first reports in.
+        </p>
+      )}
+      {registered && registered.name && !registered.named && (
+        <p className="mt-1 text-xs text-amber-700">
+          The name couldn’t be saved. Rename it from the helmet’s page.
         </p>
       )}
     </div>

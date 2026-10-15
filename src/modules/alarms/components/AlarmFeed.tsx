@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { Can } from '@/shared/components/Can'
 import { DataCard } from '@/shared/components/DataCard'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
@@ -112,7 +114,17 @@ export function AlarmFeed({
   deviceId?: string
   limit?: number
 }) {
-  const { alarms, active, now, isLoading, isError } = useAlarms()
+  const { alarms: rawAlarms, active: rawActive, now, isLoading, isError } = useAlarms()
+  // Alarms only carry a deviceId; names come from the device list.
+  const nameOf = useDeviceNames()
+  const alarms = useMemo(
+    () => rawAlarms.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) })),
+    [rawAlarms, nameOf]
+  )
+  const active = useMemo(
+    () => rawActive.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) })),
+    [rawActive, nameOf]
+  )
   const base = activeOnly ? active : alarms
   const scoped = deviceId ? base.filter((a) => a.deviceId === deviceId) : base
   const rows = limit ? scoped.slice(0, limit) : scoped

@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
+import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { deleteMedia, fetchMedia, fetchMediaUrl, fetchVideoCalendar } from '../api/media.api'
 import type { MediaItem, MediaQuery } from '../types'
 
@@ -16,22 +17,24 @@ const SIGNED_URL_CACHE_MS = 10 * 60_000
 export function useMediaList(query: MediaQuery = {}) {
   const tenantId = useTenantId()
   const { inScope } = useSiteScope()
+  const nameOf = useDeviceNames()
 
   // Spread into a plain object so the key is stable regardless of how the
   // caller built the query, and so undefined fields don't create variants.
+  // Search isn't part of it: it's applied below, after names are filled in,
+  // so a helmet's name finds its clips and typing doesn't refetch.
   const key = useMemo(
     () => ({
       kind: query.kind ?? null,
       deviceId: query.deviceId ?? null,
       date: query.date ?? null,
-      search: query.search?.trim() || null,
     }),
-    [query.kind, query.deviceId, query.date, query.search]
+    [query.kind, query.deviceId, query.date]
   )
 
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: qk.media.list(tenantId, key),
-    queryFn: () => fetchMedia(query),
+    queryFn: () => fetchMedia({ kind: query.kind, deviceId: query.deviceId, date: query.date }),
     // Keeps the previous page visible while a new filter loads, rather than
     // flashing an empty grid every time the date changes.
     placeholderData: (previous) => previous,
@@ -43,7 +46,21 @@ export function useMediaList(query: MediaQuery = {}) {
     gcTime: 45 * 60_000,
   })
 
-  const media = useMemo(() => (data ?? []).filter((m) => inScope(m.site)), [data, inScope])
+  const needle = query.search?.trim().toLowerCase() ?? ''
+  const media = useMemo(() => {
+    // Photos and videos only carry a deviceId; the name comes from the
+    // device list that's already loaded.
+    const named = (data ?? [])
+      .filter((m) => inScope(m.site))
+      .map((m) => ({ ...m, deviceName: nameOf(m.deviceId, m.deviceName) }))
+    if (!needle) return named
+    return named.filter(
+      (m) =>
+        m.deviceName.toLowerCase().includes(needle) ||
+        m.deviceId.includes(needle) ||
+        (m.fileName?.toLowerCase().includes(needle) ?? false)
+    )
+  }, [data, inScope, nameOf, needle])
 
   return { media, isLoading, isFetching, isError, cacheKey: key }
 }

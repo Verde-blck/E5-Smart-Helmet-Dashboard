@@ -140,6 +140,13 @@ export function registerMockDevice(deviceId: string): Device {
   return { ...device }
 }
 
+export function renameMockDevice(deviceId: string, name: string): void {
+  const device = fleet.find((d) => d.id === deviceId)
+  if (!device) return
+  device.name = name || `…${deviceId.slice(-5)}`
+  device.named = Boolean(name)
+}
+
 export function getMockDevice(id: string): Device | undefined {
   const found = fleet.find((d) => d.id === id)
   return found ? { ...found, telemetry: { ...found.telemetry } } : undefined

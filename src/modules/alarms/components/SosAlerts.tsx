@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { useAlarms } from '../hooks/useAlarms'
@@ -12,7 +13,9 @@ import { useAlarms } from '../hooks/useAlarms'
  * helmet isn't already waiting, starting the call puts it into one.
  */
 export function SosAlerts() {
-  const { active, now } = useAlarms()
+  const { active: rawActive, now } = useAlarms()
+  const nameOf = useDeviceNames()
+  const active = rawActive.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) }))
   const sos = active
     .filter((a) => a.type === 'sos')
     .sort((a, b) => b.raisedAt - a.raisedAt)

@@ -98,7 +98,13 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
       }`}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <span className="truncate text-sm font-medium text-slate-800">{device.name}</span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-slate-800">{device.name}</span>
+          {/* The ID under the name; an unnamed helmet's "name" already is it. */}
+          {device.named !== false && (
+            <span className="block truncate font-mono text-[10px] text-slate-400">{device.id}</span>
+          )}
+        </span>
         <span className="flex shrink-0 items-center gap-0.5">
           {!device.active && (
             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">

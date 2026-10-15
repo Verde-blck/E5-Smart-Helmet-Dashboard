@@ -18,6 +18,7 @@ import { VideosPage } from '@/modules/media/VideosPage'
 import { AlarmsPage } from '@/modules/alarms/AlarmsPage'
 import { UsersPage } from '@/modules/users/UsersPage'
 import { UnitSettingPage } from '@/modules/unit-settings/UnitSettingPage'
+import { WifiPage } from '@/modules/wifi/WifiPage'
 import { ProfilePage } from '@/modules/profile/ProfilePage'
 
 function UnauthorizedPage() {
@@ -168,6 +169,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute perm="unitSettings:read">
               <UnitSettingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="wifi"
+          element={
+            <ProtectedRoute perm="wifi:read">
+              <WifiPage />
             </ProtectedRoute>
           }
         />

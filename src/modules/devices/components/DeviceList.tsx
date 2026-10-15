@@ -77,7 +77,12 @@ export function DeviceList({ search = '' }: { search?: string } = {}) {
             title={
               <span className="flex items-center gap-2">
                 <StatusDot presence={device.presence} />
-                <span className="text-sm font-medium text-slate-800">{device.name}</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-800">{device.name}</span>
+                  {device.named !== false && (
+                    <span className="block font-mono text-[10px] text-slate-400">{device.id}</span>
+                  )}
+                </span>
               </span>
             }
             badges={<Badges device={device} />}
@@ -116,7 +121,12 @@ export function DeviceList({ search = '' }: { search?: string } = {}) {
                 <td className="px-4 py-2">
                   <Link to={`/devices/${device.id}`} className="flex items-center gap-2">
                     <StatusDot presence={device.presence} />
-                    <span className="font-medium text-slate-800">{device.name}</span>
+                    <span className="min-w-0">
+                      <span className="block font-medium text-slate-800">{device.name}</span>
+                      {device.named !== false && (
+                        <span className="block font-mono text-[10px] text-slate-400">{device.id}</span>
+                      )}
+                    </span>
                     <Badges device={device} />
                   </Link>
                 </td>

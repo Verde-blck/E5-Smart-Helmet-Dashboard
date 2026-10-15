@@ -14,6 +14,7 @@ export type ModuleKey =
   | 'alarms'
   | 'users'
   | 'unitSettings'
+  | 'wifi'
   | 'profile'
 
 // Permissions are module + action, not just module. A supervisor who can view
@@ -44,6 +45,8 @@ export const MODULES: ModuleDef[] = [
   { key: 'alarms', label: 'Alarm Record', route: '/alarms', icon: 'alarm' },
   { key: 'users', label: 'Administrators', route: '/users', icon: 'users' },
   { key: 'unitSettings', label: 'Unit Setting', route: '/unit-setting', icon: 'sliders' },
+  // Moves helmets between Wi-Fi networks; replaces the vendor's Anlink app.
+  { key: 'wifi', label: 'Wi-Fi', route: '/wifi', icon: 'wifi' },
   { key: 'profile', label: 'Company Profile', route: '/profile', icon: 'building' },
 ]
 

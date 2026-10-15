@@ -11,6 +11,7 @@ import {
 } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
 import {
+  renameMockDevice,
   getMockDevice,
   getMockFleet,
   getMockSummary,
@@ -29,6 +30,8 @@ import type {
 /** Exactly what GET /api/devices returns — every value a string. */
 interface ApiDevice {
   deviceId: string
+  /** Display name, e.g. "Test Helmet". Empty until someone names it. */
+  name?: string | null
   lastBatteryLevel?: string | null
   lastLatitude?: string | null
   lastLongitude?: string | null
@@ -63,8 +66,11 @@ interface ApiTelemetry {
 
 function toDevice(api: ApiDevice): Device {
   return {
+    // The deviceId stays the key for every API call; the name is display
+    // only. A helmet without one shows its shortened ID instead.
     id: api.deviceId,
-    name: shortDeviceName(api.deviceId),
+    name: api.name?.trim() || shortDeviceName(api.deviceId),
+    named: Boolean(api.name?.trim()),
     // site, assignedTo and activeAlarm have no source in the API yet.
     active: api.active ?? true,
     connectivity: 'sim',
@@ -138,6 +144,23 @@ export async function registerDevice(deviceId: string): Promise<Device> {
 
   const { data } = await apiClient.post<ApiDevice>('/devices', { deviceId: id })
   return toDevice(data)
+}
+
+/** Longest name the form accepts; the helmet shows it too, so keep it short. */
+export const DEVICE_NAME_MAX = 40
+
+/**
+ * Renames a helmet (PATCH /api/devices/{deviceId}/name). The helmet itself
+ * picks the new name up the next time it logs in.
+ */
+export async function renameDevice(deviceId: string, name: string): Promise<void> {
+  const trimmed = name.trim()
+  if (env.useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    renameMockDevice(deviceId, trimmed)
+    return
+  }
+  await apiClient.patch(`/devices/${deviceId}/name`, { name: trimmed })
 }
 
 /** Registration state. Independent of whether the helmet is connected. */

@@ -8,7 +8,7 @@ import { useMediaList } from '@/modules/media/hooks/useMedia'
 import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
 import { StatusHistory } from './components/StatusHistory'
 import { DeviceCommands } from './components/DeviceCommands'
-import { WifiPanel } from './components/WifiPanel'
+import { DeviceNameHeading } from './components/DeviceNameHeading'
 import { GasPanel } from './components/GasPanel'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { LiveControls } from '@/modules/live/components/LiveControls'
@@ -99,7 +99,7 @@ export function DeviceDetailPage() {
       </Link>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <StatusDot presence={device.presence} />
-        <h1 className="text-lg font-semibold text-slate-800">{device.name}</h1>
+        <DeviceNameHeading device={device} />
         {device.activeAlarm && <AlarmBadge severity={device.activeAlarm} />}
         {!device.active && (
           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-500">
@@ -192,7 +192,13 @@ export function DeviceDetailPage() {
       <GasPanel readings={gasReadings} capturedAt={latestSample?.ts} />
 
       <DeviceCommands device={device} />
-      <WifiPanel device={device} />
+      <Can perm="wifi:read">
+        <p className="mt-2 text-right text-xs">
+          <Link to={`/wifi?device=${device.id}`} className="text-slate-500 hover:text-slate-800">
+            Wi-Fi settings →
+          </Link>
+        </p>
+      </Can>
 
       <Can perm="map:read">
         {device.telemetry.lat != null && (

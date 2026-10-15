@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { Link, useLocation } from 'react-router-dom'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
@@ -17,7 +18,9 @@ const FRESH_MS = 2 * 60_000
  * it shows when the dashboard is behind another window.
  */
 export function SosBanner() {
-  const { active, now } = useAlarms()
+  const { active: rawActive, now } = useAlarms()
+  const nameOf = useDeviceNames()
+  const active = rawActive.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) }))
   const { pathname } = useLocation()
   const sos = active.filter((a) => a.type === 'sos').sort((a, b) => b.raisedAt - a.raisedAt)
 

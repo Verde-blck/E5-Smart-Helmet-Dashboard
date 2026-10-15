@@ -67,6 +67,12 @@ export interface Device {
    *  short form of the device ID — see devices.api.ts. */
   name: string
   /** Not supplied by the API. Optional until it is. */
+  /**
+   * False when the helmet has no name yet and `name` is the shortened device
+   * ID instead ("…56404"). Lets the UI avoid showing the ID twice. Undefined
+   * is treated as named.
+   */
+  named?: boolean
   site?: string
   assignedTo?: DeviceAssignment
   /**

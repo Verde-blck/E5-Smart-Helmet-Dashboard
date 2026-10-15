@@ -10,6 +10,7 @@ export type IconName =
   | 'sliders'
   | 'route'
   | 'megaphone'
+  | 'wifi'
 
 /**
  * Hand-drawn rather than a library.
@@ -99,6 +100,14 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <line x1="9" y1="12" x2="9" y2="12" />
       <line x1="15" y1="12" x2="15" y2="12" />
       <path d="M10 21v-4h4v4" />
+    </>
+  ),
+    wifi: (
+    <>
+      <path d="M2.5 9a14 14 0 0 1 19 0" />
+      <path d="M5.5 12.5a9.5 9.5 0 0 1 13 0" />
+      <path d="M8.8 15.8a4.8 4.8 0 0 1 6.4 0" />
+      <circle cx="12" cy="19" r="0.9" fill="currentColor" />
     </>
   ),
 }
