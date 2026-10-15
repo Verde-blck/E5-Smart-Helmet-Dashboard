@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { Can } from '@/shared/components/Can'
@@ -7,6 +7,7 @@ import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { useAlarms, useResolveAlarm } from '../hooks/useAlarms'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
+import { AlarmDetail } from './AlarmDetail'
 import { alarmLabel } from '../types'
 import type { Alarm, AlarmSeverity, AlarmStatus } from '../types'
 
@@ -125,6 +126,11 @@ export function AlarmFeed({
     () => rawActive.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) })),
     [rawActive, nameOf]
   )
+  // The alarm whose details are open. Kept as an id so the panel always
+  // shows the latest version (e.g. right after it's marked resolved).
+  const [openId, setOpenId] = useState<string | null>(null)
+  const openAlarm = openId ? alarms.find((a) => a.id === openId) : undefined
+
   const base = activeOnly ? active : alarms
   const scoped = deviceId ? base.filter((a) => a.deviceId === deviceId) : base
   const rows = limit ? scoped.slice(0, limit) : scoped
@@ -143,8 +149,15 @@ export function AlarmFeed({
     )
   }
 
+  // Clicking anywhere on a row opens it, except on its own links and buttons.
+  const openFromRow = (e: React.MouseEvent, id: string) => {
+    if ((e.target as HTMLElement).closest('a, button')) return
+    setOpenId(id)
+  }
+
   return (
     <>
+      {openAlarm && <AlarmDetail alarm={openAlarm} now={now} onClose={() => setOpenId(null)} />}
       <div className="flex flex-col gap-2 md:hidden">
         {rows.map((alarm) => (
           <DataCard
@@ -163,7 +176,17 @@ export function AlarmFeed({
               { label: 'Raised', value: formatLastSeen(alarm.raisedAt, now) },
               ...(alarm.note ? [{ label: 'Note', value: alarm.note }] : []),
             ]}
-            action={<AlarmActions alarm={alarm} full />}
+            action={
+              <div className="flex w-full flex-col gap-2">
+                <button
+                  onClick={() => setOpenId(alarm.id)}
+                  className="w-full rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  View details and footage
+                </button>
+                <AlarmActions alarm={alarm} full />
+              </div>
+            }
           />
         ))}
       </div>
@@ -183,14 +206,21 @@ export function AlarmFeed({
             {rows.map((alarm) => (
               <tr
                 key={alarm.id}
-                className={`border-t ${
+                onClick={(e) => openFromRow(e, alarm.id)}
+                className={`cursor-pointer border-t ${
                   isOpenSos(alarm)
                     ? 'border-red-100 bg-red-50/70 hover:bg-red-50'
                     : 'border-slate-100 hover:bg-slate-50'
                 }`}
               >
                 <td className="px-4 py-2">
-                  <AlarmTitle alarm={alarm} />
+                  <button
+                    onClick={() => setOpenId(alarm.id)}
+                    className="text-left hover:underline hover:underline-offset-2"
+                    aria-label={`Details and footage for this alarm`}
+                  >
+                    <AlarmTitle alarm={alarm} />
+                  </button>
                   {alarm.note && (
                     <p className="mt-0.5 pl-4 text-xs text-slate-400">{alarm.note}</p>
                   )}
