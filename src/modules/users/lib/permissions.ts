@@ -99,6 +99,7 @@ export const MODULE_PERMISSION: Record<ModuleKey, ApiPermission> = {
   alarms: 'ALARM_RECORD',
   users: 'ADMINISTRATOR_SETTING',
   unitSettings: 'UNIT_SETTING',
+  wifi: 'UNIT_SETTING',
   profile: 'ADMINISTRATOR_SETTING',
 }
 
