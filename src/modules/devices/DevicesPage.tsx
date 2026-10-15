@@ -5,6 +5,9 @@ import { DeviceList } from './components/DeviceList'
 import { HelmetTile } from './components/HelmetTile'
 import { RegisterDeviceForm } from './components/RegisterDeviceForm'
 import { useDevices } from './hooks/useDevices'
+import { RefreshButton } from '@/shared/components/RefreshButton'
+import { useTenantId } from '@/shared/hooks/useTenant'
+import { qk } from '@/shared/lib/query-keys'
 import { LiveWall } from '@/modules/live/components/LiveWall'
 
 type View = 'tiles' | 'table' | 'wall'
@@ -16,6 +19,7 @@ const VIEW_LABEL: Record<View, string> = {
 }
 
 export function DevicesPage() {
+  const tenantId = useTenantId()
   const [registering, setRegistering] = useState(false)
   const [view, setView] = useState<View>('tiles')
   const [search, setSearch] = useState('')
@@ -42,6 +46,9 @@ export function DevicesPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
        
         <div className="flex flex-wrap items-center gap-2">
+          {/* Helmets, their status and the summary cards. Live wall streams
+              aren't affected; they're connections, not cached data. */}
+          <RefreshButton queryKey={qk.devices.all(tenantId)} />
           <input
             type="search"
             value={search}

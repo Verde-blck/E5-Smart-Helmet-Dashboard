@@ -6,10 +6,14 @@ import { VideoCalendar } from "./components/VideoCalendar";
 import { VideoList } from "./components/VideoList";
 import { HelmetVideos } from "./components/HelmetVideos";
 import type { MediaQuery } from "./types";
+import { RefreshButton } from "@/shared/components/RefreshButton";
+import { useTenantId } from "@/shared/hooks/useTenant";
+import { qk } from "@/shared/lib/query-keys";
 
 type Tab = "uploaded" | "helmet";
 
 export function VideosPage() {
+  const tenantId = useTenantId();
   const [tab, setTab] = useState<Tab>("uploaded");
   const [query, setQuery] = useState<MediaQuery>({ kind: "video" });
   const { media, isLoading, isFetching, isError, cacheKey } =
@@ -22,9 +26,9 @@ export function VideosPage() {
   // than leaving an operator to wonder why the list looks short.
   const pending = media.filter((m) => m.status === "uploading").length;
 
-  const tabs = (
+  const tabSwitch = (
     <div
-      className="mb-4 inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-sm"
+      className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-sm"
       role="group"
       aria-label="Which recordings"
     >
@@ -47,6 +51,15 @@ export function VideosPage() {
           {label}
         </button>
       ))}
+    </div>
+  );
+
+  // "Videos on helmet" has its own Refresh, which asks the helmet; this one
+  // reloads the uploaded list and the calendar.
+  const tabs = (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      {tabSwitch}
+      {tab === "uploaded" && <RefreshButton queryKey={qk.media.all(tenantId)} />}
     </div>
   );
 

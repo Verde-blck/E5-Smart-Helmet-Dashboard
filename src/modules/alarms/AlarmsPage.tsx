@@ -4,8 +4,12 @@ import { SosAlerts } from './components/SosAlerts'
 import { GasOverviewPanel } from './components/GasOverviewPanel'
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary'
 import { useAlarms } from './hooks/useAlarms'
+import { RefreshButton } from '@/shared/components/RefreshButton'
+import { useTenantId } from '@/shared/hooks/useTenant'
+import { qk } from '@/shared/lib/query-keys'
 
 export function AlarmsPage() {
+  const tenantId = useTenantId()
   const [activeOnly, setActiveOnly] = useState(true)
   const { active, alarms } = useAlarms()
 
@@ -38,6 +42,7 @@ export function AlarmsPage() {
             All ({alarms.length})
           </button>
         </div>
+        <RefreshButton queryKey={qk.alarms.all(tenantId)} />
       </div>
 
       {critical > 0 && (

@@ -4,8 +4,12 @@ import { canDeleteMedia } from "./api/media.api";
 import { MediaFilters } from "./components/MediaFilters";
 import { MediaGrid } from "./components/MediaGrid";
 import type { MediaQuery } from "./types";
+import { RefreshButton } from "@/shared/components/RefreshButton";
+import { useTenantId } from "@/shared/hooks/useTenant";
+import { qk } from "@/shared/lib/query-keys";
 
 export function PhotosPage() {
+  const tenantId = useTenantId();
   const [query, setQuery] = useState<MediaQuery>({ kind: "photo" });
   const { media, isLoading, isFetching, isError, cacheKey } =
     useMediaList(query);
@@ -13,6 +17,9 @@ export function PhotosPage() {
 
   return (
     <div>
+      <div className="mb-3 flex justify-end">
+        <RefreshButton queryKey={qk.media.all(tenantId)} />
+      </div>
 
       <MediaFilters
         query={query}
