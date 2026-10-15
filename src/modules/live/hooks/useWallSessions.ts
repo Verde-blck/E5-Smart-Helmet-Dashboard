@@ -16,7 +16,14 @@ const PAUSE_AFTER_HIDDEN_MS = 60_000
  * disconnects from every helmet; the server stops the ones nobody else is
  * watching.
  */
-export function useWallSessions() {
+export function useWallSessions({
+  /**
+   * Off for the dedicated wall window: it's meant to stay on a second screen
+   * while the admin works elsewhere, and some browsers report a window on
+   * another monitor as hidden.
+   */
+  pauseWhenHidden = true,
+}: { pauseWhenHidden?: boolean } = {}) {
   const sessions = useRef(new Map<string, HelmetSession>())
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const [paused, setPaused] = useState<string[]>([])
@@ -51,6 +58,7 @@ export function useWallSessions() {
   // media server then stops each helmet about 20 seconds later, unless
   // someone else is watching it. When the tab comes back, rejoin the same ones.
   useEffect(() => {
+    if (!pauseWhenHidden) return
     let timer: ReturnType<typeof setTimeout> | null = null
 
     const onVisibility = () => {
@@ -84,7 +92,7 @@ export function useWallSessions() {
       document.removeEventListener('visibilitychange', onVisibility)
       if (timer) clearTimeout(timer)
     }
-  }, [])
+  }, [pauseWhenHidden])
 
   // Leaving Monitoring Center, or switching away from the wall view.
   useEffect(() => {

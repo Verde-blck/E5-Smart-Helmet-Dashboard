@@ -1,4 +1,4 @@
-import { useCallback, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { DeviceView } from '@/modules/devices/types'
 import type { HelmetSession, SessionState } from '../lib/session'
 import { WALL_MAX, useWallSessions } from '../hooks/useWallSessions'
@@ -10,7 +10,7 @@ import { SpeakerIcon } from './icons'
 const noopSubscribe = () => () => {}
 const noState = () => null
 
-function useSessionState(session: HelmetSession | null): SessionState | null {
+export function useSessionState(session: HelmetSession | null): SessionState | null {
   return useSyncExternalStore(
     session ? session.subscribe : noopSubscribe,
     session ? session.getState : noState
@@ -34,9 +34,78 @@ interface Props {
  * than one helmet talking. Each tile is an independent session, so one
  * helmet's weak signal never affects the others.
  */
+/** Opens (or reuses) the dedicated wall window for these helmets. */
+export function openWallWindow(ids: string[]): Window | null {
+  const url = `/wall?ids=${encodeURIComponent(ids.join(','))}`
+  // A window, not a tab: a background tab counts as hidden and couldn't sit
+  // on a second screen next to the dashboard. Reusing the name means a
+  // second click focuses the existing wall instead of opening another.
+  return window.open(url, 'e5-live-wall', 'popup,width=1280,height=760')
+}
+
 export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Props) {
   const wall = useWallSessions()
   const [focusId, setFocusId] = useState<string | null>(null)
+  const [poppedOut, setPoppedOut] = useState(false)
+  const [blocked, setBlocked] = useState(false)
+  const wallWindow = useRef<Window | null>(null)
+
+  // Notices the wall window being closed, and brings the wall back here.
+  useEffect(() => {
+    if (!poppedOut) return
+    const id = setInterval(() => {
+      if (!wallWindow.current || wallWindow.current.closed) {
+        wallWindow.current = null
+        setPoppedOut(false)
+      }
+    }, 1000)
+    return () => clearInterval(id)
+  }, [poppedOut])
+
+  function popOut() {
+    const win = openWallWindow(selected)
+    if (!win) {
+      // Pop-up blocker. Nothing else changes; the wall stays here.
+      setBlocked(true)
+      return
+    }
+    setBlocked(false)
+    wallWindow.current = win
+    // The window runs its own connections; keeping these too would make
+    // this browser download every stream twice.
+    wall.stopAll()
+    setFocusId(null)
+    setPoppedOut(true)
+  }
+
+  if (poppedOut) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white p-6 text-center">
+        <p className="text-sm font-medium text-slate-800">The live wall is open in its own window.</p>
+        <p className="mt-1 text-xs text-slate-500">
+          Drag it to a second screen or TV and press Full screen there. You can keep working here.
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => wallWindow.current?.focus()}
+            className="rounded bg-brand-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-primary/90"
+          >
+            Show the wall window
+          </button>
+          <button
+            onClick={() => {
+              wallWindow.current?.close()
+              wallWindow.current = null
+              setPoppedOut(false)
+            }}
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            Close it and watch here
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const byId = new Map(allDevices.map((d) => [d.id, d]))
   const full = selected.length >= WALL_MAX
@@ -66,9 +135,21 @@ export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Pr
             helmets on the wall
             <span className="ml-2 text-xs text-slate-400">
               Each uses about 0.9 GB of its mobile data per hour.
-            </span> 
+            </span>
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {selected.length > 0 && (
+              <button
+                onClick={popOut}
+                title="Open the wall in its own window, for a second screen or TV"
+                className="inline-flex items-center gap-1.5 rounded border border-slate-300 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                  <path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+                </svg>
+                Open in new window
+              </button>
+            )}
             {idle.length > 0 && (
               <button
                 onClick={() => idle.forEach((id) => wall.start(id))}
@@ -91,6 +172,12 @@ export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Pr
           </div>
         </div>
 
+        {blocked && (
+          <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            The browser blocked the new window. Allow pop-ups for this site (the icon at the right
+            of the address bar), then try again.
+          </p>
+        )}
         {allDevices.length === 0 ? (
           <p className="text-xs text-slate-500">Loading fleet…</p>
         ) : devices.length === 0 ? (
@@ -170,28 +257,35 @@ export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Pr
   )
 }
 
-function WallTile({
+export function WallTile({
   name,
   session,
   onStart,
   onRemove,
   onFocus,
+  fill = false,
 }: {
   name: string
   session: HelmetSession | null
   onStart: () => void
   onRemove: () => void
   onFocus: () => void
+  /** Wall window: fill the grid cell and show the whole frame, uncropped. */
+  fill?: boolean
 }) {
   const state = useSessionState(session)
   const live = state?.status === 'live'
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-900 text-white">
+    <div
+      className={`relative overflow-hidden rounded-lg bg-slate-900 text-white ${
+        fill ? 'h-full min-h-0' : 'aspect-video'
+      }`}
+    >
       <StreamVideo
         stream={state?.remoteStream ?? null}
         muted
-        className="h-full w-full object-cover"
+        className={`h-full w-full ${fill ? 'object-contain' : 'object-cover'}`}
       />
 
       {!live && (
@@ -248,8 +342,12 @@ function WallTile({
   )
 }
 
-
-function FocusView({
+/**
+ * One wall tile, enlarged and with sound. Uses the tile's own connection, so
+ * opening and closing it doesn't restart anything; closing returns to the
+ * wall without stopping the helmet.
+ */
+export function FocusView({
   name,
   session,
   onClose,

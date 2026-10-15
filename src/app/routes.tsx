@@ -7,6 +7,7 @@ import { LoginPage } from '@/modules/auth/LoginPage'
 import { RegisterPage } from '@/modules/auth/RegisterPage'
 import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { SecurityPage } from '@/modules/account/SecurityPage'
+import { WallDisplayPage } from '@/modules/live/WallDisplayPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
 import { MapPage } from '@/modules/map/MapPage'
@@ -64,6 +65,20 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <ChangePasswordPage />
+          </RequireAuth>
+        }
+      />
+
+      {/* The live wall on its own, for a second screen or TV. Outside the
+          app shell so the whole window is video; opened from Monitoring
+          Center → Live wall → Open in new window. */}
+      <Route
+        path="/wall"
+        element={
+          <RequireAuth>
+            <ProtectedRoute perm="devices:write">
+              <WallDisplayPage />
+            </ProtectedRoute>
           </RequireAuth>
         }
       />
