@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isSos } from '../types'
 import { Link } from 'react-router-dom'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
@@ -130,7 +131,7 @@ export function AlarmDetail({ alarm, now, onClose }: { alarm: Alarm; now: number
         </div>
 
         <footer className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3">
-          {alarm.type === 'sos' && !resolved && (
+          {isSos(alarm.type) && !resolved && (
             <SosCallButton deviceId={alarm.deviceId} deviceName={alarm.deviceName} />
           )}
           <button

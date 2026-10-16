@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { isSos } from '../types'
 import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
@@ -17,7 +18,7 @@ export function SosAlerts() {
   const nameOf = useDeviceNames()
   const active = rawActive.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) }))
   const sos = active
-    .filter((a) => a.type === 'sos')
+    .filter((a) => isSos(a.type))
     .sort((a, b) => b.raisedAt - a.raisedAt)
 
   if (sos.length === 0) return null

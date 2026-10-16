@@ -38,7 +38,7 @@ const alarms: Alarm[] = [
   make('alm-002', 7, 'helmet-removal', 22 * MINUTE),
   make('alm-003', 4, 'near-electric', 48 * MINUTE, { note: 'Proximity to live conductor' }),
   make('alm-004', 6, 'silent', 90 * MINUTE),
-  make('alm-005', 9, 'low-power', 2 * HOUR, {
+  make('alm-005', 9, 'low-power' as AlarmType, 2 * HOUR, {
     status: 'resolved',
     resolvedAt: Date.now() - 100 * MINUTE,
     resolvedBy: 'NG_David',

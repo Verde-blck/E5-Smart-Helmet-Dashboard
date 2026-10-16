@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isSos } from './types'
 import { AlarmFeed } from './components/AlarmFeed'
 import { SosAlerts } from './components/SosAlerts'
 import { GasOverviewPanel } from './components/GasOverviewPanel'
@@ -15,8 +16,8 @@ export function AlarmsPage() {
 
   // SOS has its own panel with a call button, so the critical banner counts
   // the rest and doesn't say the same thing twice.
-  const critical = active.filter((a) => a.severity === 'critical' && a.type !== 'sos').length
-  const hasSos = active.some((a) => a.type === 'sos')
+  const critical = active.filter((a) => a.severity === 'critical' && !isSos(a.type)).length
+  const hasSos = active.some((a) => isSos(a.type))
 
   return (
     <div>
@@ -48,7 +49,7 @@ export function AlarmsPage() {
       {critical > 0 && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {critical} {hasSos ? 'other ' : ''}unresolved critical{' '}
-          {critical === 1 ? 'event' : 'events'}: fall, impact, silent and near-electricity alarms
+          {critical === 1 ? 'event' : 'events'}: falls, no-movement and near-electricity alarms
           need a response.
         </div>
       )}

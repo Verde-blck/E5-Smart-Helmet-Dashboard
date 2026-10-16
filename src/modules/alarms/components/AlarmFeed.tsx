@@ -1,3 +1,4 @@
+import { isSos } from '../types'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
@@ -43,7 +44,7 @@ function StatusChip({ alarm }: { alarm: Alarm }) {
 
 /** An SOS that still needs a response: its row stands out and offers the call. */
 function isOpenSos(alarm: Alarm): boolean {
-  return alarm.type === 'sos' && alarm.status === 'active'
+  return isSos(alarm.type) && alarm.status === 'active'
 }
 
 /**
