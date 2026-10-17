@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { useNow } from '@/shared/hooks/useNow'
@@ -8,18 +8,22 @@ import { features } from '@/config/features'
 import { qk } from '@/shared/lib/query-keys'
 import { fetchAlarms, setAlarmResolved } from '../api/alarms.api'
 import type { Alarm } from '../types'
+import { streamStatus } from '../lib/alarmStream'
 
 export function useAlarms() {
   const tenantId = useTenantId()
   const now = useNow()
   const { inScope } = useSiteScope()
 
+  const streaming = useSyncExternalStore(streamStatus.subscribe, streamStatus.get)
+
   const { data, isLoading, isError } = useQuery({
     queryKey: qk.alarms.all(tenantId),
     queryFn: fetchAlarms,
-    // Polling stands in for push. An alarm can be up to one interval stale —
-    // see the note in config/features.ts.
-    refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
+    // New alarms arrive instantly over the stream (see LiveAlarms). While it's
+    // up, polling is only a slow safety net; while it's down, it's the only
+    // way alarms arrive, so it goes back to the normal interval.
+    refetchInterval: streaming ? 120_000 : features.pollIntervalMs,
   })
 
   // Newest first, unresolved always above history — an operator opening this

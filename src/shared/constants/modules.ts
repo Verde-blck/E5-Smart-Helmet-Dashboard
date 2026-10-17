@@ -16,6 +16,11 @@ export type ModuleKey =
   | 'unitSettings'
   | 'wifi'
   | 'profile'
+  // Permission-only: features inside other pages, with their own backend
+  // code but no sidebar entry. See CAPABILITIES below.
+  | 'live'
+  | 'fences'
+  | 'groups'
 
 // Permissions are module + action, not just module. A supervisor who can view
 // users but not create them, or watch recordings but not delete them, has no
@@ -52,7 +57,15 @@ export const MODULES: ModuleDef[] = [
 
 export const ACTIONS: Action[] = ['read', 'write', 'delete']
 
-/** Every permission string the system knows about — the RoleEditor matrix. */
-export const ALL_PERMISSIONS: Permission[] = MODULES.flatMap((m) =>
-  ACTIONS.map((a): Permission => `${m.key}:${a}`)
+/**
+ * Permissions that belong to a feature rather than a page: live view and
+ * calls (inside Monitoring Center and each helmet's page), fences (inside
+ * Live Map) and groups (inside Group Call). They gate buttons and panels,
+ * and never appear in the sidebar.
+ */
+export const CAPABILITIES: ModuleKey[] = ['live', 'fences', 'groups']
+
+/** Every permission string the system knows about. */
+export const ALL_PERMISSIONS: Permission[] = [...MODULES.map((m) => m.key), ...CAPABILITIES].flatMap((key) =>
+  ACTIONS.map((a): Permission => `${key}:${a}`)
 )

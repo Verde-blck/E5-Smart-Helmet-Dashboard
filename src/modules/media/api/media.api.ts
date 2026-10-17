@@ -9,7 +9,7 @@ import type { MediaItem, MediaKind, MediaQuery, SignedMediaUrl } from '../types'
 
 // --- Photos -------------------------------------------------------------
 
-interface ApiPhoto {
+export interface ApiPhoto {
   id: number
   deviceId: string
   imageUrl?: string | null
@@ -18,7 +18,7 @@ interface ApiPhoto {
   capturedAt?: string | null
 }
 
-function toPhoto(api: ApiPhoto): MediaItem {
+export function toPhoto(api: ApiPhoto): MediaItem {
   // The backend currently stores a placeholder string where the URL will go,
   // so anything that isn't an absolute URL is treated as "not uploaded yet"
   // rather than rendered as a broken image.
@@ -42,7 +42,7 @@ function toPhoto(api: ApiPhoto): MediaItem {
 
 // --- Videos -------------------------------------------------------------
 
-interface ApiVideo {
+export interface ApiVideo {
   id: number
   deviceId: string
   videoUrl?: string | null
@@ -66,7 +66,7 @@ function recordedAtFromFileName(fileName?: string | null): number | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.getTime()
 }
 
-function toVideo(api: ApiVideo): MediaItem {
+export function toVideo(api: ApiVideo): MediaItem {
   const uploadedAt = ts(api.uploadedAt)
   const url = api.videoUrl ?? ''
   return {

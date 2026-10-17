@@ -298,7 +298,7 @@ export function SettingsForm({
         </div>
       </Section>
 
-      <Can perm="devices:write">
+      <Can perm="unitSettings:write">
         <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm sm:-mx-6 sm:px-6">
           <button
             onClick={() =>

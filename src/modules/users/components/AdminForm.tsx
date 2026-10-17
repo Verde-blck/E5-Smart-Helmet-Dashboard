@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useDevices } from '@/modules/devices/hooks/useDevices'
+import { useAuth } from '@/shared/hooks/useAuth'
 import { useCreateAdmin, useGroups, usePermissionCatalogue, useUpdateAdmin } from '../hooks/useAdmins'
 import { PermissionTree } from './PermissionTree'
 import type { ApiPermission } from '../lib/permissions'
@@ -25,7 +26,26 @@ function Field({ label, required, hint, children }: {
   )
 }
 
+/** The backend's reason, in words an admin can act on. */
+function saveError(error: unknown, editing: boolean): string {
+  const res = (error as { response?: { status?: number; data?: { error?: string; message?: string; permission?: string } } })
+    ?.response
+  if (res?.status === 403) {
+    return res.data?.permission
+      ? `You can't grant ${res.data.permission.replace(/_/g, ' ').toLowerCase()}: you don't hold it yourself.`
+      : "You aren't allowed to make that change. Only a super admin can edit super admins."
+  }
+  if (res?.status === 409) return 'That account name is already in use.'
+  if (res?.status === 400 && (res.data?.message || res.data?.error)) {
+    return `Not saved: ${res.data.message ?? res.data.error}.`
+  }
+  return editing ? 'Could not save. Check your connection and try again.' : 'Could not create the account. Check your connection and try again.'
+}
+
 export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: () => void }) {
+  const { user } = useAuth()
+  // Null for a super admin: they may grant anything.
+  const grantable = user?.superAdmin ? null : new Set(user?.apiPermissions ?? [])
   const { groups } = useGroups()
   const { devices } = useDevices()
   const available = usePermissionCatalogue()
@@ -91,12 +111,8 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
         await create.mutateAsync({ ...shared, password: values.password })
       }
       onDone()
-    } catch {
-      setError(
-        editing
-          ? 'Could not save. That account name may already be in use.'
-          : 'Could not create the account. That account name may already be in use.'
-      )
+    } catch (err) {
+      setError(saveError(err, editing))
     }
   }
 
@@ -171,6 +187,7 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
           <PermissionTree
             granted={values.permissions}
             available={available}
+            grantable={grantable}
             onChange={(next) => set('permissions', next)}
           />
         </div>

@@ -77,7 +77,7 @@ export function AppRoutes() {
         path="/wall"
         element={
           <RequireAuth>
-            <ProtectedRoute perm="devices:write">
+            <ProtectedRoute perm="live:read">
               <WallDisplayPage />
             </ProtectedRoute>
           </RequireAuth>

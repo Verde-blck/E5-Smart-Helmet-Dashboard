@@ -23,7 +23,7 @@ export function FenceList({ fences, isLoading, isError, selectedId, onSelect, on
     <div>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-800">Fences</h3>
-        <Can perm="map:write">
+        <Can perm="fences:write">
           <button
             onClick={onNew}
             className="rounded bg-brand-primary px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-primary/90"
@@ -32,6 +32,10 @@ export function FenceList({ fences, isLoading, isError, selectedId, onSelect, on
           </button>
         </Can>
       </div>
+      <p className="mb-3 text-[11px] text-slate-400">
+        A breach raises a “Left work area” or “Entered restricted area” alarm. Not yet tested on a
+        real helmet.
+      </p>
 
       {isLoading ? (
         <p className="text-sm text-slate-500">Loading fences…</p>
@@ -86,7 +90,7 @@ export function FenceList({ fences, isLoading, isError, selectedId, onSelect, on
                   )}
                 </button>
 
-                <Can perm="map:write">
+                <Can perm="fences:write">
                   <div className="mt-2 flex items-center gap-3">
                     {confirming === fence.id ? (
                       <>

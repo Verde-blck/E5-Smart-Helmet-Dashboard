@@ -1,6 +1,6 @@
 import { isSos } from '../types'
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { Can } from '@/shared/components/Can'
 import { DataCard } from '@/shared/components/DataCard'
@@ -129,7 +129,21 @@ export function AlarmFeed({
   )
   // The alarm whose details are open. Kept as an id so the panel always
   // shows the latest version (e.g. right after it's marked resolved).
-  const [openId, setOpenId] = useState<string | null>(null)
+  // ?alarm=<id> opens one straight away: how "View" on a ringing alarm or a
+  // notification lands here.
+  const [params, setParams] = useSearchParams()
+  const [openId, setOpenIdState] = useState<string | null>(() => params.get('alarm'))
+  const setOpenId = (id: string | null) => {
+    setOpenIdState(id)
+    if (!id && params.has('alarm')) {
+      params.delete('alarm')
+      setParams(params, { replace: true })
+    }
+  }
+  useEffect(() => {
+    const fromUrl = params.get('alarm')
+    if (fromUrl) setOpenIdState(fromUrl)
+  }, [params])
   const openAlarm = openId ? alarms.find((a) => a.id === openId) : undefined
 
   const base = activeOnly ? active : alarms

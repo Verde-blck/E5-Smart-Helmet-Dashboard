@@ -30,17 +30,36 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+/** What the backend says when a role doesn't allow something. */
+export interface ForbiddenDetail {
+  /** The missing permission code, e.g. "PHOTO_RECORD". */
+  permission?: string
+  /** Set instead when the user is limited to other helmets. */
+  deviceId?: string
+}
+
 apiClient.interceptors.response.use(
   (res) => res,
   (error) => {
     const status = error?.response?.status
     const url: string = error?.config?.url ?? ''
+    const body = error?.response?.data as ({ error?: string } & ForbiddenDetail) | undefined
 
-    // A 401 from the login endpoint is "wrong password", not "session died" —
-    // LoginPage surfaces that itself.
-    // The API returns 403 as well as 401 for an expired or missing token, so
-    // both have to end the session — unlike a permissions 403, which this
-    // backend never sends, since every account is a full administrator.
+    // A role refusal: {"error":"forbidden","permission":"..."} or
+    // {"error":"forbidden","deviceId":"..."}. The session is fine; the user
+    // just isn't allowed this. Say so, rather than signing them out.
+    if (status === 403 && body?.error === 'forbidden') {
+      window.dispatchEvent(
+        new CustomEvent<ForbiddenDetail>('auth:forbidden', {
+          detail: { permission: body.permission, deviceId: body.deviceId },
+        })
+      )
+      return Promise.reject(error)
+    }
+
+    // A 401 from the login endpoint is "wrong password", not "session died":
+    // LoginPage surfaces that itself. Any other 401, or a 403 without a
+    // role refusal in it, means the token is missing or expired.
     if ((status === 401 || status === 403) && !url.includes('/auth/login')) {
       // AppBootstrap listens for this and ends the session. Reaching into the
       // store from here would import React state into a plain module and make

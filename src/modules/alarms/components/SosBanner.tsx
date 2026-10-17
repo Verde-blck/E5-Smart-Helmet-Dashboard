@@ -1,13 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { isSos } from '../types'
 import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { Link, useLocation } from 'react-router-dom'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { useAlarms } from '../hooks/useAlarms'
-
-/** An SOS raised longer ago than this, already showing when the page loads, doesn't beep. */
-const FRESH_MS = 2 * 60_000
+import { acknowledge } from '../lib/alarmSound'
 
 /**
  * The app-wide SOS strip, on every page under the top bar, so an operator on
@@ -15,8 +13,8 @@ const FRESH_MS = 2 * 60_000
  * without navigating. Alarm Record has its own fuller SOS panel, so the strip
  * steps aside there.
  *
- * Also beeps once when a new SOS arrives, and puts "SOS" in the tab title so
- * it shows when the dashboard is behind another window.
+ * Puts "SOS" in the tab title so it shows when the dashboard is behind
+ * another window. The ringtone itself is LiveAlarms'.
  */
 export function SosBanner() {
   const { active: rawActive, now } = useAlarms()
@@ -25,7 +23,6 @@ export function SosBanner() {
   const { pathname } = useLocation()
   const sos = active.filter((a) => isSos(a.type)).sort((a, b) => b.raisedAt - a.raisedAt)
 
-  useSosTone(sos.map((a) => ({ id: a.id, raisedAt: a.raisedAt })))
   useSosTitle(sos.length)
 
   if (sos.length === 0 || pathname.startsWith('/alarms')) return null
@@ -54,61 +51,15 @@ export function SosBanner() {
           </>
         )}
       </p>
-      <SosCallButton deviceId={latest.deviceId} deviceName={latest.deviceName} />
+      {/* Joining is responding, so it silences the ringtone too. */}
+      <span onClickCapture={() => sos.forEach((a) => acknowledge(a.id))}>
+        <SosCallButton deviceId={latest.deviceId} deviceName={latest.deviceName} />
+      </span>
       <Link to="/alarms" className="text-xs font-medium text-red-800 hover:text-red-950">
         View alarms
       </Link>
     </div>
   )
-}
-
-/**
- * Two short beeps for each new SOS. Generated rather than an audio file, so
- * there's nothing to load. Browsers allow sound once the user has interacted
- * with the page, which signing in already counts as; if a browser still
- * blocks it, it fails silently and the banner does the job.
- */
-function useSosTone(alarms: { id: string; raisedAt: number }[]) {
-  const seen = useRef<Set<string> | null>(null)
-
-  useEffect(() => {
-    const ids = new Set(alarms.map((a) => a.id))
-    if (seen.current === null) {
-      // First render: only beep for alarms that are genuinely new, not an old
-      // SOS that was already sitting there when the page opened.
-      seen.current = ids
-      if (alarms.some((a) => Date.now() - a.raisedAt < FRESH_MS)) beep()
-      return
-    }
-    const fresh = alarms.some((a) => !seen.current!.has(a.id))
-    seen.current = ids
-    if (fresh) beep()
-  }, [alarms.map((a) => a.id).join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
-}
-
-function beep() {
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctx) return
-    const ctx = new Ctx()
-    const tone = (start: number) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = 880
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime + start)
-      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + start + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + 0.25)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(ctx.currentTime + start)
-      osc.stop(ctx.currentTime + start + 0.26)
-    }
-    tone(0)
-    tone(0.35)
-    setTimeout(() => void ctx.close(), 1000)
-  } catch {
-    // No audio available; the banner still shows.
-  }
 }
 
 /** "(SOS) …" in the tab title while any SOS is open. */

@@ -85,7 +85,7 @@ export function GroupCallPage() {
               placeholder="Search groups"
               className="min-w-0 flex-1 rounded border border-slate-300 px-2.5 py-1.5 text-sm"
             />
-            <Can perm="users:write">
+            <Can perm="groups:write">
               <button
                 onClick={() => {
                   setNaming(true)
@@ -265,7 +265,7 @@ export function GroupCallPage() {
                 </p>
               </div>
 
-              <Can perm="devices:write">
+              <Can perm="groupCall:write">
                 {mode === 'call' ? (
                   <div className="rounded-lg border border-slate-200 bg-white p-4">
                     <p className="text-sm text-slate-700">

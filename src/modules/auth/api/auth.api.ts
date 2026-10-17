@@ -3,7 +3,10 @@ import { env } from '@/config/env'
 import { decodeToken, tokenStore } from '@/shared/lib/token'
 import { mockUserFor } from '@/shared/lib/mock-data'
 import { ALL_PERMISSIONS } from '@/shared/constants/modules'
+import type { Permission } from '@/shared/constants/modules'
+import { useAuthStore } from '@/shared/store/authStore'
 import type { AuthUser } from '@/shared/store/authStore'
+import { expandPermissions } from '@/modules/users/lib/permissions'
 
 export interface Credentials {
   username: string
@@ -11,28 +14,109 @@ export interface Credentials {
 }
 
 /**
- * Builds the session user from the token alone.
- *
- * The API returns only `{ token }` — no name, no role, no permissions — and
- * has no /auth/me endpoint. Everything below the username is therefore
- * assumed, not granted: every authenticated account gets the full permission
- * set, because the backend has no concept of a partial one.
- *
- * The consequence is worth being explicit about: with a live backend, the
- * permission model in this dashboard is presentational. Nothing is being
- * enforced anywhere. It stays in place because the UI is built on it and the
- * backend may grow roles later, but it should not be described to anyone as
- * access control until it is.
+ * Who the user is and what they may do, as the backend reports it. The same
+ * object comes back from login (2FA off), from verify-2fa, and from
+ * GET /api/auth/me. The backend re-reads it on every request, so it is the
+ * real access control; the dashboard uses it to show only what's allowed.
  */
-function userFromToken(token: string, fallbackUsername: string): AuthUser {
-  const username = decodeToken(token)?.sub ?? fallbackUsername
+interface ApiProfile {
+  username?: string
+  roleName?: string | null
+  /** Full access; `permissions` is ignored. */
+  superAdmin?: boolean
+  permissions?: string[]
+  /** Helmets the user is limited to; empty = every helmet. */
+  deviceIds?: string[]
+  twoFactorEnabled?: boolean
+}
+
+function isProfile(value: unknown): value is ApiProfile {
+  const v = value as ApiProfile | null
+  return !!v && (Array.isArray(v.permissions) || typeof v.superAdmin === 'boolean')
+}
+
+function userFromProfile(profile: ApiProfile, fallbackUsername: string): AuthUser {
+  const username = profile.username ?? fallbackUsername
+  const codes = profile.permissions ?? []
   return {
     id: username,
     username,
     name: username,
-    role: 'Administrator',
-    permissions: ALL_PERMISSIONS,
+    role: profile.superAdmin ? 'Super admin' : profile.roleName || 'Administrator',
+    permissions: profile.superAdmin ? ALL_PERMISSIONS : (expandPermissions(codes) as Permission[]),
+    apiPermissions: codes,
+    superAdmin: profile.superAdmin === true,
+    deviceIds: profile.deviceIds ?? [],
     scope: { allSites: true, sites: [] },
+  }
+}
+
+/*
+ * The last profile, kept with the token so a page reload can draw the right
+ * menu straight away while /auth/me is fetched again. Tied to the token, so
+ * a different account on this browser never inherits it.
+ */
+const PROFILE_KEY = 'e5.profile'
+const tokenTag = (token: string) => token.slice(-24)
+
+function cacheProfile(token: string, profile: ApiProfile): void {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify({ tag: tokenTag(token), profile }))
+  } catch {
+    // Storage unavailable; the next reload just waits for /auth/me.
+  }
+}
+
+function cachedProfile(token: string): ApiProfile | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? 'null') as { tag?: string; profile?: ApiProfile } | null
+    return raw?.tag === tokenTag(token) && isProfile(raw.profile) ? raw.profile : null
+  } catch {
+    return null
+  }
+}
+
+export async function fetchProfile(): Promise<ApiProfile> {
+  const { data } = await apiClient.get<ApiProfile>('/auth/me')
+  return data
+}
+
+/** Stores the token, gets the profile (from the response or /auth/me), and builds the user. */
+async function completeSignIn(token: string, response: unknown, username: string): Promise<AuthUser> {
+  tokenStore.set(token)
+  const inline = response as { profile?: unknown } | null
+  const profile = isProfile(inline?.profile)
+    ? (inline!.profile as ApiProfile)
+    : isProfile(response)
+      ? response
+      : await fetchProfile()
+  cacheProfile(token, profile)
+  if (typeof profile.twoFactorEnabled === 'boolean') {
+    rememberTwoFactor(profile.username ?? username, profile.twoFactorEnabled)
+  }
+  return userFromProfile(profile, username)
+}
+
+/**
+ * Fetches the profile again and updates the signed-in user. Used after a
+ * page reload, and when the backend refuses something, since that usually
+ * means the user's role was changed while they were signed in.
+ */
+export async function refreshSession(): Promise<void> {
+  const token = tokenStore.get()
+  if (!token || env.useMocks) return
+  try {
+    const profile = await fetchProfile()
+    cacheProfile(token, profile)
+    const current = useAuthStore.getState().user
+    useAuthStore.getState().setUser({
+      ...userFromProfile(profile, current?.username ?? 'admin'),
+      // Kept from sign-in; /auth/me doesn't carry it.
+      mustChangePassword: current?.mustChangePassword,
+    })
+  } catch {
+    // A 401 ends the session through the API client; anything else keeps
+    // the current user until the next try.
   }
 }
 
@@ -96,8 +180,8 @@ export async function login(credentials: Credentials): Promise<LoginResult> {
 
   if (!data.token) throw new Error('Sign-in response contained no token')
   rememberTwoFactor(credentials.username, false)
-  tokenStore.set(data.token)
-  return { status: 'signed-in', user: userFromToken(data.token, credentials.username) }
+  const user = await completeSignIn(data.token, data, credentials.username)
+  return { status: 'signed-in', user }
 }
 
 /**
@@ -114,13 +198,12 @@ export async function verifyTwoFactorLogin(
     return mockUserFor(challenge.username)
   }
 
-  const { data } = await apiClient.post<{ token: string }>('/auth/login/verify-2fa', {
+  const { data } = await apiClient.post<{ token: string } & ApiProfile>('/auth/login/verify-2fa', {
     username: challenge.username,
     code,
     ...(challenge.mfaToken ? { mfaToken: challenge.mfaToken } : {}),
   })
-  tokenStore.set(data.token)
-  return userFromToken(data.token, challenge.username)
+  return completeSignIn(data.token, data, challenge.username)
 }
 
 // ---------------------------------------------------------------------------
@@ -241,12 +324,21 @@ export async function registerAccount(input: RegisterInput): Promise<void> {
 }
 
 /**
- * Restores a session after a page reload, from the stored token rather than
- * from the server. Returns null when there's no token or it has expired.
+ * Restores a session after a page reload. Returns the user straight away from
+ * the profile cached at sign-in, and asks /auth/me in the background so a
+ * role change made meanwhile applies within a moment. Null when there's no
+ * token.
  */
 export function restoreSession(): AuthUser | null {
   const token = tokenStore.get()
-  return token ? userFromToken(token, 'admin') : null
+  if (!token) return null
+  // Draw from the last known profile now; confirm it with the backend next.
+  void Promise.resolve().then(refreshSession)
+  const cached = cachedProfile(token)
+  return cached
+    ? userFromProfile(cached, decodeToken(token)?.sub ?? 'admin')
+    : // Nothing cached: show nothing until /auth/me answers, rather than everything.
+      userFromProfile({ permissions: [] }, decodeToken(token)?.sub ?? 'admin')
 }
 
 /**
@@ -256,6 +348,11 @@ export function restoreSession(): AuthUser | null {
  */
 export function clearSession(): void {
   tokenStore.clear()
+  try {
+    localStorage.removeItem(PROFILE_KEY)
+  } catch {
+    // Nothing to clear.
+  }
 }
 
 /** No password-change endpoint exists yet; kept so the UI can stay wired. */

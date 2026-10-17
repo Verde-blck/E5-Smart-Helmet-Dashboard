@@ -5,9 +5,12 @@ import type { Page } from '@/shared/lib/api-normalize'
 import { getMockAlarms, setMockAlarmResolved } from './alarms.mock'
 import { alarmTypeFromCode, severityForType } from '../types'
 import type { Alarm } from '../types'
+import { toPhoto, toVideo } from '@/modules/media/api/media.api'
+import type { ApiPhoto, ApiVideo } from '@/modules/media/api/media.api'
+import type { MediaItem } from '@/modules/media/types'
 
 /** Exactly what GET /api/alarms returns inside its page. */
-interface ApiAlarm {
+export interface ApiAlarm {
   id: number
   deviceId: string
   alarmType?: string | null
@@ -17,7 +20,7 @@ interface ApiAlarm {
   resolved?: boolean
 }
 
-function toAlarm(api: ApiAlarm): Alarm {
+export function toAlarm(api: ApiAlarm): Alarm {
   const type = alarmTypeFromCode(api.alarmType)
   return {
     id: String(api.id),
@@ -62,4 +65,18 @@ export async function setAlarmResolved(
     return
   }
   await apiClient.patch(`/alarms/${id}/${resolved ? 'resolve' : 'unresolve'}`)
+}
+
+/**
+ * The photos and videos captured because of this alarm (GET /api/alarms/{id}).
+ *
+ * The backend captures automatically for SOS (7), fall or impact (4) and
+ * near electricity (11): a photo about 5 s after, and 2 minutes of video.
+ * The photo arrives within about 20 s; clips can take 35 minutes or more.
+ * Older alarms have nothing linked, so callers fall back to time matching.
+ */
+export async function fetchAlarmFootage(id: string): Promise<MediaItem[]> {
+  if (env.useMocks) return []
+  const { data } = await apiClient.get<{ photos?: ApiPhoto[]; videos?: ApiVideo[] }>(`/alarms/${id}`)
+  return [...(data?.photos ?? []).map(toPhoto), ...(data?.videos ?? []).map(toVideo)]
 }

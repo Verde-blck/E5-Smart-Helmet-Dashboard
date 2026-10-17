@@ -110,7 +110,7 @@ export function DeviceDetailPage() {
             on a phone rather than squeezing the name. */}
         <span className="ml-auto" />
         <LiveControls device={device} />
-        <Can perm="devices:write">
+        <Can perm="groupCall:write">
           <BroadcastButton
             deviceId={device.id}
             deviceName={device.name}

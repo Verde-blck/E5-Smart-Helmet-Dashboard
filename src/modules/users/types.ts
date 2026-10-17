@@ -18,6 +18,9 @@ export interface Administrator {
   permissions: ApiPermission[]
   /** Helmets this administrator is limited to. Empty means no restriction. */
   deviceIds: string[]
+  /** Full access. Only a super admin can edit or delete one. */
+  superAdmin?: boolean
+  twoFactorEnabled?: boolean
 }
 
 export interface NewAdministrator {

@@ -1,5 +1,9 @@
 import type { AuthUser, TenantConfig } from '@/shared/store/authStore'
 import { ALL_PERMISSIONS } from '@/shared/constants/modules'
+import type { Permission } from '@/shared/constants/modules'
+import { expandPermissions } from '@/modules/users/lib/permissions'
+
+const fromCodes = (codes: string[]) => expandPermissions(codes) as Permission[]
 
 // Tenant + user fixtures for VITE_USE_MOCKS=true. Device fixtures live with
 // the module that owns them, in modules/devices/api/devices.mock.ts — shared/
@@ -18,8 +22,11 @@ export const mockAdmin: AuthUser = {
   username: 'ADM-001',
   name: 'VERDEblck',
   email: 'david@example.com',
-  role: 'Admin',
+  role: 'Super admin',
   permissions: ALL_PERMISSIONS,
+  superAdmin: true,
+  apiPermissions: [],
+  deviceIds: [],
   scope: { allSites: true, sites: [] },
 }
 
@@ -33,7 +40,21 @@ export const mockOperator: AuthUser = {
   name: 'Site Operator',
   email: 'operator@example.com',
   role: 'Monitoring',
-  permissions: ['devices:read', 'map:read', 'alarms:read'],
+  apiPermissions: ['MONITORING_CENTER', 'SURVEILLANCE', 'ALARM_RECORD'],
+  permissions: fromCodes(['MONITORING_CENTER', 'SURVEILLANCE', 'ALARM_RECORD']),
+  deviceIds: [],
+  scope: { allSites: true, sites: [] },
+}
+
+// Sign in as VIEW-001 for the demo case: Dashboard and Track Playback only.
+export const mockViewer: AuthUser = {
+  id: 'user-3',
+  username: 'VIEW-001',
+  name: 'Tunde (viewer)',
+  role: 'Viewer',
+  apiPermissions: ['DASHBOARD', 'TRACK_PLAYBACK'],
+  permissions: fromCodes(['DASHBOARD', 'TRACK_PLAYBACK']),
+  deviceIds: [],
   scope: { allSites: true, sites: [] },
 }
 
@@ -43,7 +64,8 @@ export const mockNewStarter: AuthUser = {
   username: 'NEW-001',
   name: 'Chidi Eze',
   role: 'Monitoring',
-  permissions: ['devices:read', 'map:read', 'alarms:read'],
+  apiPermissions: ['MONITORING_CENTER', 'ALARM_RECORD'],
+  permissions: fromCodes(['MONITORING_CENTER', 'ALARM_RECORD']),
   mustChangePassword: true,
   scope: { allSites: true, sites: [] },
 }
@@ -51,6 +73,7 @@ export const mockNewStarter: AuthUser = {
 export function mockUserFor(username: string): AuthUser {
   const id = username.trim().toUpperCase()
   if (id.startsWith('OP')) return mockOperator
+  if (id.startsWith('VIEW')) return mockViewer
   if (id.startsWith('NEW')) return mockNewStarter
   return mockAdmin
 }

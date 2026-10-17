@@ -9,6 +9,7 @@ import { fenceErrorMessage } from '@/modules/fences/api/fences.api'
 import { EMPTY_DRAFT } from '@/modules/fences/types'
 import type { Fence, FenceDraft } from '@/modules/fences/types'
 import { FleetMap } from './components/FleetMap'
+import { usePermission } from '@/shared/hooks/usePermission'
 
 type Editing = { id?: number; draft: FenceDraft } | null
 
@@ -27,7 +28,10 @@ function showFence(map: google.maps.Map, fence: Fence) {
 
 export function MapPage() {
   const { devices, now, isLoading } = useDevices()
-  const { fences, isLoading: fencesLoading, isError: fencesError } = useFences()
+  const can = usePermission()
+  const canSeeFences = can('fences:read')
+  const { fences: loadedFences, isLoading: fencesLoading, isError: fencesError } = useFences(canSeeFences)
+  const fences = canSeeFences ? loadedFences : []
   const saveFence = useSaveFence()
   const deleteFence = useDeleteFence()
 
@@ -104,7 +108,7 @@ export function MapPage() {
           {missing > 0 && ` · ${missing} without a fix`}
           {alarming.length > 0 && ` · ${alarming.length} in alarm`}
         </p>
-        <div className="flex items-center gap-3">
+        {canSeeFences && <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs text-slate-600">
             <input
               type="checkbox"
@@ -127,7 +131,7 @@ export function MapPage() {
           >
             Fences{fences.length ? ` (${fences.length})` : ''}
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className={panelOpen || editing ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]' : ''}>

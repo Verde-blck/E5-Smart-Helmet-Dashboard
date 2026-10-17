@@ -10,12 +10,14 @@ import {
 } from '../api/fences.api'
 import type { FenceDraft } from '../types'
 
-export function useFences() {
+/** `enabled` false for users without FENCE, so nothing is requested and refused. */
+export function useFences(enabled = true) {
   const tenantId = useTenantId()
   const { data, isLoading, isError } = useQuery({
     queryKey: qk.fences.all(tenantId),
     queryFn: fetchFences,
     staleTime: 60_000,
+    enabled,
   })
   return { fences: data ?? [], isLoading, isError }
 }

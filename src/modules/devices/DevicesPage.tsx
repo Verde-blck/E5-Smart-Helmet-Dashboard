@@ -72,10 +72,9 @@ export function DevicesPage() {
                   {VIEW_LABEL[option]}
                 </button>
               )
-              // Watching live sends commands to helmets, so it needs the same
-              // permission as the other remote controls.
+              // The wall is live view, so it follows SURVEILLANCE.
               return option === 'wall' ? (
-                <Can key={option} perm="devices:write">
+                <Can key={option} perm="live:read">
                   {button}
                 </Can>
               ) : (

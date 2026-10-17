@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { DataCard } from '@/shared/components/DataCard'
+import { useAuth } from '@/shared/hooks/useAuth'
 import { useAdmins, useDeleteAdmin, useGroups } from '../hooks/useAdmins'
 import { AdminForm } from './AdminForm'
 import type { Administrator } from '../types'
+import { viewCodeOf } from '../lib/permissions'
 
 export function AdminList({ canEdit }: { canEdit: boolean }) {
   const { admins, isLoading, isError } = useAdmins()
+  const { user } = useAuth()
   const { groups } = useGroups()
   const remove = useDeleteAdmin()
   const [search, setSearch] = useState('')
@@ -42,6 +45,13 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
 
   const actions = (admin: Administrator) => {
     if (!canEdit) return null
+    // The backend's rules: only a super admin edits or deletes a super
+    // admin, and nobody deletes their own account.
+    const lockedSuper = admin.superAdmin && !user?.superAdmin
+    const isSelf = admin.username === user?.username
+    if (lockedSuper) {
+      return <span className="block text-right text-xs text-slate-400">Super admin</span>
+    }
 
     if (confirming === admin.id) {
       return (
@@ -68,9 +78,11 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
         >
           Edit
         </button>
-        <button onClick={() => setConfirming(admin.id)} className="text-red-600 hover:underline">
-          Delete
-        </button>
+        {!isSelf && (
+          <button onClick={() => setConfirming(admin.id)} className="text-red-600 hover:underline">
+            Delete
+          </button>
+        )}
       </span>
     )
   }
@@ -118,7 +130,7 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
                   { label: 'Role', value: admin.role || '—' },
                   { label: 'Department', value: admin.department || '—' },
                   { label: 'Group', value: groupName(admin.groupId) },
-                  { label: 'Permissions', value: admin.permissions.length || '—' },
+                  { label: 'Permissions', value: admin.superAdmin ? 'Everything' : new Set(admin.permissions.map(viewCodeOf)).size || '—' },
                   {
                     label: 'Devices',
                     value: admin.deviceIds.length || 'All',
@@ -145,7 +157,14 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
                 {rows.map((admin) => (
                   <tr key={admin.id} className="border-t border-slate-100">
                     <td className="px-4 py-2">
-                      <p className="font-medium text-slate-800">{admin.username}</p>
+                      <p className="font-medium text-slate-800">
+                        {admin.username}
+                        {admin.superAdmin && (
+                          <span className="ml-1.5 rounded bg-brand-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-primary">
+                            Super admin
+                          </span>
+                        )}
+                      </p>
                       {admin.department && (
                         <p className="text-xs text-slate-400">{admin.department}</p>
                       )}
@@ -162,8 +181,9 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
                       {groupName(admin.groupId)}
                     </td>
                     <td className="px-4 py-2 text-slate-600">
-                      {admin.permissions.length} module
-                      {admin.permissions.length === 1 ? '' : 's'}
+                      {admin.superAdmin
+                        ? 'Everything'
+                        : ((n) => `${n} ${n === 1 ? 'area' : 'areas'}`)(new Set(admin.permissions.map(viewCodeOf)).size)}
                       <span className="text-slate-400">
                         {' · '}
                         {admin.deviceIds.length

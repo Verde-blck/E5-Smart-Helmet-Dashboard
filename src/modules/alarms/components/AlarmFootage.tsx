@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Can } from '@/shared/components/Can'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { qk } from '@/shared/lib/query-keys'
@@ -8,7 +8,8 @@ import { MediaViewer } from '@/modules/media/components/MediaViewer'
 import { refreshAndWait, requestHelmetUpload } from '@/modules/media/api/localVideos.api'
 import type { HelmetVideo } from '@/modules/media/api/localVideos.api'
 import type { MediaItem } from '@/modules/media/types'
-import type { Alarm } from '../types'
+import type { Alarm, AlarmType } from '../types'
+import { fetchAlarmFootage } from '../api/alarms.api'
 
 const MIN = 60_000
 /**
@@ -39,7 +40,26 @@ export function inWindow(item: Pick<MediaItem, 'kind' | 'capturedAt'>, alarmAt: 
  * Matched by device and recording time, since the backend doesn't link
  * footage to alarms yet.
  */
+/** Alarm types the backend captures footage for by itself (7, 4 and 11). */
+const AUTO_CAPTURE: ReadonlySet<AlarmType> = new Set<AlarmType>(['sos', 'fall', 'near-electric'])
+/** How long after an alarm to keep expecting its clip: they can take 35+ minutes. */
+const EXPECT_FOR = 2 * 60 * MIN
+
 export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
+  const tenantId = useTenantId()
+  // Footage linked to this alarm by the backend. Polled every 30 s while
+  // we're still expecting its clip.
+  const expecting = AUTO_CAPTURE.has(alarm.type) && now - alarm.raisedAt < EXPECT_FOR
+  const linkedQuery = useQuery({
+    queryKey: [...qk.alarms.all(tenantId), 'footage', alarm.id],
+    queryFn: () => fetchAlarmFootage(alarm.id),
+    refetchInterval: (query) =>
+      expecting && !(query.state.data ?? []).some((m) => m.kind === 'video') ? 30_000 : false,
+  })
+  const linked = useMemo(() => linkedQuery.data ?? [], [linkedQuery.data])
+  const linkedIds = useMemo(() => new Set(linked.map((m) => m.id)), [linked])
+  const waitingForClip = expecting && !linked.some((m) => m.kind === 'video')
+
   // Two days when the window crosses midnight; the same query otherwise.
   const startDay = dayOf(alarm.raisedAt - WINDOW.videoBefore)
   const endDay = dayOf(alarm.raisedAt + WINDOW.after)
@@ -49,16 +69,20 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
 
   const footage = useMemo(() => {
     const byId = new Map<string, MediaItem>()
+    // Linked footage first, whatever its timestamp.
+    for (const m of linked) if (m.status === 'available') byId.set(m.id, m)
     for (const m of [...first.media, ...(endDay !== startDay ? second.media : [])]) {
-      if (m.status === 'available' && inWindow(m, alarm.raisedAt)) byId.set(m.id, m)
+      if (m.status === 'available' && inWindow(m, alarm.raisedAt) && !byId.has(m.id)) byId.set(m.id, m)
     }
-    // Closest to the moment first.
-    return [...byId.values()].sort(
-      (a, b) => Math.abs(a.capturedAt - alarm.raisedAt) - Math.abs(b.capturedAt - alarm.raisedAt)
-    )
-  }, [first.media, second.media, startDay, endDay, alarm.raisedAt])
+    // This alarm's own footage first, then closest to the moment.
+    return [...byId.values()].sort((a, b) => {
+      const linkedDelta = Number(linkedIds.has(b.id)) - Number(linkedIds.has(a.id))
+      if (linkedDelta !== 0) return linkedDelta
+      return Math.abs(a.capturedAt - alarm.raisedAt) - Math.abs(b.capturedAt - alarm.raisedAt)
+    })
+  }, [linked, linkedIds, first.media, second.media, startDay, endDay, alarm.raisedAt])
 
-  const loading = first.isLoading || (endDay !== startDay && second.isLoading)
+  const loading = linkedQuery.isLoading || first.isLoading || (endDay !== startDay && second.isLoading)
   const photos = footage.filter((m) => m.kind === 'photo')
   const videos = footage.filter((m) => m.kind === 'video')
 
@@ -66,14 +90,25 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
     <section>
       <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">Footage</h3>
       <p className="mb-3 text-[11px] text-slate-400">
-        From this helmet, {WINDOW.videoBefore / MIN} minutes before to {WINDOW.after / MIN} after the
+        {linked.length > 0 ? 'Captured because of this alarm, plus anything else ' : 'Anything '}
+        from this helmet {WINDOW.videoBefore / MIN} minutes before to {WINDOW.after / MIN} after the
         alarm (photos from {WINDOW.photoBefore / MIN} minutes before).
       </p>
+      {waitingForClip && (
+        <p className="mb-3 flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800" aria-live="polite">
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 motion-safe:animate-spin" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
+            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+          Footage uploading… The helmet records 2 minutes for this alarm; the clip usually arrives
+          within 35 minutes, longer on a weak connection.
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-slate-500">Looking for footage…</p>
       ) : footage.length === 0 ? (
-        <MemoryCardCheck alarm={alarm} />
+        waitingForClip ? null : <MemoryCardCheck alarm={alarm} />
       ) : (
         <div className="space-y-3">
           {photos.length > 0 && (
@@ -90,6 +125,11 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
                   <span className="absolute bottom-1 left-1 rounded bg-slate-900/70 px-1 text-[10px] text-white">
                     {relativeTo(p.capturedAt, alarm.raisedAt)}
                   </span>
+                  {linkedIds.has(p.id) && (
+                    <span className="absolute left-1 top-1 rounded bg-brand-primary px-1 text-[10px] font-medium text-white">
+                      This alarm
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -108,6 +148,11 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-slate-800">
                         Video, started {relativeTo(v.capturedAt, alarm.raisedAt)}
+                        {linkedIds.has(v.id) && (
+                          <span className="ml-1.5 rounded bg-brand-primary/10 px-1 text-[10px] font-medium text-brand-primary">
+                            This alarm
+                          </span>
+                        )}
                       </span>
                       <span className="block truncate font-mono text-[11px] text-slate-400">{v.fileName}</span>
                     </span>

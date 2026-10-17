@@ -165,7 +165,7 @@ export function BroadcastPanel({
           )}
         </div>
 
-        <Can perm="devices:write">
+        <Can perm="groupCall:write">
           <div className="border-t border-slate-200 px-4 py-3">
             <p className="mb-1 text-xs text-slate-500">
               Record a message and the helmet will play it aloud to the wearer.

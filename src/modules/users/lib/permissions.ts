@@ -1,15 +1,19 @@
 import type { ModuleKey } from '@/shared/constants/modules'
 
 /**
- * The permission codes the backend defines, verified against GET /api/permissions.
+ * The permission codes the backend defines (GET /api/permissions, 16 Oct 2026).
  *
- * Flat and module-level — there is no read/write/delete distinction. Holding
- * a permission means full access to that module.
+ * Seven areas come in pairs: the plain code lets someone view, and the
+ * _MANAGE code also lets them make changes. Holding _MANAGE includes view.
+ * The others are single codes: holding one means full access to that area.
+ * GEO_FENCE is retired; the backend turns it into FENCE.
  */
 export type ApiPermission =
   | 'DASHBOARD'
   | 'MONITORING_CENTER'
+  | 'MONITORING_CENTER_MANAGE'
   | 'SURVEILLANCE'
+  | 'SURVEILLANCE_MANAGE'
   | 'TRACK_PLAYBACK'
   | 'TASK_MANAGE'
   | 'TASK_LIST'
@@ -18,60 +22,94 @@ export type ApiPermission =
   | 'GROUP_SETTING'
   | 'ADMINISTRATOR_SETTING'
   | 'UNIT_SETTING'
+  | 'UNIT_SETTING_MANAGE'
   | 'FENCE'
-  | 'GEO_FENCE'
+  | 'FENCE_MANAGE'
   | 'BLUETOOTH_BEACON'
   | 'ALARM_RECORD'
+  | 'ALARM_RECORD_MANAGE'
   | 'PHOTO_RECORD'
+  | 'PHOTO_RECORD_MANAGE'
   | 'VIDEO_RECORD'
+  | 'VIDEO_RECORD_MANAGE'
   | 'ATTENDANCE_RECORD'
 
 export interface PermissionNode {
   label: string
-  /** Absent for a grouping that exists only in the form — "Set" has no code. */
+  /** The view code, or the only code for single-code areas. Absent for a heading. */
   code?: ApiPermission
+  /** The "can change" code, for areas that split view and manage. */
+  manageCode?: ApiPermission
+  /** What view and change mean here, shown under the label. */
+  hint?: string
   children?: PermissionNode[]
 }
 
 /**
- * The permissions an administrator can actually be granted.
+ * What an administrator can be granted, in the order of the sidebar.
  *
- * Deliberately shorter than the backend's catalogue. GET /api/permissions
- * offers eighteen codes, including modules this dashboard has no screen for —
- * Surveillance, Task Manager, Fence, Bluetooth Beacon and Attendance
- * Record. Offering them would let an administrator grant access to
- * something that does not exist, which is worse than not offering them.
- *
- * To restore one when its module is built: add a node here and map it in
- * MODULE_PERMISSION below. Nothing else needs to change.
- *
- * "Set" is a grouping with no code of its own, matching the reference
- * platform. Ticking a parent does not imply its children — each is granted
- * separately, and the API stores them as a flat list.
+ * Deliberately shorter than the backend's catalogue: Task Manager, Bluetooth
+ * Beacon and Attendance Record have no screen yet, and granting access to
+ * something that doesn't exist is worse than not offering it. To restore one
+ * when its module is built, add a node here and map it in MODULE_PERMISSION.
  */
 export const PERMISSION_TREE: PermissionNode[] = [
   { label: 'Dashboard', code: 'DASHBOARD' },
-  { label: 'Monitoring Center', code: 'MONITORING_CENTER' },
+  {
+    label: 'Monitoring Center',
+    code: 'MONITORING_CENTER',
+    manageCode: 'MONITORING_CENTER_MANAGE',
+    hint: 'View helmets and the map · change: register, rename, commands',
+  },
+  {
+    label: 'Live view and calls',
+    code: 'SURVEILLANCE',
+    manageCode: 'SURVEILLANCE_MANAGE',
+    hint: 'Watch live and the live wall · change: make calls',
+  },
   { label: 'Track Playback', code: 'TRACK_PLAYBACK' },
-  { label: 'Group Call', code: 'GROUP_CALL' },
+  { label: 'Group Call', code: 'GROUP_CALL', hint: 'Group calls and voice messages' },
+  {
+    label: 'Fences',
+    code: 'FENCE',
+    manageCode: 'FENCE_MANAGE',
+    hint: 'See fences on the map · change: draw and edit them',
+  },
   {
     label: 'Set',
     children: [
       { label: 'Group Setting', code: 'GROUP_SETTING' },
-      { label: 'Administrator Setting', code: 'ADMINISTRATOR_SETTING' },
-      { label: 'Unit Setting', code: 'UNIT_SETTING' },
+      { label: 'Administrator Setting', code: 'ADMINISTRATOR_SETTING', hint: 'Includes Company Profile' },
+      {
+        label: 'Unit Setting',
+        code: 'UNIT_SETTING',
+        manageCode: 'UNIT_SETTING_MANAGE',
+        hint: 'Includes Wi-Fi · change: save settings, switch networks',
+      },
     ],
   },
-  { label: 'Alarm Record', code: 'ALARM_RECORD' },
-  { label: 'Photo Record', code: 'PHOTO_RECORD' },
-  { label: 'Video Record', code: 'VIDEO_RECORD' },
+  {
+    label: 'Alarm Record',
+    code: 'ALARM_RECORD',
+    manageCode: 'ALARM_RECORD_MANAGE',
+    hint: 'Change: resolve and reopen',
+  },
+  { label: 'Photo Record', code: 'PHOTO_RECORD', manageCode: 'PHOTO_RECORD_MANAGE' },
+  {
+    label: 'Video Record',
+    code: 'VIDEO_RECORD',
+    manageCode: 'VIDEO_RECORD_MANAGE',
+    hint: 'Change: upload from helmets, lock clips',
+  },
 ]
 
+/** Every code the tree can grant, view and manage alike. */
 export function allPermissionCodes(): ApiPermission[] {
   const codes: ApiPermission[] = []
   const walk = (nodes: PermissionNode[]) => {
     for (const node of nodes) {
       if (node.code) codes.push(node.code)
+      if (node.manageCode) codes.push(node.manageCode)
       if (node.children) walk(node.children)
     }
   }
@@ -79,47 +117,56 @@ export function allPermissionCodes(): ApiPermission[] {
   return codes
 }
 
-/**
- * Which backend permission gates each module in this dashboard.
- *
- * Two of ours have no counterpart. `map` shares MONITORING_CENTER, because a
- * live position map is part of monitoring rather than a separate feature in
- * their model. `profile` — the white-label settings — has no equivalent at
- * all, so it follows ADMINISTRATOR_SETTING as the nearest administrative
- * screen. Worth confirming rather than leaving as a guess.
- */
-export const MODULE_PERMISSION: Record<ModuleKey, ApiPermission> = {
-  dashboard: 'DASHBOARD',
-  devices: 'MONITORING_CENTER',
-  map: 'MONITORING_CENTER',
-  trackPlayback: 'TRACK_PLAYBACK',
-  groupCall: 'GROUP_CALL',
-  photos: 'PHOTO_RECORD',
-  videos: 'VIDEO_RECORD',
-  alarms: 'ALARM_RECORD',
-  users: 'ADMINISTRATOR_SETTING',
-  unitSettings: 'UNIT_SETTING',
-  wifi: 'UNIT_SETTING',
-  profile: 'ADMINISTRATOR_SETTING',
+/** The plain code for a _MANAGE code, or the code itself. */
+export function viewCodeOf(code: string): string {
+  return code.endsWith('_MANAGE') ? code.slice(0, -'_MANAGE'.length) : code
 }
 
 /**
- * Expands the backend's module-level permissions into the action-level ones
- * the dashboard's guards are written against.
+ * Which backend codes gate each area of this dashboard. `manage` is the code
+ * that allows changes; without one, the view code allows everything.
  *
- * Since the API grants whole modules, every granted module yields all three
- * actions. Keeping the internal shape meant nothing downstream had to change
- * when the backend's model turned out flatter than ours — and if the API ever
- * gains actions, only this function tightens.
+ * Live Map shares Monitoring Center, as in the backend's model; Wi-Fi follows
+ * Unit Setting; Company Profile follows Administrator Setting.
+ */
+export const MODULE_PERMISSION: Record<ModuleKey, { view: ApiPermission; manage?: ApiPermission }> = {
+  dashboard: { view: 'DASHBOARD' },
+  devices: { view: 'MONITORING_CENTER', manage: 'MONITORING_CENTER_MANAGE' },
+  map: { view: 'MONITORING_CENTER', manage: 'MONITORING_CENTER_MANAGE' },
+  live: { view: 'SURVEILLANCE', manage: 'SURVEILLANCE_MANAGE' },
+  trackPlayback: { view: 'TRACK_PLAYBACK' },
+  groupCall: { view: 'GROUP_CALL' },
+  groups: { view: 'GROUP_SETTING' },
+  photos: { view: 'PHOTO_RECORD', manage: 'PHOTO_RECORD_MANAGE' },
+  videos: { view: 'VIDEO_RECORD', manage: 'VIDEO_RECORD_MANAGE' },
+  alarms: { view: 'ALARM_RECORD', manage: 'ALARM_RECORD_MANAGE' },
+  fences: { view: 'FENCE', manage: 'FENCE_MANAGE' },
+  users: { view: 'ADMINISTRATOR_SETTING' },
+  unitSettings: { view: 'UNIT_SETTING', manage: 'UNIT_SETTING_MANAGE' },
+  wifi: { view: 'UNIT_SETTING', manage: 'UNIT_SETTING_MANAGE' },
+  profile: { view: 'ADMINISTRATOR_SETTING' },
+}
+
+/**
+ * Turns the backend's codes into the module:action permissions the
+ * dashboard's guards check.
+ *
+ *   view code             → module:read
+ *   _MANAGE code          → module:read, :write, :delete
+ *   single code (no pair) → module:read, :write, :delete
+ *
+ * Unknown codes are ignored, so a code the backend adds later can't grant
+ * anything here by accident.
  */
 export function expandPermissions(granted: string[]): string[] {
   const held = new Set(granted)
   const expanded: string[] = []
 
-  for (const [moduleKey, code] of Object.entries(MODULE_PERMISSION)) {
-    if (held.has(code)) {
-      expanded.push(`${moduleKey}:read`, `${moduleKey}:write`, `${moduleKey}:delete`)
-    }
+  for (const [moduleKey, { view, manage }] of Object.entries(MODULE_PERMISSION)) {
+    const canManage = manage ? held.has(manage) : held.has(view)
+    const canView = canManage || held.has(view)
+    if (canManage) expanded.push(`${moduleKey}:read`, `${moduleKey}:write`, `${moduleKey}:delete`)
+    else if (canView) expanded.push(`${moduleKey}:read`)
   }
 
   return [...new Set(expanded)]

@@ -42,6 +42,16 @@ export interface AuthUser {
    */
   mustChangePassword?: boolean
   scope?: SiteScope
+  /** Full access; the backend ignores the permission list for super admins. */
+  superAdmin?: boolean
+  /**
+   * The backend's own codes, e.g. ["DASHBOARD", "TRACK_PLAYBACK"]. Kept
+   * alongside the expanded `permissions` because the role editor can only
+   * offer codes the signed-in admin holds.
+   */
+  apiPermissions?: string[]
+  /** Helmets this user is limited to; empty means every helmet. */
+  deviceIds?: string[]
 }
 
 interface AuthState {

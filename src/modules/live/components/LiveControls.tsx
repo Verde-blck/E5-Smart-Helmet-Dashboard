@@ -52,24 +52,29 @@ export function LiveControls({
   const callLabel = disabledReason ?? `Call ${device.name}`
 
   return (
-    <Can perm="devices:write">
+    // Watching needs SURVEILLANCE; calling needs SURVEILLANCE_MANAGE.
+    <Can perm="live:read">
       {variant === 'icons' ? (
         <>
           <IconButton label={watchLabel} onClick={openWatch} disabled={!!disabledReason}>
             <VideoIcon className="h-3.5 w-3.5" />
           </IconButton>
-          <IconButton label={callLabel} onClick={openCall} disabled={!!disabledReason}>
-            <PhoneIcon className="h-3.5 w-3.5" />
-          </IconButton>
+          <Can perm="live:write">
+            <IconButton label={callLabel} onClick={openCall} disabled={!!disabledReason}>
+              <PhoneIcon className="h-3.5 w-3.5" />
+            </IconButton>
+          </Can>
         </>
       ) : (
         <>
           <TextButton onClick={openWatch} disabled={!!disabledReason} title={disabledReason}>
             <VideoIcon className="h-3.5 w-3.5" /> Watch live
           </TextButton>
-          <TextButton onClick={openCall} disabled={!!disabledReason} title={disabledReason}>
-            <PhoneIcon className="h-3.5 w-3.5" /> Call
-          </TextButton>
+          <Can perm="live:write">
+            <TextButton onClick={openCall} disabled={!!disabledReason} title={disabledReason}>
+              <PhoneIcon className="h-3.5 w-3.5" /> Call
+            </TextButton>
+          </Can>
         </>
       )}
 

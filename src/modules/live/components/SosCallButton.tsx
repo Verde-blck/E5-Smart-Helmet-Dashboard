@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Can } from '@/shared/components/Can'
 import { useHelmetSession } from '../hooks/useHelmetSession'
 import { CallModal } from './CallModal'
 import { PhoneIcon } from './icons'
@@ -32,8 +31,11 @@ export function SosCallButton({
     begin('call', { withCamera: true })
   }
 
+  // No permission check: anyone signed in can answer an open SOS, so
+  // whoever is at the screen can respond. The backend allows it for helmets
+  // with an SOS from the last 30 minutes.
   return (
-    <Can perm="devices:write">
+    <>
       <button
         type="button"
         onClick={join}
@@ -58,6 +60,6 @@ export function SosCallButton({
           }}
         />
       )}
-    </Can>
+    </>
   )
 }

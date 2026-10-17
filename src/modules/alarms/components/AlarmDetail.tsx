@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { useResolveAlarm } from '../hooks/useAlarms'
+import { acknowledge } from '../lib/alarmSound'
 import { alarmLabel } from '../types'
 import type { Alarm } from '../types'
 import { AlarmFootage } from './AlarmFootage'
@@ -28,6 +29,9 @@ export function AlarmDetail({ alarm, now, onClose }: { alarm: Alarm; now: number
   const resolve = useResolveAlarm()
   const resolved = alarm.status === 'resolved'
   const hasLocation = alarm.lat != null && alarm.lng != null
+
+  // Someone is looking at it now: stop the ringtone for this alarm.
+  useEffect(() => acknowledge(alarm.id), [alarm.id])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
