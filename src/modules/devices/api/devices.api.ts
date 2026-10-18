@@ -21,6 +21,8 @@ import {
 import { HISTORY_RANGES } from '../lib/history'
 import type {
   Device,
+  FixType,
+  SimStatus,
   FleetSummary,
   HistoryRange,
   TelemetrySample,
@@ -45,6 +47,35 @@ interface ApiDevice {
   /** Same "GAS--value;GAS--value" format as telemetry. Null until a sensor reports. */
   lastRawGasData?: string | null
   lastGasAt?: string | null
+  /** "gps" | "network" | "wifi" | "other" */
+  lastFixType?: string | null
+  /** "1" strong, "0" weak, "-1" no GPS */
+  lastGpsLevel?: string | number | null
+  lastAccuracyMeters?: number | string | null
+  /** 0 unknown, 1 SIM present, 2 no SIM */
+  simStatus?: number | string | null
+  simPhoneNumber?: string | null
+  simDataUsedMb?: number | string | null
+  /** "wifi" | "4g" */
+  networkType?: string | null
+}
+
+const FIX_TYPES = ['gps', 'network', 'wifi', 'other'] as const
+
+export function toFixType(value: unknown): FixType | undefined {
+  const v = String(value ?? '').toLowerCase()
+  return (FIX_TYPES as readonly string[]).includes(v) ? (v as FixType) : undefined
+}
+
+function toSimStatus(value: unknown): SimStatus | undefined {
+  const n = Number(value)
+  return n === 1 ? 'present' : n === 2 ? 'absent' : value == null ? undefined : 'unknown'
+}
+
+/** "4g" → "4G", "wifi" → "Wi-Fi". */
+function toNetworkLabel(value: unknown): string | undefined {
+  const v = String(value ?? '').toLowerCase()
+  return v === 'wifi' ? 'Wi-Fi' : v === '4g' ? '4G' : v ? v.toUpperCase() : undefined
 }
 
 interface ApiTelemetry {
@@ -73,7 +104,8 @@ function toDevice(api: ApiDevice): Device {
     named: Boolean(api.name?.trim()),
     // site, assignedTo and activeAlarm have no source in the API yet.
     active: api.active ?? true,
-    connectivity: 'sim',
+    // What the helmet is actually on right now; it switches by itself.
+    connectivity: String(api.networkType ?? '').toLowerCase() === 'wifi' ? 'wifi' : 'sim',
     // Presence is still derived from this timestamp rather than from the
     // API's `online` flag, so the device list and the status history agree.
     // The API applies a 2-minute rule; ours is 90 seconds.
@@ -89,6 +121,13 @@ function toDevice(api: ApiDevice): Device {
       // shows "no reading" rather than a false all-clear of zeros.
       gas: parseGasData(api.lastRawGasData),
       gasAt: ts(api.lastGasAt),
+      fixType: toFixType(api.lastFixType),
+      gpsLevel: num(api.lastGpsLevel as string | number | null | undefined),
+      accuracyMeters: num(api.lastAccuracyMeters as string | number | null | undefined),
+      simStatus: toSimStatus(api.simStatus),
+      simPhoneNumber: api.simPhoneNumber || undefined,
+      simDataUsedMb: num(api.simDataUsedMb as string | number | null | undefined),
+      networkType: toNetworkLabel(api.networkType),
     },
   }
 }

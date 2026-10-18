@@ -27,6 +27,8 @@ export function TrackMap({
   const linesRef = useRef<google.maps.Polyline[]>([])
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
   const cursorRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
+  // The likely area when the point under the cursor is approximate.
+  const cursorAreaRef = useRef<google.maps.Circle | null>(null)
 
   useEffect(() => {
     if (status !== 'ready' || !libraries || !containerRef.current || mapRef.current) return
@@ -119,6 +121,26 @@ export function TrackMap({
       })
     } else {
       cursorRef.current.position = position
+    }
+
+    const radius = point.approximate ? point.accuracyMeters ?? 300 : null
+    if (radius) {
+      if (!cursorAreaRef.current) {
+        cursorAreaRef.current = new google.maps.Circle({
+          map,
+          strokeColor: '#64748b',
+          strokeOpacity: 0.6,
+          strokeWeight: 1,
+          fillColor: '#64748b',
+          fillOpacity: 0.1,
+          clickable: false,
+        })
+      }
+      cursorAreaRef.current.setCenter(position)
+      cursorAreaRef.current.setRadius(radius)
+      cursorAreaRef.current.setMap(map)
+    } else {
+      cursorAreaRef.current?.setMap(null)
     }
   }, [status, libraries, track, cursor])
 

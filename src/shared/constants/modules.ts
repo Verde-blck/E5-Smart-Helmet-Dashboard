@@ -50,8 +50,9 @@ export const MODULES: ModuleDef[] = [
   { key: 'alarms', label: 'Alarm Record', route: '/alarms', icon: 'alarm' },
   { key: 'users', label: 'Administrators', route: '/users', icon: 'users' },
   { key: 'unitSettings', label: 'Unit Setting', route: '/unit-setting', icon: 'sliders' },
-  // Moves helmets between Wi-Fi networks; replaces the vendor's Anlink app.
-  { key: 'wifi', label: 'Wi-Fi', route: '/wifi', icon: 'wifi' },
+  // Wi-Fi, SIM and mobile data; replaces the vendor's Anlink app. Key and
+  // route stay "wifi" so existing links and permissions keep working.
+  { key: 'wifi', label: 'Connectivity', route: '/wifi', icon: 'wifi' },
   { key: 'profile', label: 'Company Profile', route: '/profile', icon: 'building' },
 ]
 

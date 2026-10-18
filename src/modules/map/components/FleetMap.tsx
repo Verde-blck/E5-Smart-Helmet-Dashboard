@@ -1,3 +1,4 @@
+import { locationQuality } from '@/modules/devices/lib/location'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGoogleMaps } from '../hooks/useGoogleMaps'
@@ -38,6 +39,8 @@ export function FleetMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map())
+  // The likely area around positions that aren't GPS fixes.
+  const circlesRef = useRef<Map<string, google.maps.Circle>>(new Map())
   const navigate = useNavigate()
   // Read by the click listeners at click time, so toggling it doesn't mean
   // rebuilding every marker.
@@ -85,11 +88,41 @@ export function FleetMap({
         scale: device.activeAlarm ? 1.2 : 1,
       })
 
+      // Approximate positions (mobile network, Wi-Fi, no GPS) get a circle
+      // for where the helmet probably is, so nobody takes the pin as exact.
+      const quality = locationQuality(device.telemetry)
+      const title = [device.name, device.site, quality?.label].filter(Boolean).join(' · ')
+      const circle = circlesRef.current.get(device.id)
+      if (quality?.approximate && quality.radiusM) {
+        if (circle) {
+          circle.setCenter(position)
+          circle.setRadius(quality.radiusM)
+        } else {
+          circlesRef.current.set(
+            device.id,
+            new google.maps.Circle({
+              map,
+              center: position,
+              radius: quality.radiusM,
+              strokeColor: '#64748b',
+              strokeOpacity: 0.6,
+              strokeWeight: 1,
+              fillColor: '#64748b',
+              fillOpacity: 0.1,
+              clickable: false,
+            })
+          )
+        }
+      } else if (circle) {
+        circle.setMap(null)
+        circlesRef.current.delete(device.id)
+      }
+
       const existing = markersRef.current.get(device.id)
       if (existing) {
         existing.position = position
         existing.content = pin.element
-        existing.title = `${device.name} · ${device.site}`
+        existing.title = title
         continue
       }
 
@@ -97,7 +130,7 @@ export function FleetMap({
         map,
         position,
         content: pin.element,
-        title: `${device.name} · ${device.site}`,
+        title,
         gmpClickable: true,
       })
       marker.addListener('click', () => {
@@ -110,6 +143,12 @@ export function FleetMap({
       if (!seen.has(id)) {
         marker.map = null
         markersRef.current.delete(id)
+      }
+    }
+    for (const [id, circle] of circlesRef.current) {
+      if (!seen.has(id)) {
+        circle.setMap(null)
+        circlesRef.current.delete(id)
       }
     }
   }, [status, libraries, located, navigate])

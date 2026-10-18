@@ -40,7 +40,23 @@ export interface Telemetry {
   gas?: GasReading[]
   /** When the gas readings were taken; can be older than lastSeenAt. */
   gasAt?: number
+  /**
+   * How the position was obtained. Indoors helmets often fall back to the
+   * mobile network, which can be hundreds of metres off.
+   */
+  fixType?: FixType
+  /** 1 strong GPS, 0 weak, -1 no GPS signal. */
+  gpsLevel?: number
+  /** The helmet's own accuracy radius for the position, in metres. */
+  accuracyMeters?: number
+  simStatus?: SimStatus
+  simPhoneNumber?: string
+  /** Mobile data used this month, in MB. */
+  simDataUsedMb?: number
 }
+
+export type FixType = 'gps' | 'network' | 'wifi' | 'other'
+export type SimStatus = 'present' | 'absent' | 'unknown'
 
 /**
  * Identity and registration data (from your database) kept separate from
@@ -105,6 +121,9 @@ export interface TelemetrySample {
   isWorn?: boolean
   /** Per-sample gas readings, so a history view can chart exposure over time. */
   gas?: GasReading[]
+  /** How this position was obtained; null on points from before 16 Oct 2026. */
+  fixType?: FixType
+  accuracyMeters?: number
 }
 
 export type HistoryRange = '1h' | '24h' | '7d'

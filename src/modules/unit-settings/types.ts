@@ -74,6 +74,8 @@ export interface HelmetSettings {
   pictureQuality: PictureQuality
   /** Split long recordings into segments rather than one large file. */
   videoSplit: boolean
+  /** Length of each clip when split, in whole minutes (the backend takes 1–60). */
+  videoSplitMinutes: number
 
   alarms: AlarmSwitches
 }
@@ -83,11 +85,19 @@ export interface SaveResult {
   settings: HelmetSettings
   /**
    * True when the helmet was online and got the change immediately; false
-   * when it's queued for the helmet's next reconnect. Neither confirms the
-   * helmet has applied it; that is still unverified with the manufacturer.
+   * when it's queued for the helmet's next reconnect.
    */
   delivered: boolean
+  /**
+   * The helmet only reads its settings when it starts, so saved changes take
+   * effect after a restart. Reconnecting isn't enough, so there's no
+   * "apply now" button.
+   */
+  appliesAfterRestart: boolean
 }
+
+/** The clip lengths the client asked for. The backend accepts any 1–60. */
+export const SPLIT_MINUTES = [10, 20, 30] as const
 
 export const UPLOAD_METHODS: { value: UploadMethod; label: string; note?: string }[] = [
   { value: 'none', label: 'Do not upload automatically', note: 'Footage stays on the helmet until collected' },
@@ -138,6 +148,7 @@ export const DEFAULT_SETTINGS: HelmetSettings = {
   uploadMethod: 'none',
   pictureQuality: 'HD',
   videoSplit: false,
+  videoSplitMinutes: 10,
   alarms: {
     hatOff: true,
     fence: true,

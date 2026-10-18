@@ -1,3 +1,4 @@
+import { locationQuality } from '@/modules/devices/lib/location'
 import type { TelemetrySample } from '@/modules/devices/types'
 import type { Track, TrackPoint, TrackStats } from '../types'
 
@@ -58,11 +59,15 @@ export function buildTrack(
   let longestGapMs = 0
   let segment = 0
   let impossibleJumps = 0
+  let approximatePoints = 0
+  let lastGps: TrackPoint | undefined
 
   for (const fix of fixes) {
     const previous = points[points.length - 1]
     let stepMetres = 0
     let speedMps = 0
+    const approximate = locationQuality(fix)?.approximate === true
+    if (approximate) approximatePoints += 1
 
     if (previous) {
       const legMs = fix.ts - previous.ts
@@ -82,11 +87,19 @@ export function buildTrack(
         // nothing to the distance.
         impossibleJumps += 1
         segment += 1
+      } else if (approximate) {
+        // A network or Wi-Fi position can be hundreds of metres off: it stays
+        // on the line, but isn't counted as distance walked.
       } else {
-        stepMetres = raw < NOISE_FLOOR_M ? 0 : raw
+        // A GPS fix after approximate ones is measured from the last GPS fix,
+        // bridging over them, so the real walk is still counted.
+        const origin = previous.approximate && lastGps ? lastGps : previous
+        const measured = origin === previous ? raw : haversine(origin, { lat: fix.lat as number, lng: fix.lng as number })
+        stepMetres = measured < NOISE_FLOOR_M ? 0 : measured
         distanceMetres += stepMetres
-        if (legMs > 0) {
-          speedMps = stepMetres / (legMs / 1000)
+        const spanMs = fix.ts - origin.ts
+        if (spanMs > 0) {
+          speedMps = stepMetres / (spanMs / 1000)
           maxSpeedMps = Math.max(maxSpeedMps, speedMps)
           if (stepMetres > 0) movingMs += legMs
         }
@@ -102,7 +115,10 @@ export function buildTrack(
       stepMetres,
       speedMps,
       segment,
+      approximate,
+      accuracyMeters: fix.accuracyMeters,
     })
+    if (!approximate) lastGps = points[points.length - 1]
   }
 
   const stats: TrackStats = {
@@ -114,6 +130,7 @@ export function buildTrack(
     longestGapMs,
     segments: points.length > 0 ? segment + 1 : 0,
     impossibleJumps,
+    approximatePoints,
   }
 
   return { deviceId, from, to, points, stats, truncated }

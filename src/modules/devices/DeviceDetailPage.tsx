@@ -13,6 +13,7 @@ import { GasPanel } from './components/GasPanel'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { LiveControls } from '@/modules/live/components/LiveControls'
 import { signalQuality } from './lib/signal'
+import { locationQuality } from './lib/location'
 import { useDeviceHistory } from './hooks/useDeviceHistory'
 import { FleetMap } from '@/modules/map/components/FleetMap'
 import type { Telemetry } from './types'
@@ -53,6 +54,18 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
   push('Carrier', t.carrier ?? null)
   const signal = signalQuality(t.signalStrength)
   push('Signal', signal ? `${signal.label} (${signal.detail})` : null)
+  // How far to trust the position: GPS, or approximate from the network.
+  push('Location', locationQuality(t)?.label ?? null)
+  push(
+    'SIM',
+    t.simStatus === 'present'
+      ? ['Present', t.simPhoneNumber, t.simDataUsedMb != null ? `${t.simDataUsedMb.toFixed(1)} MB used this month` : null]
+          .filter(Boolean)
+          .join(' · ')
+      : t.simStatus === 'absent'
+        ? 'No SIM card'
+        : null
+  )
 
   return rows
 }
@@ -195,7 +208,7 @@ export function DeviceDetailPage() {
       <Can perm="wifi:read">
         <p className="mt-2 text-right text-xs">
           <Link to={`/wifi?device=${device.id}`} className="text-slate-500 hover:text-slate-800">
-            Wi-Fi settings →
+            Connectivity →
           </Link>
         </p>
       </Can>

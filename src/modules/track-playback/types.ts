@@ -14,6 +14,9 @@ export interface TrackPoint {
    * either.
    */
   segment: number
+  /** Not a GPS fix: mobile network or Wi-Fi, often tens to hundreds of metres off. */
+  approximate?: boolean
+  accuracyMeters?: number
 }
 
 export interface TrackStats {
@@ -35,6 +38,8 @@ export interface TrackStats {
    * in the device's history.
    */
   impossibleJumps: number
+  /** Points that weren't GPS fixes. Legs touching them don't count as distance. */
+  approximatePoints: number
 }
 
 export interface Track {

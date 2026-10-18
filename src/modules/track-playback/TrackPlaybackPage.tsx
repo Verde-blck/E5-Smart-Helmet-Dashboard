@@ -176,6 +176,14 @@ export function TrackPlaybackPage() {
                 </p>
               )}
 
+              {track.stats.approximatePoints > 0 && (
+                <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  {track.stats.approximatePoints} of {track.stats.points} positions were approximate
+                  (mobile network or Wi-Fi, usually indoors), so they can be tens to hundreds of
+                  metres off. They stay on the route, but don’t count towards distance.
+                </p>
+              )}
+
               {track.truncated && (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                   {/* Better to say the range was cut than to show a short

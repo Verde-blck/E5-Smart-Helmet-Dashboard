@@ -138,7 +138,11 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
                 bars={signal?.bars ?? null}
                 label={signal ? `Signal: ${signal.label} (${signal.detail})` : 'Signal: not reported'}
               />
-              <span className="hidden text-[10px] sm:inline">{signal?.label ?? '—'}</span>
+              <span className="hidden text-[10px] sm:inline">
+                {/* Wi-Fi or 4G: the helmet switches by itself. */}
+                {device.telemetry.networkType ? `${device.telemetry.networkType} · ` : ''}
+                {signal?.label ?? '—'}
+              </span>
             </span>
           )}
           <span>{battery != null ? `${battery}%` : '—'}</span>

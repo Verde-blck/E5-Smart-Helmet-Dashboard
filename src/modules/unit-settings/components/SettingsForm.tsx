@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Can } from '@/shared/components/Can'
 import { useSaveHelmetSettings } from '../hooks/useHelmetSettings'
 import {
+  SPLIT_MINUTES,
   ALARM_LABELS,
   BROADCAST_LANGUAGES,
   PICTURE_QUALITIES,
@@ -268,6 +269,34 @@ export function SettingsForm({
         <Row label="Split recordings" hint="Segments long recordings rather than producing one large file.">
           <Toggle value={draft.videoSplit} onChange={(v) => set('videoSplit', v)} />
         </Row>
+
+        {draft.videoSplit && (
+          <Row label="Clip length" hint="Each recording is cut into clips of this length.">
+            <div className="flex flex-wrap gap-4 pt-1.5 text-sm">
+              {/* The helmet's current length is offered too if it's something
+                  else (helmets shipped with 1-minute clips), so saving other
+                  settings doesn't change it by surprise. */}
+              {[...new Set<number>([...SPLIT_MINUTES, initial.videoSplitMinutes])]
+                .sort((a, b) => a - b)
+                .map((minutes) => (
+                  <label key={minutes} className="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="radio"
+                      checked={draft.videoSplitMinutes === minutes}
+                      onChange={() => set('videoSplitMinutes', minutes)}
+                      className="h-3.5 w-3.5 accent-brand-primary"
+                    />
+                    <span className="text-slate-700">
+                      {minutes} {minutes === 1 ? 'minute' : 'minutes'}
+                      {!(SPLIT_MINUTES as readonly number[]).includes(minutes) && (
+                        <span className="text-slate-400"> (current)</span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+            </div>
+          </Row>
+        )}
       </Section>
 
       <Section
@@ -328,14 +357,20 @@ export function SettingsForm({
               <span className="text-red-600">Could not save. Try again.</span>
             )}
             {outcome === 'delivered' && !dirty && (
-              <span className="text-emerald-700">Saved and sent to the helmet.</span>
+              <span className="text-emerald-700">
+                Saved and sent. The helmet uses the new settings after it restarts.
+              </span>
             )}
             {outcome === 'queued' && !dirty && (
               <span className="text-emerald-700">
-                Saved. The helmet is offline, so it will receive the changes when it next connects.
+                Saved. The helmet is offline; it gets the changes when it reconnects and uses them
+                after its next restart.
               </span>
             )}
             {dirty && !save.isPending && <span className="text-amber-700">Unsaved changes</span>}
+            {!outcome && !dirty && !save.isError && (
+              <span className="text-slate-400">Changes take effect after the helmet restarts.</span>
+            )}
           </span>
         </div>
       </Can>

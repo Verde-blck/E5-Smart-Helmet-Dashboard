@@ -84,7 +84,7 @@ export const PERMISSION_TREE: PermissionNode[] = [
         label: 'Unit Setting',
         code: 'UNIT_SETTING',
         manageCode: 'UNIT_SETTING_MANAGE',
-        hint: 'Includes Wi-Fi · change: save settings, switch networks',
+        hint: 'Includes Connectivity · change: save settings, switch networks',
       },
     ],
   },

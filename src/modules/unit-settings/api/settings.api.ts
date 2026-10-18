@@ -31,6 +31,7 @@ const FIELD_MAP = {
   uploadMethod: 'uploadMethod',
   pictureQuality: 'pictureQuality',
   videoSplit: 'videoSplitting',
+  videoSplitMinutes: 'videoSplitMinutes',
 } as const satisfies Record<Exclude<keyof HelmetSettings, 'alarms'>, string>
 
 const ALARM_MAP = {
@@ -98,6 +99,7 @@ function fromApi(raw: ApiSettings): HelmetSettings {
       : d.uploadMethod,
     pictureQuality: toText(raw[FIELD_MAP.pictureQuality], d.pictureQuality),
     videoSplit: toBool(raw[FIELD_MAP.videoSplit], d.videoSplit),
+    videoSplitMinutes: num(FIELD_MAP.videoSplitMinutes, d.videoSplitMinutes),
     alarms,
   }
 }
@@ -174,16 +176,21 @@ export async function saveHelmetSettings(
     // Alternates between delivered and queued on each save, so both
     // outcomes can be seen in mock mode whichever helmet is picked.
     mockDeliverNext = !mockDeliverNext
-    return { settings: cloneSettings(after), delivered: !mockDeliverNext }
+    return { settings: cloneSettings(after), delivered: !mockDeliverNext, appliesAfterRestart: true }
   }
 
   const body = changesToApi(before, after, rawTypesByDevice.get(deviceId) ?? new Map())
-  if (Object.keys(body).length === 0) return { settings: before, delivered: true }
+  if (Object.keys(body).length === 0) return { settings: before, delivered: true, appliesAfterRestart: false }
 
-  const { data } = await apiClient.put<{ saved?: boolean; delivered?: boolean }>(
+  const { data } = await apiClient.put<{ saved?: boolean; delivered?: boolean; appliesAfterRestart?: boolean }>(
     `/devices/${deviceId}/settings`,
     body
   )
   if (data?.saved === false) throw new Error('The backend reported the settings were not saved')
-  return { settings: cloneSettings(after), delivered: data?.delivered === true }
+  return {
+    settings: cloneSettings(after),
+    delivered: data?.delivered === true,
+    // The backend says so on every save today; assume it if it's missing.
+    appliesAfterRestart: data?.appliesAfterRestart !== false,
+  }
 }

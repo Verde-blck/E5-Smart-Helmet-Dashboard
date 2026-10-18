@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useDevices } from '@/modules/devices/hooks/useDevices'
 import { WifiPanel } from './components/WifiPanel'
+import { SiteWifiCard } from './components/SiteWifiCard'
+import { ConnectionCard } from './components/ConnectionCard'
 
 const PRESENCE_DOT = {
   online: 'bg-emerald-500',
@@ -35,6 +37,13 @@ export function WifiPage() {
 
   return (
     <div>
+      <h1 className="mb-1 text-lg font-semibold text-slate-800">Connectivity</h1>
+      <p className="mb-4 text-xs text-slate-500">
+        How each helmet connects. Helmets switch by themselves: a saved Wi-Fi when one is in range,
+        mobile data otherwise.
+      </p>
+
+      <SiteWifiCard />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <aside>
@@ -89,7 +98,7 @@ export function WifiPage() {
         <div>
           {!selected ? (
             <p className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-              Select a helmet to scan for networks and connect it.
+              Select a helmet to see its connection, SIM and Wi-Fi.
             </p>
           ) : (
             <>
@@ -102,6 +111,7 @@ export function WifiPage() {
                   </span>
                 )}
               </div>
+              <ConnectionCard key={`c-${selected.id}`} device={selected} />
               {/* Keyed on the helmet so switching resets the scan and password. */}
               <WifiPanel key={selected.id} device={selected} />
             </>

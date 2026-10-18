@@ -113,3 +113,85 @@ export async function scanAndWait(
   }
   return { delivered, scan: null }
 }
+
+// --- Site Wi-Fi: one network every helmet gets at start-up --------------
+
+export interface SiteWifi {
+  ssid: string | null
+  /** The password is never returned, only whether one is stored. */
+  passwordSet: boolean
+}
+
+let mockSite: SiteWifi = { ssid: 'E5ENERGY', passwordSet: true }
+
+/** GET /api/settings/site-wifi. 404 or an empty body means none is set. */
+export async function fetchSiteWifi(): Promise<SiteWifi> {
+  if (env.useMocks) return { ...mockSite }
+  try {
+    const { data } = await apiClient.get<Partial<SiteWifi> | null>('/settings/site-wifi')
+    return { ssid: data?.ssid || null, passwordSet: data?.passwordSet === true }
+  } catch (error) {
+    if ((error as { response?: { status?: number } })?.response?.status === 404) {
+      return { ssid: null, passwordSet: false }
+    }
+    throw error
+  }
+}
+
+/** Leave `password` undefined to keep the current one. */
+export async function saveSiteWifi(ssid: string, password?: string): Promise<SiteWifi> {
+  if (env.useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    mockSite = { ssid, passwordSet: password ? true : mockSite.passwordSet }
+    return { ...mockSite }
+  }
+  const { data } = await apiClient.put<SiteWifi>('/settings/site-wifi', {
+    ssid,
+    ...(password ? { password } : {}),
+  })
+  return { ssid: data?.ssid ?? ssid, passwordSet: data?.passwordSet === true }
+}
+
+export async function removeSiteWifi(): Promise<void> {
+  if (env.useMocks) {
+    mockSite = { ssid: null, passwordSet: false }
+    return
+  }
+  await apiClient.delete('/settings/site-wifi')
+}
+
+// --- Switching a helmet to mobile data ----------------------------------
+
+export type MobileSwitchResult =
+  | { status: 'sent'; delivered: boolean }
+  /** The helmet hasn't reported a SIM; retry with force to send anyway. */
+  | { status: 'no-sim'; message: string }
+
+/**
+ * POST /api/devices/{id}/network/mobile: the helmet drops Wi-Fi and
+ * reconnects over 4G. If its SIM has no data it stays offline until it's
+ * back on a known Wi-Fi, so the UI always confirms first. Not yet tested
+ * with a live SIM.
+ */
+export async function switchToMobileData(deviceId: string, force = false): Promise<MobileSwitchResult> {
+  if (env.useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    return force || deviceId.endsWith('0')
+      ? { status: 'sent', delivered: true }
+      : { status: 'no-sim', message: 'The helmet has not reported a SIM card.' }
+  }
+  try {
+    const { data } = await apiClient.post<{ delivered?: boolean }>(
+      `/devices/${deviceId}/network/mobile`,
+      null,
+      force ? { params: { force: true } } : undefined
+    )
+    return { status: 'sent', delivered: data?.delivered !== false }
+  } catch (error) {
+    const res = (error as { response?: { status?: number; data?: { error?: string; message?: string } } })?.response
+    if (res?.status === 409 && res.data?.error === 'no_sim') {
+      return { status: 'no-sim', message: res.data.message ?? 'The helmet has not reported a SIM card.' }
+    }
+    throw error
+  }
+}

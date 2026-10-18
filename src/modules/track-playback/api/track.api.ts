@@ -4,6 +4,7 @@ import { flag, millivoltsToVolts, num, pageContent, parseGasData, ts } from '@/s
 import type { Page } from '@/shared/lib/api-normalize'
 import { getMockTrackSamples } from './track.mock'
 import type { TelemetrySample } from '@/modules/devices/types'
+import { toFixType } from '@/modules/devices/api/devices.api'
 
 interface ApiTelemetry {
   id: number
@@ -18,6 +19,9 @@ interface ApiTelemetry {
   netStrength?: string | null
   rawGasData?: string | null
   recordedAt?: string | null
+  /** "gps" | "network" | "wifi" | "other"; null on older points */
+  fixType?: string | null
+  accuracyMeters?: number | string | null
 }
 
 /** How many rows one request will pull before the range is treated as cut short. */
@@ -63,6 +67,8 @@ export async function fetchTrackSamples(
     isCharging: flag(api.chargingStatus),
     isWorn: flag(api.wearStatus),
     gas: parseGasData(api.rawGasData),
+    fixType: toFixType(api.fixType),
+    accuracyMeters: num(api.accuracyMeters as string | number | null | undefined),
   }))
 
   const oldest = samples.reduce((min, s) => Math.min(min, s.ts || Infinity), Infinity)
