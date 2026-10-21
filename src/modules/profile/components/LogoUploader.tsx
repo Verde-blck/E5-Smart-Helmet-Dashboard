@@ -1,3 +1,4 @@
+import { profileErrorMessage } from '../api/profile.api'
 import { useRef, useState } from 'react'
 import {
   LOGO_ACCEPTED_TYPES,
@@ -72,7 +73,7 @@ export function LogoUploader({ logoUrl, canEdit }: { logoUrl: string; canEdit: b
     }
 
     upload.mutate(file, {
-      onError: () => setError('Upload failed. Please try again.'),
+      onError: (err) => setError(profileErrorMessage(err, 'Upload failed. Please try again.')),
       onSettled: () => {
         // Clear the input so picking the same file twice still fires onChange.
         if (inputRef.current) inputRef.current.value = ''

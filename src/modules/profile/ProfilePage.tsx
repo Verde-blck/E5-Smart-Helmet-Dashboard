@@ -5,6 +5,7 @@ import { z } from "zod";
 import { env } from "@/config/env";
 import { usePermission } from "@/shared/hooks/usePermission";
 import { applyBrandColors } from "@/shared/lib/color";
+import { profileErrorMessage } from "./api/profile.api";
 import { useTenantProfile, useUpdateProfile } from "./hooks/useTenantProfile";
 import { LogoUploader } from "./components/LogoUploader";
 import { BrandColorFields } from "./components/BrandColorFields";
@@ -21,7 +22,7 @@ const schema = z.object({
     .string()
     .trim()
     .min(2, "At least 2 characters")
-    .max(60, "At most 60 characters"),
+    .max(80, "At most 80 characters"),
   supportEmail: z.union([z.string().email("Not a valid email"), z.literal("")]),
   primary: hex,
   secondary: hex,
@@ -90,7 +91,8 @@ export function ProfilePage() {
     setSaved(false);
     await save.mutateAsync({
       name: values.name.trim(),
-      supportEmail: values.supportEmail || undefined,
+      // An empty field clears the support email on the backend.
+      supportEmail: values.supportEmail.trim(),
       colors: { primary: values.primary, secondary: values.secondary },
     });
     setSaved(true);
@@ -191,7 +193,7 @@ export function ProfilePage() {
             </button>
             {save.isError && (
               <span className="text-xs text-red-600">
-                Save failed. Try again.
+                {profileErrorMessage(save.error, "Save failed. Try again.")}
               </span>
             )}
             {saved && !isDirty && (

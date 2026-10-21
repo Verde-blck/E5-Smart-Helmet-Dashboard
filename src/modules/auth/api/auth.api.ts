@@ -28,6 +28,8 @@ interface ApiProfile {
   /** Helmets the user is limited to; empty = every helmet. */
   deviceIds?: string[]
   twoFactorEnabled?: boolean
+  /** True when the company requires 2FA and this account hasn't set it up. */
+  mustSetup2fa?: boolean
 }
 
 function isProfile(value: unknown): value is ApiProfile {
@@ -47,6 +49,8 @@ function userFromProfile(profile: ApiProfile, fallbackUsername: string): AuthUse
     apiPermissions: codes,
     superAdmin: profile.superAdmin === true,
     deviceIds: profile.deviceIds ?? [],
+    mustSetup2fa: profile.mustSetup2fa === true,
+    twoFactorEnabled: profile.twoFactorEnabled,
     scope: { allSites: true, sites: [] },
   }
 }
@@ -221,7 +225,23 @@ export interface TwoFactorSetup {
  * Generates a new secret. 2FA is not on yet: it only switches on when
  * confirmTwoFactorSetup succeeds, which proves the app was set up correctly.
  */
-export async function startTwoFactorSetup(username: string): Promise<TwoFactorSetup> {
+/** Why the backend refused a 2FA change, when it says. */
+export type TwoFactorRefusal = 'already-enabled' | 'required-by-company'
+
+export function twoFactorRefusal(error: unknown): TwoFactorRefusal | null {
+  const res = (error as { response?: { status?: number; data?: { error?: string } } })?.response
+  if (res?.status !== 409) return null
+  if (res.data?.error === '2fa_already_enabled') return 'already-enabled'
+  if (res.data?.error === '2fa_required_by_company') return 'required-by-company'
+  return null
+}
+
+/**
+ * Starts setting up 2FA. When it's already on (moving to a new phone), the
+ * backend needs the current code, and the old phone keeps working until the
+ * new one is confirmed. Without the code it answers 409 2fa_already_enabled.
+ */
+export async function startTwoFactorSetup(username: string, currentCode?: string): Promise<TwoFactorSetup> {
   if (env.useMocks) {
     await delay(400)
     const secret = 'JBSWY3DPEHPK3PXP'
@@ -232,7 +252,10 @@ export async function startTwoFactorSetup(username: string): Promise<TwoFactorSe
     }
   }
 
-  const { data } = await apiClient.post<TwoFactorSetup>('/auth/2fa/setup')
+  const { data } = await apiClient.post<TwoFactorSetup>(
+    '/auth/2fa/setup',
+    currentCode ? { code: currentCode } : undefined
+  )
   return data
 }
 

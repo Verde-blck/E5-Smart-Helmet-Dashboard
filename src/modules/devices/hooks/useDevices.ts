@@ -6,6 +6,8 @@ import { features } from '@/config/features'
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
 import {
+  assignWorker,
+  clearWorker,
   renameDevice,
   fetchDevice,
   fetchDevices,
@@ -14,6 +16,7 @@ import {
   setDeviceActive,
 } from '../api/devices.api'
 import { toDeviceView } from '../lib/presence'
+import type { WorkerInput } from '../api/devices.api'
 import type { DeviceView } from '../types'
 
 // These hooks return DeviceView, not Device: presence is resolved here against
@@ -154,4 +157,18 @@ export function useDeviceNames() {
     return (deviceId: string, fallback?: string): string =>
       names.get(deviceId) ?? fallback ?? (deviceId.length > 5 ? `…${deviceId.slice(-5)}` : deviceId)
   }, [devices])
+}
+
+/** Assigns or clears the worker wearing a helmet. */
+export function useAssignWorker() {
+  const queryClient = useQueryClient()
+  const tenantId = useTenantId()
+  return useMutation({
+    mutationFn: ({ deviceId, worker }: { deviceId: string; worker: WorkerInput | null }) =>
+      worker ? assignWorker(deviceId, worker) : clearWorker(deviceId),
+    onSuccess: (_data, { deviceId }) => {
+      void queryClient.invalidateQueries({ queryKey: qk.devices.all(tenantId) })
+      void queryClient.invalidateQueries({ queryKey: qk.devices.detail(tenantId, deviceId) })
+    },
+  })
 }

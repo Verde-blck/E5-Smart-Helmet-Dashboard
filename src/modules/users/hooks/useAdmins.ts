@@ -10,6 +10,9 @@ import {
   fetchGroups,
   fetchPermissions,
   renameGroup,
+  resetAdminTwoFactor,
+  fetchRequire2fa,
+  saveRequire2fa,
   updateAdmin,
 } from '../api/admins.api'
 import type { AdministratorUpdate, NewAdministrator } from '../types'
@@ -90,4 +93,22 @@ export function useRenameGroup() {
 export function useDeleteGroup() {
   const invalidate = useInvalidate()
   return useMutation({ mutationFn: (id: number) => deleteGroup(id), onSuccess: invalidate })
+}
+
+export function useResetTwoFactor() {
+  const invalidate = useInvalidate()
+  return useMutation({ mutationFn: (id: number) => resetAdminTwoFactor(id), onSuccess: invalidate })
+}
+
+/** The company rule: every account must use two-factor sign-in. */
+export function useRequire2fa() {
+  const queryClient = useQueryClient()
+  const tenantId = useTenantId()
+  const key = ['tenant', tenantId, 'security-policy']
+  const query = useQuery({ queryKey: key, queryFn: fetchRequire2fa })
+  const save = useMutation({
+    mutationFn: (on: boolean) => saveRequire2fa(on),
+    onSuccess: (on) => queryClient.setQueryData(key, on),
+  })
+  return { require2fa: query.data ?? false, isLoading: query.isLoading, isError: query.isError, save }
 }

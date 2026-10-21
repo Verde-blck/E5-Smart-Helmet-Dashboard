@@ -11,6 +11,7 @@ import {
 } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
 import {
+  setMockWorker,
   renameMockDevice,
   getMockDevice,
   getMockFleet,
@@ -58,6 +59,15 @@ interface ApiDevice {
   simDataUsedMb?: number | string | null
   /** "wifi" | "4g" */
   networkType?: string | null
+  /** Who wears it; null = unassigned. Set with PUT /devices/{id}/worker. */
+  workerName?: string | null
+  workerStaffId?: string | null
+  workerPhone?: string | null
+  /**
+   * true worn, false not worn, null unknown (offline or not reported), so a
+   * disconnected helmet never shows as worn. Replaces lastWearStatus.
+   */
+  worn?: boolean | null
 }
 
 const FIX_TYPES = ['gps', 'network', 'wifi', 'other'] as const
@@ -102,7 +112,14 @@ function toDevice(api: ApiDevice): Device {
     id: api.deviceId,
     name: api.name?.trim() || shortDeviceName(api.deviceId),
     named: Boolean(api.name?.trim()),
-    // site, assignedTo and activeAlarm have no source in the API yet.
+    // site and activeAlarm have no source in the API yet.
+    assignedTo: api.workerName?.trim()
+      ? {
+          name: api.workerName.trim(),
+          staffId: api.workerStaffId || undefined,
+          phone: api.workerPhone || undefined,
+        }
+      : undefined,
     active: api.active ?? true,
     // What the helmet is actually on right now; it switches by itself.
     connectivity: String(api.networkType ?? '').toLowerCase() === 'wifi' ? 'wifi' : 'sim',
@@ -115,7 +132,8 @@ function toDevice(api: ApiDevice): Device {
       batteryPercent: num(api.lastBatteryLevel),
       lat: num(api.lastLatitude),
       lng: num(api.lastLongitude),
-      isWorn: flag(api.lastWearStatus),
+      // The backend's own reading; the raw lastWearStatus code is no longer used.
+      isWorn: typeof api.worn === 'boolean' ? api.worn : undefined,
       signalStrength: num(api.lastNetStrength),
       // Empty until a helmet with a gas sensor reports, so the gas slot
       // shows "no reading" rather than a false all-clear of zeros.
@@ -200,6 +218,41 @@ export async function renameDevice(deviceId: string, name: string): Promise<void
     return
   }
   await apiClient.patch(`/devices/${deviceId}/name`, { name: trimmed })
+}
+
+export interface WorkerInput {
+  name: string
+  staffId?: string
+  phone?: string
+}
+
+/** Longest worker name the backend accepts. */
+export const WORKER_NAME_MAX = 80
+
+/**
+ * Who wears this helmet (PUT /devices/{id}/worker). Only the name is
+ * required. Alarm notifications then name the person: "SOS: John Ade (ES5 3)".
+ */
+export async function assignWorker(deviceId: string, worker: WorkerInput): Promise<void> {
+  const body = {
+    name: worker.name.trim(),
+    ...(worker.staffId?.trim() ? { staffId: worker.staffId.trim() } : {}),
+    ...(worker.phone?.trim() ? { phone: worker.phone.trim() } : {}),
+  }
+  if (env.useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    setMockWorker(deviceId, body)
+    return
+  }
+  await apiClient.put(`/devices/${deviceId}/worker`, body)
+}
+
+export async function clearWorker(deviceId: string): Promise<void> {
+  if (env.useMocks) {
+    setMockWorker(deviceId, null)
+    return
+  }
+  await apiClient.delete(`/devices/${deviceId}/worker`)
 }
 
 /** Registration state. Independent of whether the helmet is connected. */

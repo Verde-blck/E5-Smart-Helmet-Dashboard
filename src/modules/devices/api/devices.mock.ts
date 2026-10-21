@@ -140,6 +140,14 @@ export function registerMockDevice(deviceId: string): Device {
   return { ...device }
 }
 
+export function setMockWorker(
+  deviceId: string,
+  worker: { name: string; staffId?: string; phone?: string } | null
+): void {
+  const device = fleet.find((d) => d.id === deviceId)
+  if (device) device.assignedTo = worker ?? undefined
+}
+
 export function renameMockDevice(deviceId: string, name: string): void {
   const device = fleet.find((d) => d.id === deviceId)
   if (!device) return

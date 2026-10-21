@@ -73,6 +73,8 @@ export type SimStatus = 'present' | 'absent' | 'unknown'
  */
 export interface DeviceAssignment {
   name: string
+  /** E5's own staff number, e.g. "E5-014". */
+  staffId?: string
   phone?: string
   jobTitle?: string
 }

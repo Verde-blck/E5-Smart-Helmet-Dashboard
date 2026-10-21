@@ -7,6 +7,7 @@ import { LoginPage } from '@/modules/auth/LoginPage'
 import { RegisterPage } from '@/modules/auth/RegisterPage'
 import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { SecurityPage } from '@/modules/account/SecurityPage'
+import { RequiredTwoFactorPage } from '@/modules/account/RequiredTwoFactorPage'
 import { WallDisplayPage } from '@/modules/live/WallDisplayPage'
 import { DevicesPage } from '@/modules/devices/DevicesPage'
 import { DeviceDetailPage } from '@/modules/devices/DeviceDetailPage'
@@ -66,6 +67,18 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <ChangePasswordPage />
+          </RequireAuth>
+        }
+      />
+
+      {/* The company requires two-factor sign-in and this account hasn't
+          set it up: nothing else works until it has. Outside the app shell,
+          like change-password. */}
+      <Route
+        path="/setup-2fa"
+        element={
+          <RequireAuth>
+            <RequiredTwoFactorPage />
           </RequireAuth>
         }
       />

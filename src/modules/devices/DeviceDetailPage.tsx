@@ -9,6 +9,7 @@ import { AlarmFeed } from '@/modules/alarms/components/AlarmFeed'
 import { StatusHistory } from './components/StatusHistory'
 import { DeviceCommands } from './components/DeviceCommands'
 import { DeviceNameHeading } from './components/DeviceNameHeading'
+import { WornBy } from './components/WornBy'
 import { GasPanel } from './components/GasPanel'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { LiveControls } from '@/modules/live/components/LiveControls'
@@ -41,7 +42,9 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
   push('Battery', t.batteryPercent != null ? `${t.batteryPercent}%` : null)
   push('Battery voltage', t.batteryVoltage != null ? `${t.batteryVoltage.toFixed(2)} V` : null)
   push('Charging', t.isCharging != null ? boolLabel(t.isCharging) : null)
-  push('Worn', t.isWorn != null ? boolLabel(t.isWorn) : null)
+  // Unknown when the helmet is offline or hasn't reported, so a disconnected
+  // helmet never shows as worn.
+  push('Worn', t.isWorn != null ? boolLabel(t.isWorn) : 'Unknown')
   push('Recording', t.isRecording != null ? boolLabel(t.isRecording) : null)
   push(
     'Location',
@@ -165,19 +168,7 @@ export function DeviceDetailPage() {
               turns an SOS from a device ID into a person to call. */}
           <dt className="text-slate-500">Worn by</dt>
           <dd className="text-slate-800">
-            {device.assignedTo ? (
-              <>
-                {device.assignedTo.name}
-                {device.assignedTo.jobTitle && (
-                  <span className="text-slate-500"> · {device.assignedTo.jobTitle}</span>
-                )}
-                {device.assignedTo.phone && (
-                  <span className="block text-slate-500">{device.assignedTo.phone}</span>
-                )}
-              </>
-            ) : (
-              'Unassigned'
-            )}
+            <WornBy device={device} />
           </dd>
         </dl>
       </section>

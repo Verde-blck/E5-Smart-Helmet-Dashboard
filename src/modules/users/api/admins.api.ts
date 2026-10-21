@@ -54,6 +54,42 @@ export async function deleteAdmin(id: number): Promise<void> {
 }
 
 /**
+ * Clears an administrator's 2FA after a lost or changed phone
+ * (POST /admins/{id}/2fa/reset). They set it up again at their next sign-in,
+ * forced if the company requires 2FA. Not allowed on your own account (400);
+ * only a super admin can reset a super admin (403).
+ */
+export async function resetAdminTwoFactor(id: number): Promise<void> {
+  if (env.useMocks) {
+    updateMockAdmin(id, { twoFactorEnabled: false } as AdministratorUpdate)
+    return
+  }
+  await apiClient.post(`/admins/${id}/2fa/reset`)
+}
+
+// ---------------------------------------------------------------------------
+// Company security policy
+// ---------------------------------------------------------------------------
+
+let mockRequire2fa = false
+
+/** GET /settings/security: whether every account must use 2FA. */
+export async function fetchRequire2fa(): Promise<boolean> {
+  if (env.useMocks) return mockRequire2fa
+  const { data } = await apiClient.get<{ require2fa?: boolean }>('/settings/security')
+  return data?.require2fa === true
+}
+
+export async function saveRequire2fa(require2fa: boolean): Promise<boolean> {
+  if (env.useMocks) {
+    mockRequire2fa = require2fa
+    return require2fa
+  }
+  const { data } = await apiClient.put<{ require2fa?: boolean }>('/settings/security', { require2fa })
+  return data?.require2fa === true
+}
+
+/**
  * The permission catalogue is served by the backend rather than hardcoded, so
  * a module added server-side appears in the form without a frontend release.
  * The local list is a fallback for mock mode and for a failed request.

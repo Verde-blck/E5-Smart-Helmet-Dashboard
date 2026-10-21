@@ -49,29 +49,17 @@ export function useUpdateProfile() {
 }
 
 export function useUploadLogo() {
-  const queryClient = useQueryClient()
-  const tenantId = useTenantId()
   const commit = useCommitProfile()
-
   return useMutation({
     mutationFn: (file: File) => uploadLogo(file),
-    onSuccess: ({ logoUrl }) => {
-      const current = queryClient.getQueryData<TenantProfile>(qk.profile(tenantId))
-      if (current) commit({ ...current, logoUrl })
-    },
+    onSuccess: commit,
   })
 }
 
 export function useRemoveLogo() {
-  const queryClient = useQueryClient()
-  const tenantId = useTenantId()
   const commit = useCommitProfile()
-
   return useMutation({
     mutationFn: () => removeLogo(),
-    onSuccess: () => {
-      const current = queryClient.getQueryData<TenantProfile>(qk.profile(tenantId))
-      if (current) commit({ ...current, logoUrl: '' })
-    },
+    onSuccess: commit,
   })
 }

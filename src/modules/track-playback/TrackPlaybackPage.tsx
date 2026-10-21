@@ -7,7 +7,11 @@ import { AvailabilityChart } from './components/AvailabilityChart'
 import { downloadCsv, formatDistance, formatDuration, trackToCsv } from './lib/track'
 
 function isoDate(ts: number): string {
-  return new Date(ts).toISOString().slice(0, 10)
+  // The date in the browser's own time zone. toISOString() is UTC, so in Lagos (UTC+1) it names
+  // the previous day for the first hour after midnight, and "today" would default to yesterday.
+  const d = new Date(ts)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 function Stat({ label, value, tone = 'text-slate-800' }: {
@@ -173,14 +177,6 @@ export function TrackPlaybackPage() {
                   {track.stats.impossibleJumps} position{' '}
                   {track.stats.impossibleJumps === 1 ? 'fix was' : 'fixes were'} excluded as
                   physically impossible — a jump too far to have been travelled in the time.
-                </p>
-              )}
-
-              {track.stats.approximatePoints > 0 && (
-                <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                  {track.stats.approximatePoints} of {track.stats.points} positions were approximate
-                  (mobile network or Wi-Fi, usually indoors), so they can be tens to hundreds of
-                  metres off. They stay on the route, but don’t count towards distance.
                 </p>
               )}
 

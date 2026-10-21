@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePermission } from '@/shared/hooks/usePermission'
 import { AdminList } from './components/AdminList'
 import { GroupList } from './components/GroupList'
+import { SecurityPolicy } from './components/SecurityPolicy'
 
 type Tab = 'admins' | 'groups'
 
@@ -42,6 +43,7 @@ export function UsersPage() {
         </p>
       )}
 
+      {tab === 'admins' && <SecurityPolicy canEdit={canEdit} />}
       {tab === 'admins' ? <AdminList canEdit={canEdit} /> : <GroupList canEdit={canEdit} />}
     </div>
   )

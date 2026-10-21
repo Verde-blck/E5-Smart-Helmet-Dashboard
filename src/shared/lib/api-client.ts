@@ -57,6 +57,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // The company requires 2FA and this account hasn't set it up. The session
+    // is fine; only the setup screen works until it's done.
+    if (status === 403 && body?.error === '2fa_setup_required') {
+      window.dispatchEvent(new CustomEvent('auth:2fa-setup-required'))
+      return Promise.reject(error)
+    }
+
     // A 401 from the login endpoint is "wrong password", not "session died":
     // LoginPage surfaces that itself. Any other 401, or a 403 without a
     // role refusal in it, means the token is missing or expired.

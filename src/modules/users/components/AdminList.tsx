@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { DataCard } from '@/shared/components/DataCard'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { useAdmins, useDeleteAdmin, useGroups } from '../hooks/useAdmins'
+import { useResetTwoFactor, useAdmins, useDeleteAdmin, useGroups } from '../hooks/useAdmins'
 import { AdminForm } from './AdminForm'
 import type { Administrator } from '../types'
 import { viewCodeOf } from '../lib/permissions'
@@ -11,6 +11,9 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
   const { user } = useAuth()
   const { groups } = useGroups()
   const remove = useDeleteAdmin()
+  const reset2fa = useResetTwoFactor()
+  // Which admin is being confirmed for a 2FA reset; separate from delete.
+  const [confirmingReset, setConfirmingReset] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const [mode, setMode] = useState<
     { kind: 'none' } | { kind: 'create' } | { kind: 'edit'; admin: Administrator }
@@ -53,6 +56,23 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
       return <span className="block text-right text-xs text-slate-400">Super admin</span>
     }
 
+    if (confirmingReset === admin.id) {
+      return (
+        <span className="flex flex-wrap items-center justify-end gap-2 text-xs">
+          <span className="text-slate-600">Reset {admin.username}’s two-factor sign-in? They set it up again at their next sign-in.</span>
+          <button
+            onClick={() => reset2fa.mutate(admin.id, { onSettled: () => setConfirmingReset(null) })}
+            className="rounded border border-amber-300 px-2 py-1 text-amber-700 hover:bg-amber-50"
+          >
+            Reset
+          </button>
+          <button onClick={() => setConfirmingReset(null)} className="text-slate-500">
+            Cancel
+          </button>
+        </span>
+      )
+    }
+
     if (confirming === admin.id) {
       return (
         <span className="flex items-center justify-end gap-2 text-xs">
@@ -78,6 +98,12 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
         >
           Edit
         </button>
+        {/* For a lost or changed phone. Not on your own account: use Security. */}
+        {!isSelf && admin.twoFactorEnabled && (
+          <button onClick={() => setConfirmingReset(admin.id)} className="text-slate-500 hover:text-slate-800">
+            Reset 2FA
+          </button>
+        )}
         {!isSelf && (
           <button onClick={() => setConfirming(admin.id)} className="text-red-600 hover:underline">
             Delete
@@ -159,6 +185,11 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
                     <td className="px-4 py-2">
                       <p className="font-medium text-slate-800">
                         {admin.username}
+                        {admin.twoFactorEnabled && (
+                          <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                            2FA
+                          </span>
+                        )}
                         {admin.superAdmin && (
                           <span className="ml-1.5 rounded bg-brand-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-primary">
                             Super admin

@@ -10,6 +10,10 @@ import { restoreSession } from "@/modules/auth/api/auth.api";
 import { endSession } from "@/shared/lib/session";
 import { startRealtime, stopRealtime } from "@/app/realtime/realtime";
 import { startMockHeartbeats } from "@/app/realtime/mock-heartbeats";
+import { fetchBranding } from "@/modules/profile/api/profile.api";
+
+/** The logo link is signed for an hour; refresh the branding before then. */
+const BRANDING_REFRESH_MS = 50 * 60_000;
 
 // Resolves tenant + session ONCE on app load, before any routes render.
 // This is the one place that branches on SaaS vs standalone — everything
@@ -53,29 +57,21 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
           });
         }
 
-        // No /auth/me endpoint: the session is reconstructed from the stored
-        // token, which carries the username and expiry in its payload.
-        setUser(restoreSession());
-
-        // Standalone seeds its branding from env so the login screen is already
-        // branded, but the saved tenant profile wins once a session exists.
-        // Without this, editing the company name would silently do nothing in
-        // one of the two deployment modes we have to support.
+        // Standalone seeds its branding from env so nothing flashes unbranded,
+        // then takes the company profile from the public /branding endpoint,
+        // so the sign-in page carries E5's name, logo and colours too.
         if (!env.multiTenant) {
           try {
-            const { data: saved } = await apiClient.get("/tenant/profile");
+            const saved = await fetchBranding();
             applyBrandColors(saved.colors);
-            setTenant({
-              id: saved.id ?? "standalone",
-              name: saved.name,
-              logoUrl: saved.logoUrl ?? "",
-              colors: saved.colors,
-            });
+            setTenant({ id: saved.id, name: saved.name, logoUrl: saved.logoUrl, colors: saved.colors });
           } catch {
-            // No profile saved yet, or the endpoint isn't built — env stands.
-            // Expected against the current backend; not an error.
+            // Backend unreachable: the env branding stands.
           }
         }
+
+        // From the cached profile straight away; /auth/me confirms it.
+        setUser(restoreSession());
       } catch {
         setUser(null);
       } finally {
@@ -85,6 +81,33 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
 
     void bootstrap();
   }, [setTenant, setUser, setBootstrapping]);
+
+  // The logo link expires after an hour, so fetch the branding again before
+  // then. Also picks up changes another admin made meanwhile.
+  useEffect(() => {
+    if (env.useMocks || env.multiTenant) return;
+    const id = setInterval(() => {
+      void fetchBranding()
+        .then((saved) => {
+          applyBrandColors(saved.colors);
+          setTenant({ id: saved.id, name: saved.name, logoUrl: saved.logoUrl, colors: saved.colors });
+        })
+        .catch(() => {});
+    }, BRANDING_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [setTenant]);
+
+  // The company switched on "require 2FA" while this person was signed in:
+  // the backend starts refusing with 2fa_setup_required. Flag it, and
+  // RequireAuth takes them to the setup screen.
+  useEffect(() => {
+    const handle = () => {
+      const user = useAuthStore.getState().user;
+      if (user && !user.mustSetup2fa) setUser({ ...user, mustSetup2fa: true });
+    };
+    window.addEventListener("auth:2fa-setup-required", handle);
+    return () => window.removeEventListener("auth:2fa-setup-required", handle);
+  }, [setUser]);
 
   // A 401 on any later request means the session died mid-use. api-client
   // dispatches this; previously nothing listened, so the user sat looking at a

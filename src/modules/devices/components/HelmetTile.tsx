@@ -104,6 +104,10 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
           {device.named !== false && (
             <span className="block truncate font-mono text-[10px] text-slate-400">{device.id}</span>
           )}
+          {/* Who wears it, so an alarm on this tile is a person, not a number. */}
+          {device.assignedTo && (
+            <span className="block truncate text-[11px] text-slate-600">{device.assignedTo.name}</span>
+          )}
         </span>
         <span className="flex shrink-0 items-center gap-0.5">
           {!device.active && (

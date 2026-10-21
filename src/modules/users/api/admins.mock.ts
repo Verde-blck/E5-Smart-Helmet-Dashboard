@@ -22,6 +22,8 @@ let admins: Administrator[] = [
     groupId: 1,
     permissions: ['DASHBOARD', 'ALARM_RECORD', 'MONITORING_CENTER'],
     deviceIds: ['866652022956404'],
+    // Has 2FA on, so mock mode can show Reset 2FA.
+    twoFactorEnabled: true,
   },
   {
     id: 3,

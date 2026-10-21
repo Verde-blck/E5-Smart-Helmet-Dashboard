@@ -74,6 +74,8 @@ export function mockUserFor(username: string): AuthUser {
   const id = username.trim().toUpperCase()
   if (id.startsWith('OP')) return mockOperator
   if (id.startsWith('VIEW')) return mockViewer
+  // SETUP-001: the company requires 2FA and this account hasn't set it up.
+  if (id.startsWith('SETUP')) return { ...mockAdmin, id: 'user-9', username: 'SETUP-001', name: 'New supervisor', mustSetup2fa: true }
   if (id.startsWith('NEW')) return mockNewStarter
   return mockAdmin
 }

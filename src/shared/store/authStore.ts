@@ -52,6 +52,12 @@ export interface AuthUser {
   apiPermissions?: string[]
   /** Helmets this user is limited to; empty means every helmet. */
   deviceIds?: string[]
+  /**
+   * The company requires two-factor sign-in and this account hasn't set it
+   * up: nothing but the setup screen works until it has.
+   */
+  mustSetup2fa?: boolean
+  twoFactorEnabled?: boolean
 }
 
 interface AuthState {

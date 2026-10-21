@@ -7,6 +7,7 @@ import {
   knownTwoFactorState,
   startTwoFactorSetup,
   statusOf,
+  twoFactorRefusal,
   type TwoFactorSetup,
 } from '@/modules/auth/api/auth.api'
 import { CodeField, codeErrorMessage } from '@/modules/auth/components/CodeField'
@@ -16,6 +17,8 @@ type Mode =
   | { kind: 'loading-setup' }
   | { kind: 'setup'; setup: TwoFactorSetup }
   | { kind: 'disable' }
+  /** 2FA is on and they're moving it to a new phone: current code first. */
+  | { kind: 'new-phone' }
 
 /**
  * Account security: lets the signed-in user turn two-factor authentication on
@@ -25,7 +28,9 @@ export function SecurityPage() {
   const { user } = useAuth()
   const username = user?.username ?? ''
 
-  const [enabled, setEnabled] = useState<boolean | null>(() => knownTwoFactorState(username))
+  const [enabled, setEnabled] = useState<boolean | null>(
+    () => user?.twoFactorEnabled ?? knownTwoFactorState(username)
+  )
   const [mode, setMode] = useState<Mode>({ kind: 'idle' })
   const [notice, setNotice] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -36,7 +41,13 @@ export function SecurityPage() {
     setMode({ kind: 'loading-setup' })
     try {
       setMode({ kind: 'setup', setup: await startTwoFactorSetup(username) })
-    } catch {
+    } catch (err) {
+      if (twoFactorRefusal(err) === 'already-enabled') {
+        // It's on after all: moving to a new phone needs the current code.
+        setEnabled(true)
+        setMode({ kind: 'new-phone' })
+        return
+      }
       setPageError('Could not start setup. Check your connection and try again.')
       setMode({ kind: 'idle' })
     }
@@ -80,6 +91,19 @@ export function SecurityPage() {
                 setPageError(null)
                 setMode({ kind: 'disable' })
               }}
+              onNewPhone={() => {
+                setNotice(null)
+                setPageError(null)
+                setMode({ kind: 'new-phone' })
+              }}
+            />
+          )}
+
+          {mode.kind === 'new-phone' && (
+            <NewPhoneFlow
+              username={username}
+              onCancel={() => setMode({ kind: 'idle' })}
+              onReady={(setup) => setMode({ kind: 'setup', setup })}
             />
           )}
 
@@ -95,9 +119,14 @@ export function SecurityPage() {
               username={username}
               onCancel={() => setMode({ kind: 'idle' })}
               onDone={() => {
+                const moved = enabled === true
                 setEnabled(true)
                 setMode({ kind: 'idle' })
-                setNotice('Two-factor authentication is on. You’ll be asked for a code the next time you sign in.')
+                setNotice(
+                  moved
+                    ? 'Moved to your new phone. Codes from the old phone no longer work.'
+                    : 'Two-factor authentication is on. You’ll be asked for a code the next time you sign in.'
+                )
               }}
             />
           )}
@@ -142,10 +171,12 @@ function IdleActions({
   enabled,
   onEnable,
   onDisable,
+  onNewPhone,
 }: {
   enabled: boolean | null
   onEnable: () => void
   onDisable: () => void
+  onNewPhone: () => void
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -154,6 +185,7 @@ function IdleActions({
           {enabled === null ? 'Set up two-factor authentication' : 'Turn on'}
         </PrimaryButton>
       )}
+      {enabled === true && <PrimaryButton onClick={onNewPhone}>Move to a new phone</PrimaryButton>}
       {enabled !== false && <SecondaryButton onClick={onDisable}>Turn off</SecondaryButton>}
       {enabled === null && (
         <p className="basis-full text-xs text-slate-500">
@@ -164,7 +196,7 @@ function IdleActions({
   )
 }
 
-function SetupFlow({
+export function SetupFlow({
   setup,
   username,
   onCancel,
@@ -275,7 +307,11 @@ function DisableFlow({
       await disableTwoFactor(username, code)
       onDone()
     } catch (err: unknown) {
-      setError(codeErrorMessage(statusOf(err)))
+      setError(
+        twoFactorRefusal(err) === 'required-by-company'
+          ? 'Your company requires two-factor sign-in, so it can’t be turned off.'
+          : codeErrorMessage(statusOf(err))
+      )
       setCode('')
       setBusy(false)
     }
@@ -407,5 +443,71 @@ function SecondaryButton({
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * Moving 2FA to a new phone. The backend needs a code from the current
+ * phone before it hands out a new QR code, and the old phone keeps working
+ * until the new one is confirmed, so nobody is locked out halfway.
+ */
+function NewPhoneFlow({
+  username,
+  onCancel,
+  onReady,
+}: {
+  username: string
+  onCancel: () => void
+  onReady: (setup: TwoFactorSetup) => void
+}) {
+  const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (code.length !== 6) {
+      setError('Enter all 6 digits.')
+      return
+    }
+    setError(null)
+    setBusy(true)
+    try {
+      onReady(await startTwoFactorSetup(username, code))
+    } catch (err: unknown) {
+      setError(codeErrorMessage(statusOf(err)))
+      setCode('')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} noValidate>
+      <p className="text-sm text-slate-600">
+        First, enter the current code from the authenticator app on your <b>old</b> phone. It keeps
+        working until the new phone is set up, so you won’t be locked out.
+      </p>
+      <div className="mt-4 max-w-[16rem]">
+        <CodeField
+          label="Code from your current phone"
+          value={code}
+          onChange={(next) => {
+            setCode(next)
+            if (error) setError(null)
+          }}
+          error={error}
+          autoFocus
+          disabled={busy}
+        />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <PrimaryButton type="submit" disabled={busy}>
+          {busy ? 'Checking…' : 'Continue'}
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} disabled={busy}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </form>
   )
 }
