@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore, type AuthUser } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { login, statusOf, verifyTwoFactorLogin, type TwoFactorChallenge } from './api/auth.api'
@@ -84,7 +84,17 @@ function PasswordStep({
     <AuthLayout
       title="Sign in"
       subtitle="Sign in to the command centre."
-       footer={<p>Forgotten your password? Your administrator can reset it.</p>}
+      footer={
+        <>
+          <p>
+            New here?{' '}
+            <Link to="/register" className={authLink}>
+              Create an account
+            </Link>
+          </p>
+          <p>Forgotten your password? Your administrator can reset it.</p>
+        </>
+      }
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <FormError message={formError} />
