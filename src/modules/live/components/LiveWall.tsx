@@ -18,28 +18,16 @@ export function useSessionState(session: HelmetSession | null): SessionState | n
 }
 
 interface Props {
-  /** Helmets to choose from, already filtered by the page's search box. */
   devices: DeviceView[]
-  /** Kept by the page, so returning to the wall remembers the choice. */
   selected: string[]
   onSelectedChange: (ids: string[]) => void
-  /** The whole fleet, so a selected helmet stays on the wall when search hides it. */
   allDevices: DeviceView[]
 }
 
-/**
- * Up to six helmets live at once.
- *
- * Every tile is muted; enlarging one plays its sound, so there's never more
- * than one helmet talking. Each tile is an independent session, so one
- * helmet's weak signal never affects the others.
- */
-/** Opens (or reuses) the dedicated wall window for these helmets. */
 export function openWallWindow(ids: string[]): Window | null {
   const url = `/wall?ids=${encodeURIComponent(ids.join(','))}`
-  // A window, not a tab: a background tab counts as hidden and couldn't sit
-  // on a second screen next to the dashboard. Reusing the name means a
-  // second click focuses the existing wall instead of opening another.
+  // A window, not a tab: a background tab is hidden and can't sit on a second screen. The name
+  // reuses an open wall.
   return window.open(url, 'e5-live-wall', 'popup,width=1280,height=760')
 }
 
@@ -50,7 +38,6 @@ export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Pr
   const [blocked, setBlocked] = useState(false)
   const wallWindow = useRef<Window | null>(null)
 
-  // Notices the wall window being closed, and brings the wall back here.
   useEffect(() => {
     if (!poppedOut) return
     const id = setInterval(() => {
@@ -65,14 +52,12 @@ export function LiveWall({ devices, selected, onSelectedChange, allDevices }: Pr
   function popOut() {
     const win = openWallWindow(selected)
     if (!win) {
-      // Pop-up blocker. Nothing else changes; the wall stays here.
       setBlocked(true)
       return
     }
     setBlocked(false)
     wallWindow.current = win
-    // The window runs its own connections; keeping these too would make
-    // this browser download every stream twice.
+    // The window runs its own connections; keeping these would download every stream twice.
     wall.stopAll()
     setFocusId(null)
     setPoppedOut(true)
@@ -270,7 +255,6 @@ export function WallTile({
   onStart: () => void
   onRemove: () => void
   onFocus: () => void
-  /** Wall window: fill the grid cell and show the whole frame, uncropped. */
   fill?: boolean
 }) {
   const state = useSessionState(session)
@@ -342,11 +326,6 @@ export function WallTile({
   )
 }
 
-/**
- * One wall tile, enlarged and with sound. Uses the tile's own connection, so
- * opening and closing it doesn't restart anything; closing returns to the
- * wall without stopping the helmet.
- */
 export function FocusView({
   name,
   session,

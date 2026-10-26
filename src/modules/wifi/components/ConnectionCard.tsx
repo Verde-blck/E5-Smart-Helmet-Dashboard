@@ -7,12 +7,6 @@ import { switchToMobileData } from '../api/wifi.api'
 
 type Phase = 'idle' | 'confirm' | 'no-sim' | 'sending' | 'sent' | 'offline' | 'error'
 
-/**
- * How a helmet is connected right now, its SIM, and a way to move it onto
- * mobile data. The helmet already switches by itself (saved Wi-Fi when in
- * range, mobile data otherwise); this is for steering it, e.g. off a site
- * Wi-Fi that's struggling.
- */
 export function ConnectionCard({ device }: { device: DeviceView }) {
   const t = device.telemetry
   const signal = signalQuality(t.signalStrength)

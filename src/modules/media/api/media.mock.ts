@@ -7,11 +7,6 @@ const HOUR = 60 * MINUTE
 
 const PALETTE = ['#0f766e', '#334155', '#7c2d12', '#1e3a8a', '#4c1d95', '#166534']
 
-/**
- * Deterministic placeholder thumbnail as a data URI, so the gallery has
- * something to render with no network and no binary assets in the repo.
- * Real thumbnails arrive as signed URLs on MediaItem.thumbnailUrl.
- */
 function placeholder(seed: number, label: string, kind: MediaKind): string {
   const bg = PALETTE[seed % PALETTE.length]
   const glyph = kind === 'video' ? '▶' : '◉'
@@ -35,9 +30,6 @@ const items: MediaItem[] = Array.from({ length: 26 }, (_, i) => {
   const kind: MediaKind = i % 3 === 0 ? 'video' : 'photo'
   const capturedAt = Date.now() - i * 37 * MINUTE - Math.floor(Math.random() * MINUTE)
 
-  // Items 4 and 11 model a helmet that was offline when it captured: the
-  // upload lands hours later. Sorting by capture time keeps them in the right
-  // place on the timeline even though they only just appeared.
   const uploadLagMs = i === 4 || i === 11 ? 5 * HOUR : 20_000
 
   return {
@@ -66,8 +58,6 @@ export function getMockMedia(query: MediaQuery = {}): MediaItem[] {
 
   if (query.date) {
     const { from, to } = dayBounds(query.date)
-    // Filtered on capture time, not upload time — a clip recorded on the 14th
-    // belongs to the 14th even if it only reached storage on the 16th.
     list = list.filter((m) => m.capturedAt >= from && m.capturedAt <= to)
   }
 
@@ -86,8 +76,6 @@ export function getMockMedia(query: MediaQuery = {}): MediaItem[] {
 export function getMockMediaUrl(id: string): SignedMediaUrl {
   const item = items.find((m) => m.id === id)
   return {
-    // Mocks have no real file. The player still takes the normal path — it
-    // just renders the placeholder and says so, rather than faking a video.
     url: item?.thumbnailUrl ?? '',
     expiresAt: Date.now() + 15 * MINUTE,
     contentType: item?.kind === 'video' ? 'video/mp4' : 'image/svg+xml',

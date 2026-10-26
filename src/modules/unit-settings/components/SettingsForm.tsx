@@ -72,11 +72,6 @@ function Toggle({ value, onChange, disabled }: {
   )
 }
 
-/**
- * The known options, plus the helmet's current value if the list doesn't
- * include it. The backend accepts free text for these, so an unexpected
- * value is shown as-is rather than silently replaced on the next save.
- */
 function withCurrent(options: { value: string; label: string }[], current: string) {
   return options.some((o) => o.value === current)
     ? options
@@ -92,9 +87,6 @@ export function SettingsForm({
   device: DeviceView
   initial: HelmetSettings
 }) {
-  // The page keys this component on the device id, so picking another helmet
-  // mounts a fresh form. After a save, `initial` becomes the saved values and
-  // the draft already matches them, so nothing needs resetting here.
   const [draft, setDraft] = useState<HelmetSettings>(initial)
   const [outcome, setOutcome] = useState<Outcome>(null)
   const save = useSaveHelmetSettings(device.id)
@@ -273,9 +265,6 @@ export function SettingsForm({
         {draft.videoSplit && (
           <Row label="Clip length" hint="Each recording is cut into clips of this length.">
             <div className="flex flex-wrap gap-4 pt-1.5 text-sm">
-              {/* The helmet's current length is offered too if it's something
-                  else (helmets shipped with 1-minute clips), so saving other
-                  settings doesn't change it by surprise. */}
               {[...new Set<number>([...SPLIT_MINUTES, initial.videoSplitMinutes])]
                 .sort((a, b) => a - b)
                 .map((minutes) => (

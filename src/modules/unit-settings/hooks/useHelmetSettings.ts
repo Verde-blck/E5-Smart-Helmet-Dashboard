@@ -26,8 +26,7 @@ export function useSaveHelmetSettings(deviceId: string | null) {
     mutationFn: ({ before, after }: { before: HelmetSettings; after: HelmetSettings }) =>
       saveHelmetSettings(deviceId as string, before, after),
     onSuccess: (result) => {
-      // Write straight into the cache. The saved values are what the backend
-      // now holds, and they become the new baseline for the next diff.
+      // The saved values become the baseline for the next diff.
       if (deviceId) queryClient.setQueryData(key(tenantId, deviceId), result.settings)
     },
   })

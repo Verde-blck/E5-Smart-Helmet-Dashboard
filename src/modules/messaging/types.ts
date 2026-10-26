@@ -14,10 +14,8 @@ export interface SendResult {
   delivered: boolean
 }
 
-/** One helmet's copy of a broadcast. */
 export interface BroadcastDelivery {
   deviceId: string
-  /** false: offline. Queued, and plays when the helmet reconnects. */
   delivered: boolean
   messageId?: number
 }

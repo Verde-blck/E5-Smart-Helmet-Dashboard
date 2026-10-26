@@ -16,14 +16,9 @@ export function useTrack(deviceId: string | null, from: number, to: number, enab
       const { samples, truncated } = await fetchTrackSamples(deviceId as string, from, to)
       return {
         track: buildTrack(deviceId as string, samples, from, to, truncated),
-        // Built from the same samples: availability counts every heartbeat,
-        // including those with no GPS fix, so it can't be derived from the
-        // track's points.
         availability: buildAvailability(samples, from, to),
       }
     },
-    // Only runs when the operator asks for it: a range change shouldn't fire
-    // a request until they press View.
     enabled: enabled && !!deviceId,
     staleTime: 5 * 60_000,
   })

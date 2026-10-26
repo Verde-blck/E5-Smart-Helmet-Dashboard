@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useGoogleMaps } from '@/modules/map/hooks/useGoogleMaps'
 
-/** One red pin where the helmet was when the alarm fired. */
 export function AlarmLocationMap({ lat, lng }: { lat: number; lng: number }) {
   const { status, libraries, mapId } = useGoogleMaps()
   const container = useRef<HTMLDivElement>(null)

@@ -26,12 +26,6 @@ function formatRecorded(at: number | null): string {
   })
 }
 
-/**
- * Recordings still on a helmet's memory card. Helmets record locally and
- * only some clips reach the server, so this shows what else exists and lets
- * the operator ask for it. Uploads are big (a 5-minute clip is about
- * 100 MB), so nothing uploads without a click.
- */
 export function HelmetVideos() {
   const { devices } = useDevices()
   const queryClient = useQueryClient()
@@ -50,8 +44,6 @@ export function HelmetVideos() {
 
   useEffect(() => () => abort.current?.abort(), [])
 
-  // While uploads are on their way, check every 10 s. When a clip arrives,
-  // refresh the recordings list so it shows up there and on the calendar.
   useEffect(() => {
     if (!deviceId || pending.length === 0) return
     const id = setInterval(async () => {
@@ -98,7 +90,6 @@ export function HelmetVideos() {
     setError(null)
     try {
       await requestHelmetUpload(deviceId, target)
-      // Reflect the request straight away rather than waiting for a poll.
       const requested = new Date().getTime()
       setReport((prev) =>
         prev

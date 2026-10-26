@@ -7,13 +7,6 @@ import { useDeviceHistory } from '@/modules/devices/hooks/useDeviceHistory'
 
 const RANK = { danger: 0, warning: 1, normal: 2, unknown: 3 } as const
 
-/**
- * Gas belongs on the alarm page as well as the device page.
- *
- * A gas reading climbing towards its threshold is the alarm that hasn't
- * fired yet — it's the one an operator wants to see while there's still time
- * to act, rather than afterwards in the event log.
- */
 export function GasOverviewPanel() {
   const { devices } = useDevices()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -25,8 +18,6 @@ export function GasOverviewPanel() {
       (a, b) => RANK[worstLevel(a.statuses)] - RANK[worstLevel(b.statuses)]
     )
 
-  // Nothing on this fleet carries gas sensors — say nothing rather than show
-  // an empty panel on every alarm page.
   if (withSensors.length === 0) return null
 
   const selected = selectedId
@@ -90,8 +81,6 @@ export function GasOverviewPanel() {
 }
 
 function SelectedGasHistory({ deviceId }: { deviceId: string }) {
-  // One hour keeps the request small; the device page carries the longer
-  // windows for anyone investigating after the fact.
   const { window: win, isLoading } = useDeviceHistory(deviceId, '1h')
 
   if (isLoading) return <p className="text-xs text-slate-500">Loading exposure…</p>

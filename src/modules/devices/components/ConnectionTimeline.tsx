@@ -22,11 +22,6 @@ function humanise(ms: number): string {
   return rest ? `${hours}h ${rest}m` : `${hours}h`
 }
 
-/**
- * One bar across the window, segmented by derived presence. Reads at a glance
- * as "was this helmet reachable during the shift", which is the question a
- * supervisor is actually asking when they open a device's history.
- */
 export function ConnectionTimeline({
   periods,
   rangeStart,

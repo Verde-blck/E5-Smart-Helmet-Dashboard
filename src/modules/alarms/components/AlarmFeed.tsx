@@ -42,16 +42,10 @@ function StatusChip({ alarm }: { alarm: Alarm }) {
   )
 }
 
-/** An SOS that still needs a response: its row stands out and offers the call. */
 function isOpenSos(alarm: Alarm): boolean {
   return isSos(alarm.type) && alarm.status === 'active'
 }
 
-/**
- * A voice message from a wearer is an alarm you listen to, not one you read.
- * Opening the conversation straight from the row is the whole point of
- * surfacing it here. An open SOS likewise gets its call button on the row.
- */
 function AlarmActions({ alarm, full }: { alarm: Alarm; full?: boolean }) {
   return (
     <span className={`flex flex-wrap items-center gap-2 ${full ? 'w-full' : 'justify-end'}`}>
@@ -87,8 +81,6 @@ function ResolveButton({ alarm, full }: { alarm: Alarm; full?: boolean }) {
           resolved ? 'text-slate-500' : 'text-slate-700'
         } ${full ? 'w-full' : ''}`}
       >
-        {/* Reopening matters: an alarm closed by mistake during an incident
-            has to be recoverable without a database edit. */}
         {resolved ? 'Reopen' : 'Mark resolved'}
       </button>
     </Can>
@@ -117,7 +109,6 @@ export function AlarmFeed({
   limit?: number
 }) {
   const { alarms: rawAlarms, active: rawActive, now, isLoading, isError } = useAlarms()
-  // Alarms only carry a deviceId; names come from the device list.
   const nameOf = useDeviceNames()
   const alarms = useMemo(
     () => rawAlarms.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) })),
@@ -127,10 +118,6 @@ export function AlarmFeed({
     () => rawActive.map((a) => ({ ...a, deviceName: nameOf(a.deviceId, a.deviceName) })),
     [rawActive, nameOf]
   )
-  // The alarm whose details are open. Kept as an id so the panel always
-  // shows the latest version (e.g. right after it's marked resolved).
-  // ?alarm=<id> opens one straight away: how "View" on a ringing alarm or a
-  // notification lands here.
   const [params, setParams] = useSearchParams()
   const [openId, setOpenIdState] = useState<string | null>(() => params.get('alarm'))
   const setOpenId = (id: string | null) => {
@@ -164,7 +151,6 @@ export function AlarmFeed({
     )
   }
 
-  // Clicking anywhere on a row opens it, except on its own links and buttons.
   const openFromRow = (e: React.MouseEvent, id: string) => {
     if ((e.target as HTMLElement).closest('a, button')) return
     setOpenId(id)

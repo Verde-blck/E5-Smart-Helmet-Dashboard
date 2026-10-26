@@ -4,11 +4,6 @@ import { Can } from '@/shared/components/Can'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { fetchSiteWifi, removeSiteWifi, saveSiteWifi } from '../api/wifi.api'
 
-/**
- * The site's Wi-Fi, given to every helmet in its start-up settings and saved
- * as a known network, so helmets join it by themselves. The password is
- * write-only: the backend never sends it back.
- */
 export function SiteWifiCard() {
   const tenantId = useTenantId()
   const queryClient = useQueryClient()

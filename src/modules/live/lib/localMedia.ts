@@ -1,7 +1,3 @@
-/**
- * The operator's microphone, and camera if wanted. With no camera on the
- * computer, carries on with the microphone alone rather than failing.
- */
 export async function getLocalMedia(
   withCamera: boolean
 ): Promise<{ stream: MediaStream; noCamera: boolean }> {

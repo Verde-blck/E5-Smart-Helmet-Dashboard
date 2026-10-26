@@ -1,7 +1,6 @@
 import { toneWav } from '../lib/wav'
 import type { BroadcastDelivery, SendResult, VoiceMessage } from '../types'
 
-
 let toneUrl: string | null = null
 function mockAudioUrl(): string {
   if (!toneUrl) toneUrl = URL.createObjectURL(toneWav())
@@ -56,7 +55,6 @@ export function sendMockMessage(deviceId: string, file: Blob): SendResult {
   return { messageId: message.id, audioUrl: message.audioUrl, delivered: false }
 }
 
-/** Each helmet gets its own copy; every third one is "offline" and queues. */
 export function sendMockBroadcast(deviceIds: string[], file: Blob): BroadcastDelivery[] {
   return deviceIds.map((deviceId, i) => {
     const { messageId } = sendMockMessage(deviceId, file)

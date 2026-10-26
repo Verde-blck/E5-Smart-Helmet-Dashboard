@@ -10,8 +10,6 @@ import type { DeviceView } from '../types'
 function GasBadge({ device }: { device: DeviceView }) {
   const statuses = evaluateAll(device.telemetry.gas)
   const worst = worstLevel(statuses)
-  // Only shown when there's something to say — a green "gas normal" badge on
-  // every row is noise that trains people to stop looking at the column.
   if (worst !== 'danger' && worst !== 'warning') return null
 
   const flagged = statuses.filter((s) => s.level === worst).map((s) => s.gas)
@@ -42,16 +40,12 @@ function Badges({ device }: { device: DeviceView }) {
   )
 }
 
-// "—" rather than 0%: a helmet that doesn't report battery is not a helmet
-// with a flat battery.
 const battery = (device: DeviceView) =>
   device.telemetry.batteryPercent != null ? `${device.telemetry.batteryPercent}%` : '—'
 
 export function DeviceList({ search = '' }: { search?: string } = {}) {
   const { devices: all, now, isLoading, isError } = useDevices()
 
-  // Same filter as the tile view, so switching between them never changes
-  // which helmets are on screen.
   const needle = search.trim().toLowerCase()
   const devices = needle
     ? all.filter(
@@ -67,8 +61,6 @@ export function DeviceList({ search = '' }: { search?: string } = {}) {
 
   return (
     <>
-      {/* Phones: stacked cards. Five columns don't fit in 375px even with
-          horizontal scroll, and scrolling a table one-handed is miserable. */}
       <div className="flex flex-col gap-2 md:hidden">
         {devices.map((device) => (
           <DataCard

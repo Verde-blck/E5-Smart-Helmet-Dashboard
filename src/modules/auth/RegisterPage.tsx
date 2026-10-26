@@ -28,23 +28,14 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>
 
-/** Sign-up is closed: the backend only allows it while no accounts exist. */
 const CLOSED =
   'New accounts are created by an administrator. Ask yours to set one up for you.'
 
-/**
- * Why sign-up failed, in words that help.
- *
- * The backend only allows sign-up while there are no accounts at all; after
- * that, administrators create them. It may refuse with 403 or 409, and 409 is
- * also used for a username that's taken, so the body decides which it is.
- */
 function registerErrorMessage(error: unknown): string {
   const res = (error as {
     response?: { status?: number; data?: { error?: string; message?: string } }
   })?.response
 
-  // No response at all: a real connection problem.
   if (!res) return 'Could not reach the server. Check your connection and try again.'
 
   const status = statusOf(error)
@@ -59,7 +50,6 @@ function registerErrorMessage(error: unknown): string {
   return res.data?.message ? sentence(res.data.message) : 'Could not create the account. Try again.'
 }
 
-/** "password must be at least 8 characters" → "Password must be at least 8 characters." */
 function sentence(text: string): string {
   const t = text.trim()
   return t.charAt(0).toUpperCase() + t.slice(1) + (/[.!?]$/.test(t) ? '' : '.')
@@ -88,10 +78,6 @@ export function RegisterPage() {
       return
     }
 
-    // Registration returns no token, so sign in straight away rather than
-    // making someone type the same details twice. If that fails, the account
-    // still exists, so send them to the sign-in page rather than showing an
-    // error that suggests it wasn't created.
     try {
       const result = await login({ username: values.username, password: values.password })
       if (result.status === 'signed-in') {

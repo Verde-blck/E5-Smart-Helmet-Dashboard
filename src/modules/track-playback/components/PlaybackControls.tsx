@@ -23,9 +23,7 @@ export function PlaybackControls({
   const last = track.points.length - 1
   const point = track.points[cursor]
 
-  // Advance on a timer rather than by wall-clock interpolation: the fixes are
-  // irregularly spaced, so stepping point-to-point keeps playback smooth and
-  // the position always a real reading rather than a guess between two.
+  // Step point to point rather than interpolating, so the position is always a real reading.
   const cursorRef = useRef(cursor)
   cursorRef.current = cursor
 
@@ -51,7 +49,6 @@ export function PlaybackControls({
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={() => {
-            // Restart from the beginning if it's sitting at the end.
             if (cursor >= last) setCursor(0)
             setPlaying(!playing)
           }}

@@ -7,8 +7,7 @@ import { AvailabilityChart } from './components/AvailabilityChart'
 import { downloadCsv, formatDistance, formatDuration, trackToCsv } from './lib/track'
 
 function isoDate(ts: number): string {
-  // The date in the browser's own time zone. toISOString() is UTC, so in Lagos (UTC+1) it names
-  // the previous day for the first hour after midnight, and "today" would default to yesterday.
+  // Local date, not toISOString(): UTC names yesterday for the first hour after midnight in Lagos.
   const d = new Date(ts)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -36,7 +35,6 @@ export function TrackPlaybackPage() {
   const [fromDate, setFromDate] = useState(isoDate(today - 7 * 86_400_000))
   const [toDate, setToDate] = useState(isoDate(today))
 
-  // Only set when View is pressed, so editing the dates doesn't fire requests.
   const [requested, setRequested] = useState<{ from: number; to: number } | null>(null)
   const [cursor, setCursor] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -182,8 +180,6 @@ export function TrackPlaybackPage() {
 
               {track.truncated && (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  {/* Better to say the range was cut than to show a short
-                      track that looks like the helmet stood still. */}
                   Only the most recent part of this range was returned — the
                   telemetry endpoint has no date filter, so older history was
                   cut off. Narrow the range for a complete track.

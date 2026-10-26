@@ -4,7 +4,6 @@ import { refreshSession } from '@/modules/auth/api/auth.api'
 import { PERMISSION_TREE, viewCodeOf } from '@/modules/users/lib/permissions'
 import type { PermissionNode } from '@/modules/users/lib/permissions'
 
-/** "Photo Record", or "change Unit Setting" for a _MANAGE code. */
 function describe(code: string): string {
   const find = (nodes: PermissionNode[]): PermissionNode | undefined => {
     for (const n of nodes) {
@@ -26,11 +25,6 @@ function messageFor(detail: ForbiddenDetail): string {
   return 'Your role doesn’t allow that. Ask an administrator.'
 }
 
-/**
- * Explains a refusal from the backend in plain words, in the corner, for a
- * few seconds. It also re-reads the user's profile, because the usual cause
- * is a role changed while they were signed in, and the menu should catch up.
- */
 export function ForbiddenNotice() {
   const [message, setMessage] = useState<string | null>(null)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -41,7 +35,6 @@ export function ForbiddenNotice() {
       setMessage(messageFor((e as CustomEvent<ForbiddenDetail>).detail ?? {}))
       if (hideTimer.current) clearTimeout(hideTimer.current)
       hideTimer.current = setTimeout(() => setMessage(null), 6000)
-      // Several refusals often arrive together; one refresh covers them.
       if (Date.now() - lastRefresh.current > 5000) {
         lastRefresh.current = Date.now()
         void refreshSession()

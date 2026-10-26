@@ -4,7 +4,6 @@ import type { MediaQuery } from '../types'
 interface Props {
   query: MediaQuery
   onChange: (next: MediaQuery) => void
-  /** Video Record searches file names; Photo Record doesn't. */
   withSearch?: boolean
   resultCount: number
   isFetching: boolean

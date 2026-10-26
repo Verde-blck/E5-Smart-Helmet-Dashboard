@@ -10,7 +10,6 @@ import {
 } from '../api/fences.api'
 import type { FenceDraft } from '../types'
 
-/** `enabled` false for users without FENCE, so nothing is requested and refused. */
 export function useFences(enabled = true) {
   const tenantId = useTenantId()
   const { data, isLoading, isError } = useQuery({
@@ -22,10 +21,6 @@ export function useFences(enabled = true) {
   return { fences: data ?? [], isLoading, isError }
 }
 
-/**
- * Saves the fence, then its warning clip if one was recorded or removed.
- * The clip is a separate upload, so it needs the fence's id first.
- */
 export function useSaveFence() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
@@ -37,7 +32,6 @@ export function useSaveFence() {
     }: {
       draft: FenceDraft
       id?: number
-      /** A new clip to attach, null to remove the current one, undefined to leave it. */
       clip?: Blob | null
     }) => {
       const saved = await saveFence(draft, id)

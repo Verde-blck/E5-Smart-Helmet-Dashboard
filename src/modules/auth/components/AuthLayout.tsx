@@ -2,31 +2,10 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import type { UseFormRegisterReturn } from 'react-hook-form'
 import { useTenant } from '@/shared/hooks/useTenant'
 
-/*
- * Palette for the signed-out screens, matched to E5 Energy's branding.
- *
- *   brand-primary    buttons, links, focus accents. #0A6659 for E5 (the
- *                    teal in their logo), set by the tenant theme.
- *   brand-secondary  the site-plan panel. #0C352F for E5 (the deep green of
- *                    their website hero), also from the tenant theme.
- *   ink    #1A2B28   headings and body text
- *   mint   #A3E2D7   focus rings, panel linework
- *   canvas #F2F8F7   page background
- *
- * The two brand colours come from the same CSS variables as the rest of the
- * dashboard, so rebranding a deployment restyles these pages too. The panel
- * assumes a dark secondary colour, since its text is white.
- */
-
-// ---------------------------------------------------------------------------
-// Layout
-// ---------------------------------------------------------------------------
-
 interface AuthLayoutProps {
   title: string
   subtitle: string
   children: ReactNode
-  /** Secondary links and help text under the form. */
   footer?: ReactNode
 }
 
@@ -42,9 +21,6 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
         <div className="w-full max-w-[25rem]">
           <div className="rounded-2xl border border-[#1A2B28]/[0.06] bg-white p-6 shadow-[0_1px_2px_rgb(var(--brand-secondary)/0.06),0_12px_32px_-12px_rgb(var(--brand-secondary)/0.18)] sm:p-8">
             {logoUrl && (
-              // The logo sits on the white card: client logos are drawn for
-              // light backgrounds, and this keeps it off the dark panel
-              // without needing a tile behind it.
               <img
                 src={logoUrl}
                 alt={tenant?.name ?? 'Company logo'}
@@ -70,11 +46,6 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
   )
 }
 
-/**
- * The brand side: a stylised site plan with helmet locators on it, echoing
- * the Live Map the operator lands on after signing in. On phones it shrinks
- * to a header band so the form stays above the fold.
- */
 function SitePanel({ tenantName }: { tenantName?: string }) {
   return (
     <aside className="relative isolate flex h-56 flex-col justify-between overflow-hidden bg-brand-secondary px-6 pb-[4.5rem] pt-5 text-white sm:h-64 sm:pb-20 sm:px-8 lg:h-auto lg:px-12 lg:py-10">
@@ -116,7 +87,6 @@ function SitePlan() {
       </defs>
       <rect width="400" height="600" fill={`url(#${patternId})`} />
 
-      {/* Contour lines, like elevation on a site survey. */}
       <g fill="none" stroke="#A3E2D7" strokeOpacity="0.16" strokeWidth="1">
         <path d="M-20 140C60 110 110 180 190 160S320 70 420 110" />
         <path d="M-20 190C70 160 120 235 200 212S330 120 420 160" />
@@ -125,7 +95,6 @@ function SitePlan() {
         <path d="M-20 470C70 432 160 500 250 462S360 400 420 430" />
       </g>
 
-      {/* Site boundary and a haul road. */}
       <path
         d="M70 120L310 96L352 330L268 470L96 436Z"
         fill="#0A6659"
@@ -147,11 +116,7 @@ function SitePlan() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Plexus: drifting nodes joined by lines that fade with distance
-// ---------------------------------------------------------------------------
-
-const MINT = '163, 226, 215' // #A3E2D7 as an rgb triplet for rgba()
+const MINT = '163, 226, 215'
 
 interface PlexusNode {
   x: number
@@ -159,7 +124,6 @@ interface PlexusNode {
   vx: number
   vy: number
   r: number
-  /** Larger nodes stand in for helmets and carry a slow pulse. */
   helmet: boolean
   phase: number
 }
@@ -170,13 +134,7 @@ interface Packet {
   t: number
 }
 
-/**
- * Canvas layer behind the panel copy. Motion is deliberately slow (a node
- * crosses the panel in a minute or two) so it reads as ambient, not as
- * something competing with the form. Nodes wrap at the edges, so the loop
- * never visibly resets. With reduced motion requested, one still frame is
- * drawn and nothing animates.
- */
+// Slow motion and wrapping edges so it reads as ambient and the loop never visibly resets.
 function PlexusField() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -202,7 +160,7 @@ function PlexusField() {
       linkDistance = width < 640 ? 92 : 140
       nodes = Array.from({ length: count }, (_, i) => {
         const angle = Math.random() * Math.PI * 2
-        const speed = 5 + Math.random() * 9 // px per second
+        const speed = 5 + Math.random() * 9
         const helmet = i < Math.max(3, Math.round(count / 10))
         return {
           x: Math.random() * width,
@@ -229,14 +187,10 @@ function PlexusField() {
       canvas!.width = Math.round(width * dpr)
       canvas!.height = Math.round(height * dpr)
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-      // Reseed on first layout, or when the panel changes size enough that
-      // the node count would be wrong (e.g. the initial 300x150 canvas
-      // default before CSS sizing applies, or rotating a tablet).
       const areaRatio = (width * height) / (seededArea || 1)
       if (nodes.length === 0 || prevWidth === 0 || prevHeight === 0 || areaRatio > 1.6 || areaRatio < 0.6) seed()
       else {
-        // Stretch the existing field to the new size rather than reseeding,
-        // so a window resize doesn't make the network jump.
+        // Rescaled rather than reseeded, so a resize doesn't make the network jump.
         const sx = width / prevWidth
         const sy = height / prevHeight
         for (const n of nodes) {
@@ -265,7 +219,6 @@ function PlexusField() {
       const maxSq = linkDistance * linkDistance
       const links: Array<[number, number]> = []
 
-      // Lines first, so nodes sit on top of them.
       ctx!.lineWidth = 0.8
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i]
@@ -276,7 +229,6 @@ function PlexusField() {
           const dSq = dx * dx + dy * dy
           if (dSq > maxSq) continue
           const closeness = 1 - Math.sqrt(dSq) / linkDistance
-          // Squared falloff: links fade in gently rather than popping.
           const alpha = closeness * closeness * 0.5
           ctx!.strokeStyle = `rgba(${MINT}, ${alpha})`
           ctx!.beginPath()
@@ -287,7 +239,6 @@ function PlexusField() {
         }
       }
 
-      // Occasional packets of "data" travelling along a live link.
       if (!reduceMotion && packets.length < 4 && links.length > 0 && Math.random() < 0.02) {
         const [a, b] = links[Math.floor(Math.random() * links.length)]
         packets.push(Math.random() < 0.5 ? { a, b, t: 0 } : { a: b, b: a, t: 0 })
@@ -298,7 +249,6 @@ function PlexusField() {
         const b = nodes[pk.b]
         const dx = b.x - a.x
         const dy = b.y - a.y
-        // Drop a packet whose link has stretched past breaking point.
         if (pk.t >= 1 || dx * dx + dy * dy > maxSq) {
           packets.splice(k, 1)
           continue
@@ -312,7 +262,6 @@ function PlexusField() {
         ctx!.fill()
       }
 
-      // Nodes, with a soft halo; helmet nodes breathe slowly.
       for (const n of nodes) {
         const pulse = n.helmet && !reduceMotion ? 0.5 + 0.5 * Math.sin(time / 900 + n.phase) : 0.5
         const halo = n.helmet ? 9 + pulse * 6 : n.r * 4
@@ -346,7 +295,6 @@ function PlexusField() {
     observer.observe(canvas)
     resize()
 
-    // Stop drawing while the panel is off screen (e.g. scrolled away on a phone).
     const visibility = new IntersectionObserver(([entry]) => {
       if (reduceMotion) return
       if (entry.isIntersecting && !running) {
@@ -387,10 +335,6 @@ function HelmetMark() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Form controls
-// ---------------------------------------------------------------------------
-
 const inputBase =
   'block w-full rounded-lg border bg-white py-2.5 pl-10 text-[0.9375rem] text-[#1A2B28] ' +
   'placeholder:text-[#1A2B28]/40 transition-[border-color,box-shadow] duration-150 ' +
@@ -426,8 +370,6 @@ export function UsernameField({ label, registration, error, autoComplete }: Fiel
           id={id}
           type="text"
           autoComplete={autoComplete}
-          // Usernames are case-sensitive, and phone keyboards capitalise the
-          // first letter by default — "Admin" fails where "admin" works.
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
@@ -527,7 +469,6 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   )
 }
 
-/** Form-level failure, e.g. wrong credentials. Announced to screen readers. */
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null
   return (
@@ -544,7 +485,6 @@ export function SubmitButton({ busy, busyLabel, children }: { busy: boolean; bus
       disabled={busy}
       className="group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-brand-primary px-4 py-3 text-[0.9375rem] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_6px_16px_-8px_rgb(var(--brand-primary)/0.7)] transition-[background-color,transform,box-shadow] duration-150 hover:brightness-[.92] hover:shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_10px_22px_-10px_rgb(var(--brand-primary)/0.8)] active:translate-y-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#A3E2D7] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-80"
     >
-      {/* A sheen that crosses the button on hover. */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/15 opacity-0 transition-[left,opacity] duration-500 ease-out group-hover:left-[110%] group-hover:opacity-100 motion-reduce:hidden"

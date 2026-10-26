@@ -12,13 +12,8 @@ import { startRealtime, stopRealtime } from "@/app/realtime/realtime";
 import { startMockHeartbeats } from "@/app/realtime/mock-heartbeats";
 import { fetchBranding } from "@/modules/profile/api/profile.api";
 
-/** The logo link is signed for an hour; refresh the branding before then. */
 const BRANDING_REFRESH_MS = 50 * 60_000;
 
-// Resolves tenant + session ONCE on app load, before any routes render.
-// This is the one place that branches on SaaS vs standalone — everything
-// downstream just reads from the auth store and doesn't know which mode
-// it's in.
 export function AppBootstrap({ children }: { children: React.ReactNode }) {
   const setTenant = useAuthStore((s) => s.setTenant);
   const setUser = useAuthStore((s) => s.setUser);
@@ -38,7 +33,6 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
 
       try {
         if (env.multiTenant) {
-          // SaaS: resolve tenant from subdomain, e.g. acme.yourapp.com
           const subdomain = window.location.hostname.split(".")[0];
           const { data: tenant } = await apiClient.get(
             `/tenants/by-domain/${subdomain}`,
@@ -47,7 +41,6 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
           applyBrandColors(tenant.colors);
           setTenant(tenant);
         } else {
-          // Standalone: single tenant baked in via env vars at deploy time
           applyBrandColors(defaultTheme.colors);
           setTenant({
             id: "standalone",
@@ -57,9 +50,6 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
           });
         }
 
-        // Standalone seeds its branding from env so nothing flashes unbranded,
-        // then takes the company profile from the public /branding endpoint,
-        // so the sign-in page carries E5's name, logo and colours too.
         if (!env.multiTenant) {
           try {
             const saved = await fetchBranding();
@@ -70,7 +60,6 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // From the cached profile straight away; /auth/me confirms it.
         setUser(restoreSession());
       } catch {
         setUser(null);
@@ -82,8 +71,7 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
     void bootstrap();
   }, [setTenant, setUser, setBootstrapping]);
 
-  // The logo link expires after an hour, so fetch the branding again before
-  // then. Also picks up changes another admin made meanwhile.
+  // Signed logo links expire after an hour, so refresh before then.
   useEffect(() => {
     if (env.useMocks || env.multiTenant) return;
     const id = setInterval(() => {
@@ -97,9 +85,6 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [setTenant]);
 
-  // The company switched on "require 2FA" while this person was signed in:
-  // the backend starts refusing with 2fa_setup_required. Flag it, and
-  // RequireAuth takes them to the setup screen.
   useEffect(() => {
     const handle = () => {
       const user = useAuthStore.getState().user;
@@ -109,25 +94,18 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("auth:2fa-setup-required", handle);
   }, [setUser]);
 
-  // A 401 on any later request means the session died mid-use. api-client
-  // dispatches this; previously nothing listened, so the user sat looking at a
-  // broken page. Clearing auth is enough — RequireAuth handles the redirect.
   useEffect(() => {
     const handle = () => void endSession();
     window.addEventListener("auth:unauthorized", handle);
     return () => window.removeEventListener("auth:unauthorized", handle);
   }, []);
 
-  // Keyed off authentication rather than called inside bootstrap(), so the
-  // socket also starts for someone who arrives via the login form. Previously
-  // realtime only came up on a full page load after the cookie already existed.
+  // Keyed off authentication so the socket also starts after signing in through the form.
   useEffect(() => {
     if (!isAuthenticated) return;
 
     if (env.useMocks) return startMockHeartbeats();
 
-    // The dashboard has no WebSocket to connect to — /ws on the backend is
-    // the helmets' own channel. Polling covers it; see config/features.ts.
     if (!features.realtimeSocket) return;
 
     startRealtime();

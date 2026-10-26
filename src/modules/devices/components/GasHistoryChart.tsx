@@ -7,13 +7,6 @@ import type { HistoryRange, TelemetrySample } from '../types'
 const VIEW_W = 600
 const VIEW_H = 150
 
-/**
- * Exposure over time for one gas.
- *
- * A single current reading tells an operator whether it's safe right now. The
- * trend tells them whether it's getting worse, which is the thing that decides
- * whether someone should be pulled out.
- */
 export function GasHistoryChart({
   samples,
   rangeStart,
@@ -27,7 +20,6 @@ export function GasHistoryChart({
 }) {
   const isWide = useMediaQuery('(min-width: 640px)')
 
-  // Only gases this helmet actually reported over the window.
   const available = useMemo(() => {
     const seen = new Set<string>()
     for (const sample of samples) {
@@ -58,8 +50,6 @@ export function GasHistoryChart({
   const padT = 8
   const padB = isWide ? 18 : 26
 
-  // Include the thresholds in the scale, or a line sitting outside the data
-  // range would be clipped off the chart and the reading would look safe.
   const candidates = [
     ...points.map((p) => p.value),
     spec.warnAbove,

@@ -9,15 +9,6 @@ interface CodeFieldProps {
   disabled?: boolean
 }
 
-/**
- * Input for a 6-digit authenticator code, used at sign-in and on the account
- * security page.
- *
- * One field rather than six boxes: pasting works, the phone's number pad
- * opens, and iOS/Android can autofill it (autoComplete="one-time-code").
- * Anything that isn't a digit is dropped, so a code pasted as "123 456"
- * still works.
- */
 export function CodeField({ label, value, onChange, error, autoFocus, disabled }: CodeFieldProps) {
   const id = useId()
   const errorId = `${id}-error`
@@ -37,8 +28,6 @@ export function CodeField({ label, value, onChange, error, autoFocus, disabled }
         maxLength={6}
         placeholder="000000"
         autoFocus={autoFocus}
-        // Read-only rather than disabled while checking: disabling drops focus,
-        // and after a wrong code the user should be able to type straight away.
         readOnly={disabled}
         aria-busy={disabled || undefined}
         aria-invalid={error ? true : undefined}
@@ -59,7 +48,6 @@ export function CodeField({ label, value, onChange, error, autoFocus, disabled }
   )
 }
 
-/** User-facing message for a failed code, shared by every place that asks for one. */
 export function codeErrorMessage(status: number | undefined): string {
   if (status === 401 || status === 400) {
     return 'That code didn’t work. Codes change every 30 seconds, so enter the one showing now.'

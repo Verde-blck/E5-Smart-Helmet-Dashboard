@@ -1,8 +1,5 @@
 /// <reference types="vite/client" />
 
-// Without this file `tsc -b` fails with TS2339 on every import.meta.env
-// access in config/env.ts. Declaring the keys explicitly also means a typo
-// like VITE_MULTITENANT is a compile error rather than a silent undefined.
 interface ImportMetaEnv {
   readonly VITE_MULTI_TENANT?: string
   readonly VITE_API_BASE_URL?: string
@@ -22,10 +19,5 @@ interface ImportMeta {
 }
 
 interface Window {
-  /**
-   * Called by the Google Maps script when it rejects the API key — a bad key,
-   * a disallowed referrer, or billing not enabled. Google reports these here
-   * rather than by failing the script load.
-   */
   gm_authFailure?: () => void
 }

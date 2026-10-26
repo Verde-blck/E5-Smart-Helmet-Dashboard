@@ -5,75 +5,37 @@ export type { AlarmSeverity }
 
 export type ConnectivityType = 'sim' | 'wifi'
 
-/** Derived from lastSeenAt — never sent by the server. See lib/presence.ts. */
 export type Presence = 'online' | 'degraded' | 'offline'
 
-/**
- * Device-reported state, per FRD §4 Real-Time Monitoring.
- *
- * Every field is optional, and that is the whole point. The FRD qualifies each
- * of these with "where available" / "where supplied by the device", because
- * which of them a given helmet actually reports isn't known until the firmware
- * is on the bench. A required field that the device never sends becomes a
- * fake zero in the UI; an optional one renders as "not reported", which is the
- * truth. The detail view builds its rows from whatever is present.
- */
 export interface Telemetry {
   batteryPercent?: number
-  batteryVoltage?: number // FRD asks for level AND voltage — they diverge as cells age
+  batteryVoltage?: number
   lat?: number
   lng?: number
   altitude?: number
   speed?: number
   heading?: number
-  signalStrength?: number // dBm
-  networkType?: string // '4G', 'LTE-M', 'Wi-Fi'…
+  signalStrength?: number
+  networkType?: string
   carrier?: string
   isWorn?: boolean
   isCharging?: boolean
   isRecording?: boolean
-  /**
-   * Gas sensor readings. This helmet is a gas detector — the protocol reports
-   * up to twelve gases, of which a given unit carries only some. Sensors that
-   * aren't fitted are omitted rather than reported as zero.
-   */
   gas?: GasReading[]
-  /** When the gas readings were taken; can be older than lastSeenAt. */
   gasAt?: number
-  /**
-   * How the position was obtained. Indoors helmets often fall back to the
-   * mobile network, which can be hundreds of metres off.
-   */
   fixType?: FixType
-  /** 1 strong GPS, 0 weak, -1 no GPS signal. */
   gpsLevel?: number
-  /** The helmet's own accuracy radius for the position, in metres. */
   accuracyMeters?: number
   simStatus?: SimStatus
   simPhoneNumber?: string
-  /** Mobile data used this month, in MB. */
   simDataUsedMb?: number
 }
 
 export type FixType = 'gps' | 'network' | 'wifi' | 'other'
 export type SimStatus = 'present' | 'absent' | 'unknown'
 
-/**
- * Identity and registration data (from your database) kept separate from
- * telemetry (from the helmet). That split mirrors FRD §4 Device Management vs
- * §4 Real-Time Monitoring, and it means a device row still renders correctly
- * for a helmet that has been registered but has never connected.
- */
-/**
- * Who wears this helmet.
- *
- * FRD §4 Device Management: "manage device assignment/ownership information".
- * Deliberately not a link to a dashboard account — the worker wearing the
- * helmet never signs in here. Every dashboard user is an administrator.
- */
 export interface DeviceAssignment {
   name: string
-  /** E5's own staff number, e.g. "E5-014". */
   staffId?: string
   phone?: string
   jobTitle?: string
@@ -81,22 +43,10 @@ export interface DeviceAssignment {
 
 export interface Device {
   id: string
-  /** Display name. The API has no name field yet, so this falls back to a
-   *  short form of the device ID — see devices.api.ts. */
   name: string
-  /** Not supplied by the API. Optional until it is. */
-  /**
-   * False when the helmet has no name yet and `name` is the shortened device
-   * ID instead ("…56404"). Lets the UI avoid showing the ID twice. Undefined
-   * is treated as named.
-   */
   named?: boolean
   site?: string
   assignedTo?: DeviceAssignment
-  /**
-   * Registration state, set by an administrator — distinct from presence.
-   * A deactivated helmet can still be connected and reporting.
-   */
   active: boolean
   connectivity: ConnectivityType
   lastSeenAt: number
@@ -104,12 +54,10 @@ export interface Device {
   telemetry: Telemetry
 }
 
-/** A Device with presence resolved against the current clock. */
 export interface DeviceView extends Device {
   presence: Presence
 }
 
-/** A single stored heartbeat. Backs the status-history views. */
 export interface TelemetrySample {
   ts: number
   batteryPercent?: number
@@ -121,22 +69,13 @@ export interface TelemetrySample {
   altitude?: number
   isCharging?: boolean
   isWorn?: boolean
-  /** Per-sample gas readings, so a history view can chart exposure over time. */
   gas?: GasReading[]
-  /** How this position was obtained; null on points from before 16 Oct 2026. */
   fixType?: FixType
   accuracyMeters?: number
 }
 
 export type HistoryRange = '1h' | '24h' | '7d'
 
-/**
- * The window the API actually served, returned alongside the samples.
- *
- * stepMs matters downstream: history is downsampled server-side, so a gap in
- * the data can't be read against the 30s live heartbeat interval. At 30-minute
- * resolution every sample looks like a half-hour outage. See lib/history.ts.
- */
 export interface TelemetryWindow {
   range: HistoryRange
   rangeStart: number
@@ -145,13 +84,6 @@ export interface TelemetryWindow {
   samples: TelemetrySample[]
 }
 
-/**
- * Pre-counted fleet totals from GET /api/dashboard/summary.
- *
- * Using the server's numbers rather than counting locally means the overview
- * can't drift from what the backend believes — and it stays correct if the
- * device list is ever paginated.
- */
 export interface FleetSummary {
   total: number
   online: number

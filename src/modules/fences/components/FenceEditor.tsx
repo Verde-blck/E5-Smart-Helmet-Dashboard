@@ -12,12 +12,10 @@ const label = 'mb-1 block text-xs font-medium text-slate-600'
 interface Props {
   draft: FenceDraft
   onChange: (patch: Partial<FenceDraft>) => void
-  /** The saved fence when editing; undefined for a new one. */
   existing?: Fence
   devices: DeviceView[]
   saving: boolean
   error: string | null
-  /** clip: new Blob to attach, null to remove the current one, undefined to leave it. */
   onSave: (clip: Blob | null | undefined) => void
   onCancel: () => void
 }
@@ -78,7 +76,6 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
         />
       </div>
 
-      {/* Shape and drawing */}
       <div>
         <span className={label}>Shape</span>
         <div className="inline-flex rounded-md border border-slate-200 p-0.5 text-sm">
@@ -164,7 +161,6 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
         )}
       </div>
 
-      {/* Behaviour */}
       <fieldset>
         <legend className={label}>Type</legend>
         <div className="grid grid-cols-2 gap-2">
@@ -194,7 +190,6 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
         </div>
       </fieldset>
 
-      {/* Alarm repeat */}
       <div>
         <label className={label} htmlFor="fence-freq">Repeat the alarm while in breach</label>
         <select
@@ -208,12 +203,11 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
           ))}
         </select>
         <p className="mt-1 text-[11px] text-slate-400">
-      
+
           {draft.frequencyMinutes === 0 && ' Every report is about every 10 seconds, which can be a lot of alarms.'}
         </p>
       </div>
 
-      {/* Active hours */}
       <div>
         <span className={label}>Active hours (Lagos time)</span>
         {draft.validPeriods.length === 0 ? (
@@ -271,7 +265,6 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
         </button>
       </div>
 
-      {/* Helmets */}
       <div>
         <span className={label}>Helmets</span>
         <div className="flex gap-4 text-xs">
@@ -306,7 +299,6 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
                     const next = draft.deviceIds.includes(d.id)
                       ? draft.deviceIds.filter((id) => id !== d.id)
                       : [...draft.deviceIds, d.id]
-                    // Unticking the last one would silently mean "every helmet".
                     if (next.length > 0) onChange({ deviceIds: next })
                   }}
                   className="accent-brand-primary"
@@ -318,7 +310,6 @@ export function FenceEditor({ draft, onChange, existing, devices, saving, error,
         )}
       </div>
 
-      {/* Warning clip */}
       <div>
         <span className={label}>Warning played on the helmet</span>
         <p className="mb-1.5 text-[11px] text-slate-400">

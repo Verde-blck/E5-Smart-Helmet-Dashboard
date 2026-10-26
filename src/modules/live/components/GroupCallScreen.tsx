@@ -162,7 +162,6 @@ function HelmetTile({
   onRetry: () => void
   onAutoplayBlocked: () => void
 }) {
-  // Everyone's audible by default, as on a call; any one can be muted.
   const [muted, setMuted] = useState(false)
   const live = participant.status === 'live'
 

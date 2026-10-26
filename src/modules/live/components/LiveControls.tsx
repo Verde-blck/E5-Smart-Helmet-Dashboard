@@ -9,13 +9,6 @@ import { PhoneIcon, VideoIcon } from './icons'
 
 type Open = 'watch' | 'call' | null
 
-/**
- * "Watch live" and "Call" for one helmet, with the player and call screens
- * they open.
- *
- * `variant="icons"` is the compact pair for Monitoring Center tiles, which
- * are links: the buttons stop the click there so the tile doesn't navigate.
- */
 export function LiveControls({
   device,
   variant = 'buttons',
@@ -39,7 +32,6 @@ export function LiveControls({
   function openCall(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    // The call screen asks video or voice first; nothing starts until then.
     setOpen('call')
   }
 
@@ -52,7 +44,6 @@ export function LiveControls({
   const callLabel = disabledReason ?? `Call ${device.name}`
 
   return (
-    // Watching needs SURVEILLANCE; calling needs SURVEILLANCE_MANAGE.
     <Can perm="live:read">
       {variant === 'icons' ? (
         <>

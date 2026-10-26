@@ -16,7 +16,7 @@ const brand = (
     src={tenant.logoUrl}
     alt={tenant.name ?? 'Company logo'}
     className="h-10 w-auto max-w-[10rem] object-contain"
-  />) 
+  />)
   : (
   <>
     <div className="h-7 w-7 shrink-0 rounded bg-brand-primary" />
@@ -57,19 +57,11 @@ const brand = (
 
   return (
     <>
-      {/* Desktop: a column in the app shell's flex row. */}
       <aside className="app-chrome hidden h-full w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 md:flex">
         {brand}
         {nav}
       </aside>
 
-      {/*
-        Mobile: an overlay drawer. Kept mounted so it can slide rather than
-        pop, but `invisible` when closed — which, unlike opacity or
-        pointer-events, also takes it out of the tab order and the
-        accessibility tree, so a screen reader doesn't announce a nav that
-        isn't there.
-      */}
       <div
         className={`fixed inset-0 z-40 md:hidden ${open ? 'visible' : 'invisible'}`}
         aria-hidden={!open}

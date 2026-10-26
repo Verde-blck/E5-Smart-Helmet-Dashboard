@@ -1,22 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type BenzAMRRecorder from 'benz-amr-recorder'
 
-/**
- * Plays a voice message.
- *
- * Helmets record AMR, which no browser plays natively, so clips from a
- * helmet go through a small AMR decoder (benz-amr-recorder), loaded only
- * when one is first played. Everything else is an ordinary <audio>.
- */
+// Helmets record AMR, which browsers can't play; the decoder loads on first use.
 export function VoicePlayer({
   url,
   amr,
   onMissing,
 }: {
   url: string
-  /** The clip is AMR (from a helmet). */
   amr: boolean
-  /** The file couldn't be loaded. */
   onMissing: () => void
 }) {
   if (!amr) {
@@ -27,7 +19,6 @@ export function VoicePlayer({
   return <AmrPlayer url={url} onMissing={onMissing} />
 }
 
-/** AMR if the link's file name says so; signed links carry a query string. */
 export function looksLikeAmr(url: string): boolean {
   try {
     return new URL(url, window.location.href).pathname.toLowerCase().endsWith('.amr')
@@ -43,7 +34,6 @@ function AmrPlayer({ url, onMissing }: { url: string; onMissing: () => void }) {
   const [duration, setDuration] = useState<number | null>(null)
   const player = useRef<BenzAMRRecorder | null>(null)
 
-  // Stop and free the decoder when the bubble goes away.
   useEffect(
     () => () => {
       player.current?.destroy()
@@ -67,8 +57,7 @@ function AmrPlayer({ url, onMissing }: { url: string; onMissing: () => void }) {
 
     setState('loading')
     try {
-      // Fetched here rather than by the decoder, so a dead link is caught.
-      // The link is signed and expires in an hour, so it's never cached.
+      // Fetched here so a dead link is caught; signed links expire, so never cached.
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()

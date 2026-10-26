@@ -21,22 +21,15 @@ function formatWhen(ts: number): string {
   })
 }
 
-/**
- * Everything about one alarm in a side panel: what happened, when, where,
- * and the footage from that helmet around that moment.
- */
 export function AlarmDetail({ alarm, now, onClose }: { alarm: Alarm; now: number; onClose: () => void }) {
   const resolve = useResolveAlarm()
   const resolved = alarm.status === 'resolved'
   const hasLocation = alarm.lat != null && alarm.lng != null
 
-  // Someone is looking at it now: stop the ringtone for this alarm.
   useEffect(() => acknowledge(alarm.id), [alarm.id])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // The media viewer handles its own Escape; only close the panel when
-      // nothing is open on top of it.
       if (e.key === 'Escape' && !document.querySelector('[data-media-viewer]')) onClose()
     }
     window.addEventListener('keydown', onKey)

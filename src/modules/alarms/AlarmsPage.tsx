@@ -14,8 +14,6 @@ export function AlarmsPage() {
   const [activeOnly, setActiveOnly] = useState(true)
   const { active, alarms } = useAlarms()
 
-  // SOS has its own panel with a call button, so the critical banner counts
-  // the rest and doesn't say the same thing twice.
   const critical = active.filter((a) => a.severity === 'critical' && !isSos(a.type)).length
   const hasSos = active.some((a) => isSos(a.type))
 
@@ -24,7 +22,7 @@ export function AlarmsPage() {
       <SosAlerts />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        
+
         <div className="flex rounded-md border border-slate-200 bg-white p-0.5 text-xs">
           <button
             onClick={() => setActiveOnly(true)}

@@ -7,11 +7,6 @@ import { AuthLayout } from '@/modules/auth/components/AuthLayout'
 import { refreshSession, startTwoFactorSetup, type TwoFactorSetup } from '@/modules/auth/api/auth.api'
 import { SetupFlow } from './SecurityPage'
 
-/**
- * The company requires two-factor sign-in and this account hasn't set it up.
- * Until it has, the backend refuses everything else, so this is the only
- * screen: scan the QR code, type the code, and carry on into the dashboard.
- */
 export function RequiredTwoFactorPage() {
   const { user } = useAuth()
   const setUser = useAuthStore((s) => s.setUser)
@@ -31,7 +26,6 @@ export function RequiredTwoFactorPage() {
     }
   }, [username, user?.mustSetup2fa])
 
-  // Nothing to do here once it's set up (or if it never was required).
   if (!user?.mustSetup2fa) return <Navigate to="/" replace />
 
   return (
@@ -61,7 +55,6 @@ export function RequiredTwoFactorPage() {
           username={username}
           onCancel={() => void endSession()}
           onDone={() => {
-            // Unblock straight away, then confirm with the backend.
             setUser({ ...user, mustSetup2fa: false, twoFactorEnabled: true })
             void refreshSession()
             navigate('/', { replace: true })

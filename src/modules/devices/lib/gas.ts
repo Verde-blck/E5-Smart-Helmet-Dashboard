@@ -5,40 +5,17 @@ export type GasLevel = 'normal' | 'warning' | 'danger' | 'unknown'
 export interface GasSpec {
   label: string
   unit: string
-  /** Most gases are dangerous as they rise. */
   warnAbove?: number
   dangerAbove?: number
-  /** Oxygen is the exception — it alarms in both directions. */
   warnBelow?: number
   dangerBelow?: number
   note?: string
 }
 
-/**
- * Default alarm thresholds.
- *
- * ⚠ These are widely-used occupational defaults, not an authority. Exposure
- * limits vary by jurisdiction, by employer policy, and by the work being done,
- * and the helmet itself carries its own configured thresholds — the vendor's
- * console exposes them per device under Unit Setting.
- *
- * Two consequences worth being explicit about:
- *
- *  1. These need signing off by whoever owns site safety before anyone relies
- *     on the colours.
- *  2. Once the backend exposes the device's own configured thresholds, those
- *     should win over this table, so the dashboard and the helmet can never
- *     disagree about what counts as an alarm.
- *
- * A gas with no entry here is displayed without judgement rather than assumed
- * safe — see evaluateGas.
- */
 export const GAS_SPECS: Record<string, GasSpec> = {
   O2: {
     label: 'Oxygen',
     unit: '%',
-    // Below 19.5% is oxygen-deficient and the classic confined-space killer.
-    // Above 23.5% is oxygen-enriched, which makes everything flammable.
     dangerBelow: 19.5,
     warnBelow: 20.0,
     warnAbove: 22.0,
@@ -63,7 +40,6 @@ export interface GasStatus {
   value: number
   level: GasLevel
   spec: GasSpec
-  /** Why it's flagged, in words an operator can act on. */
   reason?: string
 }
 
@@ -71,8 +47,6 @@ export function evaluateGas(reading: GasReading): GasStatus {
   const spec = GAS_SPECS[reading.gas] ?? { label: reading.gas, unit: '' }
   const { value } = reading
 
-  // No threshold defined: show the number, make no claim about it. Calling an
-  // unknown gas "normal" would be a safety claim we can't support.
   const hasThresholds =
     spec.dangerAbove !== undefined ||
     spec.dangerBelow !== undefined ||
@@ -113,7 +87,6 @@ export function evaluateAll(readings: GasReading[] | undefined): GasStatus[] {
   return (readings ?? []).map(evaluateGas)
 }
 
-/** The single worst level across a set, for a badge or a headline count. */
 export function worstLevel(statuses: GasStatus[]): GasLevel {
   if (statuses.some((s) => s.level === 'danger')) return 'danger'
   if (statuses.some((s) => s.level === 'warning')) return 'warning'

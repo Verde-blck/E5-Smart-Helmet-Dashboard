@@ -18,12 +18,6 @@ function pickMimeType(): string | undefined {
 
 export type RecordingFormat = 'mp3' | 'wav'
 
-/**
- * Records from the microphone and returns a file the helmet can play.
- *
- * MP3 by default: every clip sent to helmets (voice messages, broadcasts,
- * fence warnings) goes out as MP3. WAV is kept for anything that needs it.
- */
 export function useVoiceRecorder({ format = 'mp3' }: { format?: RecordingFormat } = {}) {
   const [state, setState] = useState<RecorderState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -70,7 +64,6 @@ export function useVoiceRecorder({ format = 'mp3' }: { format?: RecordingFormat 
       timerRef.current = setInterval(() => setElapsedMs(Date.now() - startedAt), 200)
       setState('recording')
     } catch {
-      
       setError('Microphone access was blocked. Allow it in the browser and try again.')
       setState('error')
       cleanup()

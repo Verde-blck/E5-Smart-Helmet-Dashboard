@@ -23,16 +23,13 @@ export function DevicesPage() {
   const [registering, setRegistering] = useState(false)
   const [view, setView] = useState<View>('tiles')
   const [search, setSearch] = useState('')
-  // Kept here rather than in the wall, so switching to Tiles and back
-  // remembers which helmets were on it. The streams themselves stop.
+  // Kept here rather than in the wall, so switching views remembers its helmets.
   const [wallIds, setWallIds] = useState<string[]>([])
   const { devices, now, isLoading } = useDevices()
 
   const matches = useMemo(() => {
     const needle = search.trim().toLowerCase()
     if (!needle) return devices
-    // Name and full device ID both, since an operator reading a label off a
-    // helmet has the IMEI, not the shortened display name.
     return devices.filter(
       (d) =>
         d.name.toLowerCase().includes(needle) ||
@@ -44,10 +41,9 @@ export function DevicesPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-       
+
         <div className="flex flex-wrap items-center gap-2">
-          {/* Helmets, their status and the summary cards. Live wall streams
-              aren't affected; they're connections, not cached data. */}
+          {/* Live wall streams are connections, not cached data, so refreshing doesn't touch them. */}
           <RefreshButton queryKey={qk.devices.all(tenantId)} />
           <input
             type="search"
@@ -72,7 +68,6 @@ export function DevicesPage() {
                   {VIEW_LABEL[option]}
                 </button>
               )
-              // The wall is live view, so it follows SURVEILLANCE.
               return option === 'wall' ? (
                 <Can key={option} perm="live:read">
                   {button}
@@ -97,7 +92,6 @@ export function DevicesPage() {
 
       {registering && <RegisterDeviceForm onDone={() => setRegistering(false)} />}
 
-      {/* The wall wants the room, and its own picker shows the fleet. */}
       {view !== 'wall' && <SummaryCards />}
 
       {search && view !== 'wall' && (
@@ -107,9 +101,8 @@ export function DevicesPage() {
       )}
 
       {view === 'wall' ? (
-        // Outside the loading/empty checks: a search that matches nothing
-        // only filters the picker; it mustn't unmount the wall and stop
-        // every stream on it.
+        // Outside the loading/empty checks: a search matching nothing mustn't unmount the wall and
+        // stop its streams.
         <LiveWall
           devices={matches}
           allDevices={devices}

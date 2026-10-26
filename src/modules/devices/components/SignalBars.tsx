@@ -1,17 +1,11 @@
 import type { SignalBars as Bars } from '../lib/signal'
 
-/**
- * Four rising bars, filled to the strength. Emerald when it's good, amber when
- * it's weak, grey when there's none; never red, which on this dashboard means
- * an alarm. Used for mobile signal on helmets and for Wi-Fi networks.
- */
 export function SignalBars({
   bars,
   label,
   className = 'h-3 w-4',
 }: {
   bars: Bars | null
-  /** Accessible description, e.g. "Signal: Good (−82 dBm)". */
   label: string
   className?: string
 }) {

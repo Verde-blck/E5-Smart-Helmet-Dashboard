@@ -1,11 +1,6 @@
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { features } from '@/config/features'
 
-/**
- * A scoped user seeing "Total devices 5" would reasonably conclude the fleet
- * is five helmets. Saying so explicitly is the difference between a filtered
- * view and a misleading one.
- */
 export function ScopeBanner() {
   const { isScoped, sites, hasNoSite } = useSiteScope()
 

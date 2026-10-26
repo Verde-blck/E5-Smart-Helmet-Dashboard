@@ -26,8 +26,6 @@ export function MediaViewer({
   onNext,
   onDelete,
 }: Props) {
-  // Items with a direct link play it as-is; only items without one need a
-  // signed URL from the backend.
   const {
     data: signedData,
     isLoading,
@@ -38,8 +36,7 @@ export function MediaViewer({
 
   const queryClient = useQueryClient();
   const tenantId = useTenantId();
-  // Once per item: if the fresh link fails too, the file itself is the
-  // problem, and refetching again would just loop.
+  // Once per item: if the fresh link also fails, refetching again would loop.
   const refreshedFor = useRef<string | null>(null);
   const refreshLinks = () => {
     if (refreshedFor.current === item.id) return;
@@ -57,8 +54,6 @@ export function MediaViewer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onPrev, onNext]);
 
-  // A clip recorded while the helmet was out of signal can arrive days
-  // later; saying so explains why it's only just appeared.
   const arrivedLate =
     item.uploadedAt != null && item.uploadedAt - item.capturedAt > 60 * 60_000;
 
@@ -153,15 +148,11 @@ export function MediaViewer({
               src={signed.url}
               controls
               playsInline
-              // Clips run to ~117 MB, so nothing downloads until the operator
-              // presses play: only enough to show length and the first frame.
+              // Clips run to about 117 MB, so only metadata loads until play.
               preload="metadata"
               className="max-h-[60vh] w-full"
-              // A signed URL can lapse mid-playback on a long recording. One
-              // refetch re-signs it rather than leaving a dead player.
+              // A signed URL can lapse mid-playback; one refetch re-signs it.
               onError={() => {
-                // Signed URL lapsed: re-sign it, or for a list link, reload
-                // the list, which brings fresh links for everything on screen.
                 if (item.url) refreshLinks();
                 else void refetch();
               }}

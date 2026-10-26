@@ -27,19 +27,10 @@ export interface GroupCallState {
   micOn: boolean
   cameraOn: boolean
   noCamera: boolean
-  /** Our audio/video couldn't reach the call room. */
   outgoingFailed: boolean
   startedAt: number | null
 }
 
-/**
- * One group call, from start (or rejoin) to hang-up.
- *
- * Each helmet is its own incoming connection, so one weak signal never
- * affects the others; our microphone goes out once, to the room. Ending
- * always tells the backend, on every way out including the tab closing,
- * because helmets stay in call mode until told otherwise.
- */
 export class GroupCallSession {
   private state: GroupCallState
   private readonly listeners = new Set<() => void>()
@@ -90,7 +81,6 @@ export class GroupCallSession {
     return this.controller.signal
   }
 
-  /** New call with these helmets. */
   async start(deviceIds: string[]): Promise<void> {
     await this.run(async () => {
       this.startSent = true
@@ -98,7 +88,6 @@ export class GroupCallSession {
     })
   }
 
-  /** Back into a call this tab started before a reload. */
   async rejoin(callId: string): Promise<void> {
     await this.run(async () => {
       const call = await getGroupCall(callId)
@@ -113,8 +102,6 @@ export class GroupCallSession {
 
   private async run(open: () => Promise<GroupCall>): Promise<void> {
     try {
-      // Camera and mic first: if the operator refuses, no helmet is put
-      // into call mode.
       const { stream, noCamera } = await getLocalMedia(this.withCamera)
       if (this.signal.aborted) {
         stream.getTracks().forEach((t) => t.stop())
@@ -130,7 +117,6 @@ export class GroupCallSession {
       this.call = call
       activeGroupCall.set(call.callId)
       if (this.signal.aborted) {
-        // Hung up while the request was in flight.
         void stopGroupCall(call.callId)
         activeGroupCall.set(null)
         return
@@ -158,7 +144,6 @@ export class GroupCallSession {
     }
   }
 
-  /** Try a helmet's picture again after it failed. */
   retryHelmet(deviceId: string): void {
     const p = this.state.participants.find((x) => x.deviceId === deviceId)
     if (p?.status === 'failed') void this.connectHelmet(deviceId)
@@ -229,8 +214,6 @@ export class GroupCallSession {
 
     if (this.startSent && this.call) {
       void stopGroupCall(this.call.callId, { unloading })
-      // Kept on a tab close, so the reload can offer to rejoin or end it if
-      // the stop didn't get out; cleared on a deliberate hang-up.
       if (!unloading) activeGroupCall.set(null)
     }
 

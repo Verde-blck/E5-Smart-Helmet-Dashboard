@@ -7,8 +7,6 @@ import { deleteMockMedia, getMockMedia, getMockMediaUrl } from './media.mock'
 import { dayBounds } from '../types'
 import type { MediaItem, MediaKind, MediaQuery, SignedMediaUrl } from '../types'
 
-// --- Photos -------------------------------------------------------------
-
 export interface ApiPhoto {
   id: number
   deviceId: string
@@ -19,9 +17,6 @@ export interface ApiPhoto {
 }
 
 export function toPhoto(api: ApiPhoto): MediaItem {
-  // The backend currently stores a placeholder string where the URL will go,
-  // so anything that isn't an absolute URL is treated as "not uploaded yet"
-  // rather than rendered as a broken image.
   const url = api.imageUrl ?? ''
   const uploaded = /^https?:\/\//i.test(url)
 
@@ -40,24 +35,18 @@ export function toPhoto(api: ApiPhoto): MediaItem {
   }
 }
 
-// --- Videos -------------------------------------------------------------
-
 export interface ApiVideo {
   id: number
   deviceId: string
   videoUrl?: string | null
   fileName?: string | null
   fileSizeBytes?: number | string | null
-  /** Helmet clock, no timezone: "2026-08-31T13:01:52". */
+  // Helmet clock, no timezone.
   recordedAt?: string | null
   recordedDate?: string | null
   uploadedAt?: string | null
 }
 
-/**
- * Fallback for rows without recordedAt. The helmet names each clip after the
- * moment recording started: "20260831130152.mp4" is 31 Aug 2026, 13:01:52.
- */
 function recordedAtFromFileName(fileName?: string | null): number | undefined {
   const m = fileName?.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/)
   if (!m) return undefined
@@ -70,17 +59,12 @@ export function toVideo(api: ApiVideo): MediaItem {
   const uploadedAt = ts(api.uploadedAt)
   const url = api.videoUrl ?? ''
   return {
-    // Prefixed: video and photo ids come from different tables, and both
-    // kinds share one list on the device page.
     id: `v${api.id}`,
     deviceId: api.deviceId,
     deviceName: shortDeviceName(api.deviceId),
     kind: 'video',
-    // Rows only exist once the upload has finished.
     status: /^https?:\/\//i.test(url) ? 'available' : 'failed',
-    // When the helmet recorded it, which can be days before it uploaded.
-    // recordedAt has no timezone, so it parses as local time: the helmet's
-    // clock reading, shown as-is.
+    // No timezone: the helmet's clock reading, shown as-is. Can be days before upload.
     capturedAt: ts(api.recordedAt) ?? recordedAtFromFileName(api.fileName) ?? uploadedAt ?? 0,
     uploadedAt,
     sizeBytes: num(api.fileSizeBytes),
@@ -89,9 +73,6 @@ export function toVideo(api: ApiVideo): MediaItem {
   }
 }
 
-// --- Listing ------------------------------------------------------------
-
-/** Pages are 20 by default; a helmet with a busy week can have hundreds. */
 const PAGE_SIZE = 100
 const MAX_PAGES = 5
 
@@ -115,9 +96,6 @@ const ENDPOINT: Record<MediaKind, { path: string; map: (raw: never) => MediaItem
 export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
   if (env.useMocks) return getMockMedia(query)
 
-  // Both endpoints are per device; there's no fleet-wide list, so "all
-  // devices" fans out one request per helmet. Fine at this fleet size;
-  // worth a GET /api/videos (and /photos) once the fleet grows.
   const deviceIds = query.deviceId
     ? [query.deviceId]
     : (await fetchDevices()).map((d) => d.id)
@@ -128,8 +106,6 @@ export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
       kinds.map((kind) =>
         fetchAllPages<never>(
           `/devices/${id}/${ENDPOINT[kind].path}`,
-          // Videos filter by recording date on the server (inclusive), so a
-          // day with hundreds of clips doesn't page the whole history down.
           kind === 'video' && query.date ? { from: query.date, to: query.date } : {}
         )
           .then((rows) => rows.map(ENDPOINT[kind].map))
@@ -158,14 +134,11 @@ export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
   return items.sort((a, b) => b.capturedAt - a.capturedAt)
 }
 
-// --- Calendar -----------------------------------------------------------
-
 export interface CalendarDay {
   count: number
   totalBytes: number
 }
 
-/** Days in a month (YYYY-MM) that have recordings, keyed by YYYY-MM-DD. */
 export interface VideoCalendar {
   month: string
   totalClips: number
@@ -178,10 +151,6 @@ interface ApiCalendar {
   days?: { date: string; count: number | string; totalBytes?: number | string }[]
 }
 
-/**
- * Which days of a month have clips, by recording date. One call per helmet;
- * for "all devices" it fans out and adds the counts together, like the list.
- */
 export async function fetchVideoCalendar(month: string, deviceId?: string): Promise<VideoCalendar> {
   if (env.useMocks) return mockCalendar(month, deviceId)
 
@@ -224,30 +193,14 @@ function mockCalendar(month: string, deviceId?: string): VideoCalendar {
   return { month, totalClips, days }
 }
 
-/**
- * The storage contract in one function.
- *
- * The browser never holds object-storage credentials and never receives a
- * permanent URL. It asks the backend for a short-lived signed GET at the
- * moment of playback; the backend checks that the object key's tenant prefix
- * matches the caller's session claim before signing. A leaked URL expires on
- * its own, which is the only revocation path you get with object storage.
- *
- * Not used for items that already carry a direct `url` — which today is
- * every live photo and video. Those links are signed by the backend and
- * expire after an hour, so they're never stored; see useMediaList.
- */
+// The browser never holds storage credentials; it asks for a short-lived signed URL at playback.
 export async function fetchMediaUrl(id: string): Promise<SignedMediaUrl> {
   if (env.useMocks) return getMockMediaUrl(id)
   const { data } = await apiClient.get<SignedMediaUrl>(`/media/${id}/url`)
   return data
 }
 
-/**
- * Whether the backend can delete this kind of item. There's no delete
- * endpoint yet (E5 are deciding who may delete), so on the live backend the
- * button is hidden rather than left to fail.
- */
+// No delete endpoint yet, so the button is hidden on the live backend rather than left to fail.
 export function canDeleteMedia(_kind: MediaKind): boolean {
   return env.useMocks
 }

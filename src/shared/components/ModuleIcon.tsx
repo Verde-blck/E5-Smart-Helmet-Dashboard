@@ -12,14 +12,6 @@ export type IconName =
   | 'megaphone'
   | 'wifi'
 
-/**
- * Hand-drawn rather than a library.
- *
- * Eight icons is about sixty lines of path data against ~30KB for an icon
- * package, on a bundle site supervisors may load over mobile data. They
- * inherit currentColor, so they follow the nav's active and hover states
- * without any extra wiring.
- */
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
     <>
@@ -31,7 +23,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
   monitoring: (
     <>
-      {/* A hard hat — the thing being monitored, rather than a generic screen */}
       <path d="M3 17a9 9 0 0 1 18 0" />
       <path d="M9 8.5V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3.5" />
       <line x1="2" y1="17" x2="22" y2="17" />

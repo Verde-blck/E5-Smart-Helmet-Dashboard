@@ -1,25 +1,17 @@
 import { MOCK_URL_PREFIX } from '../api/live.api'
 
-/*
- * WebRTC with the media server (ZLMediaKit), as in the backend guide.
- *
- * The exchange is one HTTP request: the browser POSTs its SDP offer as plain
- * text and gets back { code, sdp }. code 0 means connected; anything else
- * usually means the helmet hasn't started pushing video yet, which is normal
- * for the first 5 to 10 seconds, so callers retry.
- */
+// ZLMediaKit: POST the SDP offer as text, get back { code, sdp }. A non-zero code usually means the
+// helmet isn't pushing yet.
 
 export interface MediaConnection {
-  /** Incoming audio and video. Empty for a send-only connection. */
   stream: MediaStream
   close: () => void
-  /** Called once if the connection drops after it was established. */
   onLost: (callback: () => void) => void
 }
 
 export class NotReadyError extends Error {}
 
-/** Each attempt gives up after this long, so a stalled request can't hang a retry loop. */
+// Bounded so a stalled request can't hang the retry loop.
 const ATTEMPT_TIMEOUT_MS = 8_000
 
 async function exchange(url: string, pc: RTCPeerConnection, signal: AbortSignal): Promise<void> {
@@ -53,7 +45,6 @@ function wrap(pc: RTCPeerConnection, stream: MediaStream): MediaConnection {
   let lost: (() => void) | null = null
   let fired = false
   pc.addEventListener('connectionstatechange', () => {
-    // 'disconnected' often recovers by itself within seconds; 'failed' won't.
     if (pc.connectionState === 'failed' && !fired) {
       fired = true
       lost?.()
@@ -68,7 +59,6 @@ function wrap(pc: RTCPeerConnection, stream: MediaStream): MediaConnection {
   }
 }
 
-/** Receives the helmet's camera and microphone. One attempt; see connectWithRetry. */
 export async function play(watchUrl: string, signal: AbortSignal): Promise<MediaConnection> {
   if (watchUrl.startsWith(MOCK_URL_PREFIX)) return mockPlay(signal)
 
@@ -86,7 +76,6 @@ export async function play(watchUrl: string, signal: AbortSignal): Promise<Media
   }
 }
 
-/** Sends the operator's own camera and microphone, for the helmet to play. */
 export async function push(
   pushUrl: string,
   media: MediaStream,
@@ -107,11 +96,7 @@ export async function push(
   }
 }
 
-/**
- * Repeats an attempt every couple of seconds until it works, the deadline
- * passes, or the session ends. The guide's timing: the stream is ready 5 to
- * 10 seconds after start, so retry every 2 seconds.
- */
+// The stream is ready 5 to 10 s after start, so retry every 2 s.
 export async function connectWithRetry(
   attempt: () => Promise<MediaConnection>,
   signal: AbortSignal,
@@ -133,12 +118,6 @@ export async function connectWithRetry(
   throw lastError ?? new Error('Could not connect')
 }
 
-// --- Mock mode ----------------------------------------------------------
-
-/**
- * A generated test picture, so the player and controls can be exercised
- * without a helmet. Connects after a short delay, like the real thing.
- */
 async function mockPlay(signal: AbortSignal): Promise<MediaConnection> {
   await new Promise((resolve) => setTimeout(resolve, 1_500))
   if (signal.aborted) throw new DOMException('Session ended', 'AbortError')

@@ -51,17 +51,12 @@ function NotFoundPage() {
   )
 }
 
-// Authentication is checked once, on the layout route. Each module then gets
-// exactly one ProtectedRoute keyed by the same module key used in
-// shared/constants/modules.ts. Add a module = one entry here + one there.
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* Authenticated but outside the app shell: no sidebar, nothing to
-          navigate to until the password has been changed. */}
       <Route
         path="/change-password"
         element={
@@ -71,9 +66,6 @@ export function AppRoutes() {
         }
       />
 
-      {/* The company requires two-factor sign-in and this account hasn't
-          set it up: nothing else works until it has. Outside the app shell,
-          like change-password. */}
       <Route
         path="/setup-2fa"
         element={
@@ -83,9 +75,6 @@ export function AppRoutes() {
         }
       />
 
-      {/* The live wall on its own, for a second screen or TV. Outside the
-          app shell so the whole window is video; opened from Monitoring
-          Center → Live wall → Open in new window. */}
       <Route
         path="/wall"
         element={
@@ -202,12 +191,8 @@ export function AppRoutes() {
           }
         />
 
-        {/* Every signed-in user manages their own sign-in security, so this
-            has no ProtectedRoute and no sidebar entry: it's reached from the
-            Security link in the top bar. */}
         <Route path="account/security" element={<SecurityPage />} />
 
-        {/* Both inside the Layout, so there's always a sidebar to escape with. */}
         <Route path="unauthorized" element={<UnauthorizedPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

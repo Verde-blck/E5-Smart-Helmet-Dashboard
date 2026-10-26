@@ -20,10 +20,6 @@ type Mode =
   /** 2FA is on and they're moving it to a new phone: current code first. */
   | { kind: 'new-phone' }
 
-/**
- * Account security: lets the signed-in user turn two-factor authentication on
- * or off for their own account. Available to everyone, so no permission guard.
- */
 export function SecurityPage() {
   const { user } = useAuth()
   const username = user?.username ?? ''
@@ -43,7 +39,6 @@ export function SecurityPage() {
       setMode({ kind: 'setup', setup: await startTwoFactorSetup(username) })
     } catch (err) {
       if (twoFactorRefusal(err) === 'already-enabled') {
-        // It's on after all: moving to a new phone needs the current code.
         setEnabled(true)
         setMode({ kind: 'new-phone' })
         return
@@ -148,8 +143,6 @@ export function SecurityPage() {
   )
 }
 
-// ---------------------------------------------------------------------------
-
 function StatusBadge({ enabled }: { enabled: boolean | null }) {
   const [label, style] =
     enabled === true
@@ -162,11 +155,6 @@ function StatusBadge({ enabled }: { enabled: boolean | null }) {
   )
 }
 
-/**
- * The status comes from how this account last signed in on this browser,
- * because the API has no status endpoint. When we haven't seen it, both
- * actions are offered rather than guessing.
- */
 function IdleActions({
   enabled,
   onEnable,
@@ -352,8 +340,6 @@ function DisableFlow({
   )
 }
 
-// ---------------------------------------------------------------------------
-
 function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <li className="flex gap-3">
@@ -371,7 +357,6 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   )
 }
 
-/** The key in groups of four, which is far easier to type than one long run. */
 function ManualKey({ secret }: { secret: string }) {
   const [copied, setCopied] = useState(false)
   const grouped = secret.replace(/\s+/g, '').match(/.{1,4}/g)?.join(' ') ?? secret
@@ -446,11 +431,6 @@ function SecondaryButton({
   )
 }
 
-/**
- * Moving 2FA to a new phone. The backend needs a code from the current
- * phone before it hands out a new QR code, and the old phone keeps working
- * until the new one is confirmed, so nobody is locked out halfway.
- */
 function NewPhoneFlow({
   username,
   onCancel,

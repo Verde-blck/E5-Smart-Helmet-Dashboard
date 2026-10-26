@@ -7,15 +7,6 @@ import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { useAlarms } from '../hooks/useAlarms'
 import { acknowledge } from '../lib/alarmSound'
 
-/**
- * The app-wide SOS strip, on every page under the top bar, so an operator on
- * Track Playback or Video Record still sees an emergency and can join it
- * without navigating. Alarm Record has its own fuller SOS panel, so the strip
- * steps aside there.
- *
- * Puts "SOS" in the tab title so it shows when the dashboard is behind
- * another window. The ringtone itself is LiveAlarms'.
- */
 export function SosBanner() {
   const { active: rawActive, now } = useAlarms()
   const nameOf = useDeviceNames()
@@ -51,7 +42,6 @@ export function SosBanner() {
           </>
         )}
       </p>
-      {/* Joining is responding, so it silences the ringtone too. */}
       <span onClickCapture={() => sos.forEach((a) => acknowledge(a.id))}>
         <SosCallButton deviceId={latest.deviceId} deviceName={latest.deviceName} />
       </span>
@@ -62,7 +52,6 @@ export function SosBanner() {
   )
 }
 
-/** "(SOS) …" in the tab title while any SOS is open. */
 function useSosTitle(count: number) {
   useEffect(() => {
     if (count === 0) return

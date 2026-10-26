@@ -28,12 +28,10 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Set when the password was right but the account has 2FA on.
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null)
 
   const returnTo = (location.state as { from?: string } | null)?.from ?? '/'
 
-  // Someone already signed in shouldn't be looking at a login form.
   if (isAuthenticated) return <Navigate to={returnTo} replace />
 
   function finish(user: AuthUser) {
@@ -47,8 +45,6 @@ export function LoginPage() {
     <PasswordStep onSignedIn={finish} onNeedsCode={setChallenge} />
   )
 }
-
-// ---------------------------------------------------------------------------
 
 function PasswordStep({
   onSignedIn,
@@ -120,8 +116,6 @@ function PasswordStep({
   )
 }
 
-// ---------------------------------------------------------------------------
-
 function CodeStep({
   challenge,
   onSignedIn,
@@ -143,7 +137,6 @@ function CodeStep({
       onSignedIn(await verifyTwoFactorLogin(challenge, value))
     } catch (err: unknown) {
       setError(codeErrorMessage(statusOf(err)))
-      // Clear it so the next code can be typed straight in.
       setCode('')
       setBusy(false)
     }
@@ -152,7 +145,6 @@ function CodeStep({
   function handleChange(next: string) {
     setCode(next)
     if (error) setError(null)
-    // Submit as soon as the sixth digit lands, including on paste/autofill.
     if (next.length === 6) void verify(next)
   }
 

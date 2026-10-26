@@ -59,7 +59,6 @@ export function ProfilePage() {
   const primary = watch("primary");
   const secondary = watch("secondary");
 
-  
   useEffect(() => {
     if (!canEdit) return;
     if (hex.safeParse(primary).success && hex.safeParse(secondary).success) {
@@ -67,7 +66,6 @@ export function ProfilePage() {
     }
   }, [primary, secondary, canEdit]);
 
-  
   const savedColorsRef = useRef(profile?.colors);
   savedColorsRef.current = profile?.colors;
   const dirtyRef = useRef(false);
@@ -91,7 +89,6 @@ export function ProfilePage() {
     setSaved(false);
     await save.mutateAsync({
       name: values.name.trim(),
-      // An empty field clears the support email on the backend.
       supportEmail: values.supportEmail.trim(),
       colors: { primary: values.primary, secondary: values.secondary },
     });
@@ -110,7 +107,6 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-2xl">
-  
 
       {!canEdit && (
         <p className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">

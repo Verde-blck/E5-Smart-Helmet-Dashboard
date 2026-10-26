@@ -4,7 +4,6 @@ import type { Track, TrackPoint, TrackStats } from '../types'
 
 const EARTH_RADIUS_M = 6_371_000
 
-/** Great-circle distance between two fixes, in metres. */
 export function haversine(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number }
@@ -20,25 +19,11 @@ export function haversine(
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h))
 }
 
-/**
- * GPS noise means a stationary helmet still reports slightly different
- * coordinates each time. Without a floor, a worker standing still for an hour
- * accumulates a few hundred metres of imaginary walking.
- */
+// Without a noise floor, a stationary helmet accumulates hundreds of metres of imaginary walking.
 const NOISE_FLOOR_M = 3
 
-/** A leg longer than this is treated as a coverage gap, not a walk. */
 const GAP_MS = 5 * 60_000
 
-/**
- * Faster than this and the fix is wrong, not fast.
- *
- * 40 m/s is 144 km/h — generous enough to cover a helmet riding in a vehicle
- * on a motorway, and far below anything a bad fix produces. Real devices
- * carry readings from wherever they were tested: this fleet's telemetry
- * contains coordinates in Hunan province alongside its Lagos history, and a
- * single Lagos-to-China leg added eleven thousand kilometres to the total.
- */
 const MAX_PLAUSIBLE_SPEED_MPS = 40
 
 export function buildTrack(
@@ -72,27 +57,19 @@ export function buildTrack(
     if (previous) {
       const legMs = fix.ts - previous.ts
       const raw = haversine(previous, { lat: fix.lat as number, lng: fix.lng as number })
-      // A leg with no elapsed time can't have a speed; treat it as a jump
-      // rather than dividing by zero and producing infinity.
+      // Zero elapsed time: treat as a jump rather than divide by zero.
       const impliedSpeed = legMs > 0 ? raw / (legMs / 1000) : Infinity
 
       if (legMs > GAP_MS) {
-        // Distance isn't counted across a gap: we have no idea what route was
-        // taken, and a straight line through a building would be a lie.
         longestGapMs = Math.max(longestGapMs, legMs)
         segment += 1
       } else if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS) {
-        // The fix is wrong, or the device was somewhere else entirely. Either
-        // way it isn't movement, so it breaks the line and contributes
-        // nothing to the distance.
         impossibleJumps += 1
         segment += 1
       } else if (approximate) {
         // A network or Wi-Fi position can be hundreds of metres off: it stays
         // on the line, but isn't counted as distance walked.
       } else {
-        // A GPS fix after approximate ones is measured from the last GPS fix,
-        // bridging over them, so the real walk is still counted.
         const origin = previous.approximate && lastGps ? lastGps : previous
         const measured = origin === previous ? raw : haversine(origin, { lat: fix.lat as number, lng: fix.lng as number })
         stepMetres = measured < NOISE_FLOOR_M ? 0 : measured
@@ -148,10 +125,6 @@ export function formatDuration(ms: number): string {
   return rest ? `${hours}h ${rest}m` : `${hours}h`
 }
 
-/**
- * One row per fix, so the export can be opened in a spreadsheet or handed to
- * whoever is investigating an incident.
- */
 export function trackToCsv(track: Track, deviceName: string): string {
   const header = [
     'device_id',
@@ -169,7 +142,6 @@ export function trackToCsv(track: Track, deviceName: string): string {
   const rows = track.points.map((p) =>
     [
       track.deviceId,
-      // Quoted in case a device name ever contains a comma.
       `"${deviceName.replace(/"/g, '""')}"`,
       new Date(p.ts).toISOString(),
       p.lat.toFixed(6),
@@ -186,7 +158,6 @@ export function trackToCsv(track: Track, deviceName: string): string {
 }
 
 export function downloadCsv(filename: string, csv: string): void {
-  // Byte-order mark so Excel reads it as UTF-8 rather than mangling accents.
   const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -196,7 +167,6 @@ export function downloadCsv(filename: string, csv: string): void {
   URL.revokeObjectURL(url)
 }
 
-/** Splits a track into its continuous runs, for drawing and for fitting. */
 export function segmentsOf(points: TrackPoint[]): TrackPoint[][] {
   const runs: TrackPoint[][] = []
   for (const point of points) {

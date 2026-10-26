@@ -2,12 +2,6 @@ import { useState } from 'react'
 import { useRegisterDevice } from '../hooks/useDevices'
 import { DEVICE_NAME_MAX } from '../api/devices.api'
 
-/**
- * Device IDs are IMEIs — fifteen digits in practice, but the check is kept
- * loose because the backend doesn't validate at all and a malformed body
- * comes back as a 500 rather than a useful error. Better to catch the obvious
- * mistakes here than to show an operator "Internal Server Error".
- */
 function validate(id: string): string | null {
   const trimmed = id.trim()
   if (!trimmed) return 'Enter the device ID printed on the helmet'
@@ -89,8 +83,6 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
 
       {registered && (
         <p className="mt-2 text-xs text-emerald-700">
-          {/* Registering an existing ID returns it unchanged rather than
-              erroring, so the wording covers both cases honestly. */}
           {registered.name && registered.named ? `${registered.name} (${registered.id})` : `Helmet ${registered.id}`}{' '}
           is registered. It will show as offline until it first reports in.
         </p>

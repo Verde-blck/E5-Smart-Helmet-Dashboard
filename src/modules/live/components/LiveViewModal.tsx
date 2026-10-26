@@ -10,7 +10,6 @@ interface Props {
   onRetry: () => void
   onStartAgain: () => void
   onClose: () => void
-  /** Stops the helmet streaming for every viewer, not just this one. */
   onEndForEveryone: () => Promise<void>
 }
 
@@ -22,7 +21,7 @@ export function LiveViewModal({
   onClose,
   onEndForEveryone,
 }: Props) {
-  // Starts muted: browsers only autoplay video without sound. One click to unmute.
+  // Starts muted: browsers only autoplay video without sound.
   const [muted, setMuted] = useState(true)
   const onBlocked = useCallback(() => setMuted(true), [])
   const live = state.status === 'live'
@@ -121,7 +120,6 @@ export function LiveViewModal({
 }
 
 export function StatusPill({ status }: { status: SessionState['status'] }) {
-  // Teal, not red: red on this dashboard means an alarm.
   if (status === 'live') {
     return (
       <span className="flex items-center gap-1.5 rounded-full bg-[#0A6659] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide">

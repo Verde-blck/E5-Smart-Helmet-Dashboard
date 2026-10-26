@@ -5,11 +5,6 @@ import { expandPermissions } from '@/modules/users/lib/permissions'
 
 const fromCodes = (codes: string[]) => expandPermissions(codes) as Permission[]
 
-// Tenant + user fixtures for VITE_USE_MOCKS=true. Device fixtures live with
-// the module that owns them, in modules/devices/api/devices.mock.ts — shared/
-// shouldn't carry a domain type, and the Device interface was previously
-// declared in both places and free to drift.
-
 export const mockTenant: TenantConfig = {
   id: 'tenant-demo',
   name: 'Acme Construction',
@@ -30,10 +25,6 @@ export const mockAdmin: AuthUser = {
   scope: { allSites: true, sites: [] },
 }
 
-// A second administrator with fewer permissions — the FRD asks for a
-// "role-based access foundation", not for site staff to sign in. Use OP-014
-// with mocks on to exercise it: the sidebar drops to two entries and the
-// landing redirect sends them to /devices rather than a dead-end screen.
 export const mockOperator: AuthUser = {
   id: 'user-2',
   username: 'OP-014',
@@ -46,7 +37,6 @@ export const mockOperator: AuthUser = {
   scope: { allSites: true, sites: [] },
 }
 
-// Sign in as VIEW-001 for the demo case: Dashboard and Track Playback only.
 export const mockViewer: AuthUser = {
   id: 'user-3',
   username: 'VIEW-001',
@@ -58,7 +48,6 @@ export const mockViewer: AuthUser = {
   scope: { allSites: true, sites: [] },
 }
 
-// Sign in as NEW-001 to exercise the forced-change-on-first-login flow.
 export const mockNewStarter: AuthUser = {
   id: 'user-5',
   username: 'NEW-001',
@@ -74,7 +63,6 @@ export function mockUserFor(username: string): AuthUser {
   const id = username.trim().toUpperCase()
   if (id.startsWith('OP')) return mockOperator
   if (id.startsWith('VIEW')) return mockViewer
-  // SETUP-001: the company requires 2FA and this account hasn't set it up.
   if (id.startsWith('SETUP')) return { ...mockAdmin, id: 'user-9', username: 'SETUP-001', name: 'New supervisor', mustSetup2fa: true }
   if (id.startsWith('NEW')) return mockNewStarter
   return mockAdmin

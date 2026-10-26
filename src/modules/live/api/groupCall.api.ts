@@ -3,21 +3,10 @@ import { env } from '@/config/env'
 import { tokenStore } from '@/shared/lib/token'
 import { MOCK_URL_PREFIX } from './live.api'
 
-/*
- * Group video calls (beta): several helmets and the dashboard user in one
- * call room. From the backend's guide of 13 Oct 2026.
- *
- * Built to the same protocol as the one-to-one call, but whether the helmet
- * app shows and plays several other participants hasn't been confirmed on
- * real hardware yet (there's only one test helmet). Hence "beta" in the UI.
- */
-
-/** The backend's limit per call. */
 export const GROUP_CALL_MAX = 8
 
 export interface GroupCallHelmet {
   deviceId: string
-  /** false: offline. Calls aren't queued, so it won't join later. */
   delivered: boolean
   watchUrl: string
 }
@@ -25,7 +14,6 @@ export interface GroupCallHelmet {
 export interface GroupCall {
   callId: string
   helmets: GroupCallHelmet[]
-  /** Where our microphone (and camera) goes, for every helmet to play. */
   adminPushUrl: string
 }
 
@@ -48,7 +36,6 @@ function toGroupCall(data: ApiGroupCall | null | undefined): GroupCall {
   }
 }
 
-// Mock calls live as long as the page; the last one is reported back on GET.
 const mockCalls = new Map<string, GroupCall>()
 
 export async function startGroupCall(deviceIds: string[]): Promise<GroupCall> {
@@ -57,7 +44,6 @@ export async function startGroupCall(deviceIds: string[]): Promise<GroupCall> {
     const callId = `mock${Date.now().toString(36)}`
     const call: GroupCall = {
       callId,
-      // The last helmet of three or more is "offline", to show that state.
       helmets: deviceIds.map((deviceId, i) => ({
         deviceId,
         delivered: !(deviceIds.length >= 3 && i === deviceIds.length - 1),
@@ -74,10 +60,6 @@ export async function startGroupCall(deviceIds: string[]): Promise<GroupCall> {
   return toGroupCall(data)
 }
 
-/**
- * The call's details again, for rejoining after a page reload. Null when the
- * call no longer exists (404), e.g. after a backend restart.
- */
 export async function getGroupCall(callId: string): Promise<GroupCall | null> {
   if (env.useMocks) return mockCalls.get(callId) ?? null
   try {
@@ -89,10 +71,7 @@ export async function getGroupCall(callId: string): Promise<GroupCall | null> {
   }
 }
 
-/**
- * Ends the call on every helmet. Sent on every way out, including the tab
- * closing, using keepalive because sendBeacon can't send the auth header.
- */
+// keepalive, because sendBeacon can't send the auth header.
 export function stopGroupCall(
   callId: string,
   { unloading = false }: { unloading?: boolean } = {}
@@ -120,11 +99,6 @@ export function stopGroupCall(
   )
 }
 
-/**
- * The call this browser started, so a reload can offer to rejoin or end it
- * rather than leaving helmets stuck in a call nobody can see. Per tab
- * (sessionStorage), so another tab doesn't pick it up.
- */
 const ACTIVE_KEY = 'e5.groupCall'
 
 export const activeGroupCall = {

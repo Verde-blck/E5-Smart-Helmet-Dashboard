@@ -11,12 +11,6 @@ const PRESENCE_DOT = {
   offline: 'bg-slate-300',
 } as const
 
-/**
- * Wi-Fi: move a helmet onto a site or office network from the dashboard,
- * replacing the vendor's Anlink app. Laid out like Unit Setting: pick a
- * helmet on the left, manage it on the right. ?device=<id> preselects one,
- * which is how the helmet's own page links here.
- */
 export function WifiPage() {
   const { devices, isLoading } = useDevices()
   const [params, setParams] = useSearchParams()
@@ -28,7 +22,6 @@ export function WifiPage() {
     const list = needle
       ? devices.filter((d) => d.name.toLowerCase().includes(needle) || d.id.includes(needle))
       : devices
-    // Online first: those are the helmets this page can actually act on.
     const rank = { online: 0, degraded: 1, offline: 2 } as const
     return [...list].sort((a, b) => rank[a.presence] - rank[b.presence])
   }, [devices, search])
@@ -112,7 +105,6 @@ export function WifiPage() {
                 )}
               </div>
               <ConnectionCard key={`c-${selected.id}`} device={selected} />
-              {/* Keyed on the helmet so switching resets the scan and password. */}
               <WifiPanel key={selected.id} device={selected} />
             </>
           )}

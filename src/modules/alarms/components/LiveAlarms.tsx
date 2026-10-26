@@ -25,22 +25,12 @@ interface Toast {
   until: number
 }
 
-/**
- * Alarms as they happen, on every page: keeps the alarm list current from
- * the backend's stream, rings for critical alarms until someone responds,
- * chimes and shows a notification for the rest.
- *
- * Mounted once, in the layout. Everyone signed in gets it, whatever their
- * role: the backend sends each user only the alarms for their helmets.
- */
 export function LiveAlarms() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
   const navigate = useNavigate()
   const nameOf = useDeviceNames()
   const [toasts, setToasts] = useState<Toast[]>([])
-  // The alarms that are ringing, kept here rather than looked up in the list:
-  // a sound must never play without its strip and Silence button showing.
   const ringingRef = useRef(new Map<string, Alarm>())
   const [now, setNow] = useState(Date.now())
   const ringing = useSyncExternalStore(subscribeSound, ringingIds)
@@ -49,7 +39,6 @@ export function LiveAlarms() {
   const keyRef = useRef(key)
   keyRef.current = key
 
-  // Sound is allowed after the first click or key press anywhere.
   useEffect(() => installSoundUnlock(), [])
 
   useEffect(() => {
@@ -64,7 +53,6 @@ export function LiveAlarms() {
             isNew = true
             return [alarm, ...prev]
           })
-          // Not loaded yet: load it, and treat the alarm as new.
           if (!queryClient.getQueryData(keyRef.current)) {
             isNew = true
             void queryClient.invalidateQueries({ queryKey: keyRef.current })
@@ -99,7 +87,6 @@ export function LiveAlarms() {
     }
   }, [queryClient])
 
-  // Expire notifications, and keep "x seconds ago" fresh while ringing.
   useEffect(() => {
     if (toasts.length === 0 && ringing.length === 0) return
     const id = setInterval(() => {

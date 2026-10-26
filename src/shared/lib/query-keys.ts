@@ -1,10 +1,4 @@
-/**
- * All query keys in one place, every one scoped by tenant.
- *
- * The tenant prefix is what makes `removeQueries({ queryKey: qk.tenant(id) })`
- * a complete cache teardown on tenant switch or logout, and it's what lets the
- * socket router invalidate precisely instead of nuking ['devices'].
- */
+// The tenant prefix makes removeQueries(qk.tenant(id)) a complete teardown on sign-out.
 export const qk = {
   tenant: (t: string) => ['tenant', t] as const,
   profile: (t: string) => ['tenant', t, 'profile'] as const,
@@ -22,18 +16,10 @@ export const qk = {
   },
   media: {
     all: (t: string) => ['tenant', t, 'media'] as const,
-    /**
-     * Filters live in the key, so switching date or device is a separate
-     * cache entry rather than a refetch that discards the previous view.
-     * React Query hashes the object deterministically, and it still sits
-     * under media.all() for invalidation.
-     */
     list: (t: string, query: Record<string, unknown>) =>
       ['tenant', t, 'media', query] as const,
-    // Signed URLs are cached separately from the list so they can expire on
-    // their own schedule without invalidating the gallery.
+    // Cached apart from the list so they expire on their own schedule.
     url: (t: string, id: string) => ['tenant', t, 'media', 'url', id] as const,
-    /** Days with recordings in one month; deviceId null means the whole fleet. */
     calendar: (t: string, deviceId: string | null, month: string) =>
       ['tenant', t, 'media', 'calendar', deviceId, month] as const,
   },

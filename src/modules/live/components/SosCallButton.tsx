@@ -3,15 +3,7 @@ import { useHelmetSession } from '../hooks/useHelmetSession'
 import { CallModal } from './CallModal'
 import { PhoneIcon } from './icons'
 
-/**
- * For manual_sos_button alarms. Holding SOS puts the helmet straight into a
- * video call room and it starts sending video, so the control room only has
- * to join: the normal one-to-one call, started immediately with no "video or
- * voice?" step, because seconds matter here.
- *
- * Hanging up sends webrtc-call/stop. Until then the helmet keeps streaming;
- * the server doesn't stop a helmet that's in a call.
- */
+// Joins immediately with no video-or-voice step: seconds matter.
 export function SosCallButton({
   deviceId,
   deviceName,
@@ -31,9 +23,6 @@ export function SosCallButton({
     begin('call', { withCamera: true })
   }
 
-  // No permission check: anyone signed in can answer an open SOS, so
-  // whoever is at the screen can respond. The backend allows it for helmets
-  // with an SOS from the last 30 minutes.
   return (
     <>
       <button

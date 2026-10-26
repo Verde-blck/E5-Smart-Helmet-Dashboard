@@ -29,14 +29,11 @@ export async function fetchMessages(deviceId: string): Promise<VoiceMessage[]> {
   const { data } = await apiClient.get<Page<ApiMessage>>(`/devices/${deviceId}/messages`, {
     params: { page: 0, size: 50 },
   })
-  // The API returns newest first; a conversation reads oldest at the top.
   return pageContent(data)
     .map(toMessage)
     .sort((a, b) => a.createdAt - b.createdAt)
 }
 
-
-/** Names the upload by what it actually is: recordings are MP3 now. */
 function asFile(file: Blob): File {
   if (file instanceof File) return file
   const mp3 = file.type === 'audio/mpeg' || file.type === 'audio/mp3'
@@ -45,14 +42,6 @@ function asFile(file: Blob): File {
   })
 }
 
-/**
- * Walkie-talkie: one clip, played on every chosen helmet. One request rather
- * than one per helmet, and the backend reports each helmet's outcome.
- * Offline helmets get it queued, and it plays when they reconnect.
- *
- * deviceIds is always sent explicitly: leaving it out would send to every
- * active helmet in the fleet, which is never what a selection means.
- */
 export async function sendBroadcast(deviceIds: string[], file: Blob): Promise<BroadcastDelivery[]> {
   if (env.useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 600))

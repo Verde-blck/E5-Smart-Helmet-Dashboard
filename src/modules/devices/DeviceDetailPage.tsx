@@ -27,12 +27,6 @@ const PRESENCE_LABEL = {
 
 const boolLabel = (v: boolean) => (v ? 'Yes' : 'No')
 
-/**
- * Rows are built from what the helmet actually reported, not from a fixed
- * template. FRD §4 Real-Time Monitoring qualifies nearly every field with
- * "where available", so a firmware that doesn't expose altitude should show no
- * altitude row — not "Altitude: 0 m", which reads as ground level.
- */
 function telemetryRows(t: Telemetry): Array<[string, string]> {
   const rows: Array<[string, string]> = []
   const push = (label: string, value: string | null) => {
@@ -42,8 +36,6 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
   push('Battery', t.batteryPercent != null ? `${t.batteryPercent}%` : null)
   push('Battery voltage', t.batteryVoltage != null ? `${t.batteryVoltage.toFixed(2)} V` : null)
   push('Charging', t.isCharging != null ? boolLabel(t.isCharging) : null)
-  // Unknown when the helmet is offline or hasn't reported, so a disconnected
-  // helmet never shows as worn.
   push('Worn', t.isWorn != null ? boolLabel(t.isWorn) : 'Unknown')
   push('Recording', t.isRecording != null ? boolLabel(t.isRecording) : null)
   push(
@@ -57,7 +49,6 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
   push('Carrier', t.carrier ?? null)
   const signal = signalQuality(t.signalStrength)
   push('Signal', signal ? `${signal.label} (${signal.detail})` : null)
-  // How far to trust the position: GPS, or approximate from the network.
   push('Location', locationQuality(t)?.label ?? null)
   push(
     'SIM',
@@ -76,14 +67,9 @@ function telemetryRows(t: Telemetry): Array<[string, string]> {
 export function DeviceDetailPage() {
   const { id = '' } = useParams()
   const { device, outOfScope, now, isLoading, isError } = useDevice(id)
-  // Both kinds for this helmet, newest first, trimmed to a strip.
   const { media } = useMediaList({ deviceId: id })
   const setActive = useSetDeviceActive()
 
-  // Gas only arrives on telemetry rows, not on the device record, so the most
-  // recent sample is the current reading. Worth asking the backend to include
-  // it on GET /devices — without it there's no way to flag gas across the
-  // fleet without one request per helmet.
   const { window: recent } = useDeviceHistory(id, '1h')
   const latestSample = recent?.samples[recent.samples.length - 1]
   const gasReadings = device?.telemetry.gas ?? latestSample?.gas
@@ -122,8 +108,6 @@ export function DeviceDetailPage() {
             Deactivated
           </span>
         )}
-        {/* Pushes the action buttons to the right, and onto their own line
-            on a phone rather than squeezing the name. */}
         <span className="ml-auto" />
         <LiveControls device={device} />
         <Can perm="groupCall:write">
@@ -163,9 +147,6 @@ export function DeviceDetailPage() {
           <dd className="uppercase text-slate-800">{device.connectivity}</dd>
           <dt className="text-slate-500">Last seen</dt>
           <dd className="text-slate-800">{formatLastSeen(device.lastSeenAt, now)}</dd>
-          {/* Comes from the device record, not from a dashboard account —
-              the person wearing this helmet never signs in here. It's what
-              turns an SOS from a device ID into a person to call. */}
           <dt className="text-slate-500">Worn by</dt>
           <dd className="text-slate-800">
             <WornBy device={device} />

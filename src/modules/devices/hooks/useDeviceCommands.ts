@@ -23,8 +23,6 @@ export function useDeviceCommands(deviceId: string) {
       setFeedback({
         command,
         ok: true,
-        // Deliberately not "photo taken": the helmet has the instruction, which
-        // isn't the same as having carried it out.
         message: `${COMMAND_LABELS[command]} ${
           delivered === false
             ? 'queued. The helmet is offline and will receive it when it reconnects.'

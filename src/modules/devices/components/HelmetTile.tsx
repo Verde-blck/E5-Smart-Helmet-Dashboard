@@ -19,14 +19,6 @@ const PRESENCE_LABEL: Record<Presence, string> = {
   offline: 'Offline',
 }
 
-/**
- * Drawn rather than photographed.
- *
- * The vendor's console shows a photo of a helmet in each tile, which looks
- * the part but carries no information — every tile is identical. An outline
- * that takes the device's own status as its colour says the same thing and
- * also tells you which helmet is in trouble from across the room.
- */
 function HelmetGlyph({ presence, className }: { presence: Presence; className?: string }) {
   return (
     <svg viewBox="0 0 96 64" className={className} aria-hidden="true">
@@ -42,7 +34,6 @@ function HelmetGlyph({ presence, className }: { presence: Presence; className?: 
         strokeLinecap="round"
         className={SHELL[presence]}
       />
-      {/* Brim */}
       <line
         x1="4"
         y1="50"
@@ -53,14 +44,12 @@ function HelmetGlyph({ presence, className }: { presence: Presence; className?: 
         strokeLinecap="round"
         className={SHELL[presence]}
       />
-      {/* Crown ribs */}
       <path
         d="M34 18v32M62 18v32"
         stroke="currentColor"
         strokeWidth={1.5}
         className={`${SHELL[presence]} opacity-50`}
       />
-      {/* Camera housing — this is a body-worn camera helmet */}
       <rect
         x="70"
         y="36"
@@ -81,8 +70,7 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
   const gasLevel = worstLevel(gas)
   const gasAlarming = gasLevel === 'danger' || gasLevel === 'warning'
   const battery = device.telemetry.batteryPercent
-  // Only meaningful while connected: an offline helmet's last reading is
-  // stale, so it shows no bars rather than a strength it no longer has.
+  // An offline helmet's last reading is stale, so it shows no bars.
   const connected = device.presence !== 'offline'
   const signal = connected ? signalQuality(device.telemetry.signalStrength) : null
 
@@ -100,11 +88,9 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
       <div className="mb-2 flex items-start justify-between gap-2">
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium text-slate-800">{device.name}</span>
-          {/* The ID under the name; an unnamed helmet's "name" already is it. */}
           {device.named !== false && (
             <span className="block truncate font-mono text-[10px] text-slate-400">{device.id}</span>
           )}
-          {/* Who wears it, so an alarm on this tile is a person, not a number. */}
           {device.assignedTo && (
             <span className="block truncate text-[11px] text-slate-600">{device.assignedTo.name}</span>
           )}
@@ -143,7 +129,6 @@ export function HelmetTile({ device, now }: { device: DeviceView; now: number })
                 label={signal ? `Signal: ${signal.label} (${signal.detail})` : 'Signal: not reported'}
               />
               <span className="hidden text-[10px] sm:inline">
-                {/* Wi-Fi or 4G: the helmet switches by itself. */}
                 {device.telemetry.networkType ? `${device.telemetry.networkType} · ` : ''}
                 {signal?.label ?? '—'}
               </span>

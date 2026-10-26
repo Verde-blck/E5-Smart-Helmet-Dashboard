@@ -5,12 +5,12 @@ import type { MediaConnection } from './webrtc'
 import { getLocalMedia } from './localMedia'
 
 export type SessionStatus =
-  | 'requesting-media' // call only: waiting for camera/mic permission
-  | 'starting' // asking the backend to start the helmet
-  | 'connecting' // helmet told; waiting for its first picture (5–10 s)
+  | 'requesting-media'
+  | 'starting'
+  | 'connecting'
   | 'live'
-  | 'reconnecting' // picture dropped; trying to get it back
-  | 'offline' // helmet didn't receive the start command
+  | 'reconnecting'
+  | 'offline'
   | 'failed'
   | 'ended'
 
@@ -18,15 +18,11 @@ export interface SessionState {
   status: SessionStatus
   error: string | null
   remoteStream: MediaStream | null
-  /** Call only: the operator's own camera, for the self-view. */
   localStream: MediaStream | null
   micOn: boolean
   cameraOn: boolean
-  /** Call only: the camera was wanted but none was found, so it's voice. */
   noCamera: boolean
-  /** Call only: our audio/video couldn't reach the helmet. */
   outgoingFailed: boolean
-  /** When the picture first arrived, for the call timer. */
   liveSince: number | null
 }
 
@@ -42,19 +38,7 @@ const INITIAL: SessionState = {
   liveSince: null,
 }
 
-/**
- * One live view or one call with one helmet, from start to hang-up.
- *
- * A plain object rather than React state, because its lifetime is the
- * session's, not a component's.
- *
- * Ending works differently for the two modes, as the backend specifies:
- * - Live view: end() only closes this browser's connection. Others may be
- *   watching the same helmet, and the media server stops the helmet itself
- *   about 20 seconds after the last viewer leaves.
- * - Call: end() also takes the helmet out of call mode, on every way out,
- *   including the tab closing mid-call.
- */
+// A plain object, not React state: its lifetime is the session's, not a component's.
 export class HelmetSession {
   private state: SessionState
   private readonly listeners = new Set<() => void>()
@@ -67,7 +51,6 @@ export class HelmetSession {
   constructor(
     readonly deviceId: string,
     readonly mode: SessionMode,
-    /** Call only: false for a voice call. */
     private readonly withCamera = true
   ) {
     this.state = {
@@ -75,12 +58,8 @@ export class HelmetSession {
       status: mode === 'call' ? 'requesting-media' : 'starting',
       cameraOn: mode === 'call' && withCamera,
     }
-    // A closing tab drops the connection by itself; only a call has
-    // something to tell the backend.
     if (mode === 'call') window.addEventListener('pagehide', this.onPageHide)
   }
-
-  // --- For useSyncExternalStore -----------------------------------------
 
   getState = (): SessionState => this.state
 
@@ -99,34 +78,24 @@ export class HelmetSession {
     return this.controller.signal
   }
 
-  // --- Lifecycle --------------------------------------------------------
-
   async start(): Promise<void> {
     try {
       let local: MediaStream | null = null
       if (this.mode === 'call') {
-        // Ask for the camera and mic before touching the helmet: if the
-        // operator refuses, the helmet never gets put into call mode.
         local = await this.getLocalMedia()
         if (this.signal.aborted) return
         this.set({ localStream: local, status: 'starting' })
       }
 
-      // Marked before the request goes out, so a call ended mid-request
-      // still takes the helmet out of call mode.
       this.startSent = true
       const call = this.mode === 'call' ? await startCall(this.deviceId) : null
       const started = call ?? (await startLive(this.deviceId))
 
       if (this.signal.aborted) {
-        // Hung up while the start request was in flight; make sure the stop
-        // lands after the start.
         if (this.mode === 'call') void stopCall(this.deviceId)
         return
       }
       if (!started.delivered) {
-        // Offline. Live view and call commands aren't queued, so nothing
-        // will happen later; the operator can try again once it's online.
         this.set({ status: 'offline' })
         return
       }
@@ -144,7 +113,6 @@ export class HelmetSession {
     }
   }
 
-  /** After a failed connection: try to get the picture again without re-sending start. */
   retry(): void {
     if (this.state.status !== 'failed' || !this.watchUrl) return
     this.set({ error: null })
@@ -160,10 +128,9 @@ export class HelmetSession {
 
     this.remote?.close()
     this.outgoing?.close()
-    // Turns the camera light off; leaving tracks running keeps the camera on.
+    // Stopping the tracks turns the camera light off.
     this.state.localStream?.getTracks().forEach((t) => t.stop())
 
-    // Live view sends nothing: see the class comment.
     if (this.mode === 'call' && this.startSent) void stopCall(this.deviceId, { unloading })
 
     this.state = { ...this.state, status: 'ended', remoteStream: null, localStream: null }
@@ -171,8 +138,6 @@ export class HelmetSession {
   }
 
   private onPageHide = () => this.end({ unloading: true })
-
-  // --- Connections ------------------------------------------------------
 
   private async connectRemote(): Promise<void> {
     const reconnecting = this.state.liveSince !== null
@@ -220,15 +185,13 @@ export class HelmetSession {
     }
   }
 
-  // --- Call controls ----------------------------------------------------
-
   toggleMic(): void {
     const next = !this.state.micOn
     this.state.localStream?.getAudioTracks().forEach((t) => (t.enabled = next))
     this.set({ micOn: next })
   }
 
-  /** Off sends black frames rather than renegotiating, so it's instant both ways. */
+  // Disabling sends black frames instead of renegotiating, so it's instant both ways.
   toggleCamera(): void {
     if (this.state.noCamera || !this.withCamera) return
     const next = !this.state.cameraOn
@@ -243,7 +206,6 @@ export class HelmetSession {
   }
 }
 
-/** A sentence an operator can act on, for anything that can go wrong. */
 export function describe(error: unknown): string {
   const name = (error as { name?: string })?.name
   if (name === 'NotAllowedError') {

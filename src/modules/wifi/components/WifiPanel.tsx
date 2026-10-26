@@ -15,11 +15,6 @@ type Phase =
 
 const SIGNAL_LABEL = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong']
 
-/**
- * Moves a helmet onto another Wi-Fi network from the dashboard, replacing the
- * Anlink app. Scan, pick a network, enter its password; the helmet switches,
- * drops offline for a few seconds and comes back on the new network.
- */
 export function WifiPanel({ device }: { device: DeviceView }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
   const [chosen, setChosen] = useState<WifiNetwork | null>(null)
@@ -29,10 +24,8 @@ export function WifiPanel({ device }: { device: DeviceView }) {
   const [now, setNow] = useState(Date.now())
   const abort = useRef<AbortController | null>(null)
 
-  // Stop polling if the operator leaves the page mid-scan.
   useEffect(() => () => abort.current?.abort(), [])
 
-  // Ticks only while waiting for the helmet to come back.
   useEffect(() => {
     if (phase.kind !== 'switching') return
     const id = setInterval(() => setNow(Date.now()), 1000)
@@ -171,7 +164,6 @@ export function WifiPanel({ device }: { device: DeviceView }) {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                // Stops the browser offering the dashboard's own saved login here.
                 autoComplete="new-password"
                 spellCheck={false}
                 className="min-w-0 flex-1 rounded border border-slate-300 px-2.5 py-1.5 text-sm"

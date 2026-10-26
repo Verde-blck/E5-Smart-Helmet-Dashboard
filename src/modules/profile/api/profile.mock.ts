@@ -1,7 +1,6 @@
 import { mockTenant } from '@/shared/lib/mock-data'
 import type { TenantProfile } from '../types'
 
-// Mutable so edits survive within a session, the way a saved profile would.
 let profile: TenantProfile = {
   id: mockTenant.id,
   name: mockTenant.name,
@@ -23,7 +22,6 @@ export function updateMockProfile(patch: Partial<TenantProfile>): TenantProfile 
   return getMockProfile()
 }
 
-/** Mocks keep the logo as a data URL; the real backend returns a stored URL. */
 export async function uploadMockLogo(file: File): Promise<{ logoUrl: string }> {
   const logoUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()

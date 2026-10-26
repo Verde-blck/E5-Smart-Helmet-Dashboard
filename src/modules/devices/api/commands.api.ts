@@ -16,16 +16,6 @@ export const COMMAND_LABELS: Record<DeviceCommand, string> = {
   'flashlight-off': 'Flashlight off',
 }
 
-/**
- * Sends an instruction to a helmet.
- *
- * The backend says whether the helmet received it there and then
- * (`delivered: true`) or queued it because the helmet is offline
- * (`delivered: false`, sent when it next connects). Either way the response
- * means "accepted", not "done": a recording only appears in Video Record once
- * the helmet uploads it. `delivered` is undefined for endpoints that don't
- * report it.
- */
 export async function sendCommand(
   deviceId: string,
   command: DeviceCommand

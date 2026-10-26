@@ -83,8 +83,6 @@ export function MediaGrid({ items, onDelete, emptyMessage = 'Nothing captured ye
                 <p className="truncate text-xs font-medium text-slate-700">{item.deviceName}</p>
                 <p className="text-[11px] text-slate-400">
                   {formatLastSeen(item.capturedAt, now)}
-                  {/* Captured long before it arrived — the helmet was offline.
-                      Without this the gallery looks like it's reordering itself. */}
                   {arrivedLate && <span className="ml-1 text-amber-600">· late upload</span>}
                 </p>
               </div>

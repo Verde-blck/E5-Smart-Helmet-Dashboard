@@ -19,9 +19,6 @@ export function ConnectionBadge() {
   const state = useConnectionStore((s) => s.state)
   const { dataUpdatedAt, now, isError } = useDevices()
 
-  // With no dashboard socket, "connected" means the last poll succeeded.
-  // Showing when data last arrived is more honest than a green dot that only
-  // means a socket is open.
   if (!features.realtimeSocket) {
     const stale = isError || (dataUpdatedAt > 0 && now - dataUpdatedAt > features.pollIntervalMs * 3)
     return (
@@ -51,8 +48,6 @@ export function ConnectionBadge() {
       }
     >
       <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`} />
-      {/* Dot only on narrow screens; the title attribute still carries the
-          state, and the topbar has four other things competing for 375px. */}
       <span className="hidden sm:inline">{style.label}</span>
       {env.useMocks && state === 'live' && <span className="text-slate-400">(mock)</span>}
     </span>

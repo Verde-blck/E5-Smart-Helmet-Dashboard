@@ -30,8 +30,6 @@ function ColorField({
           className="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-white disabled:cursor-default"
           aria-label={`${label} colour picker`}
         />
-        {/* Hex field alongside the picker, because brand guidelines arrive as
-            hex codes and nobody can find #0F766E by dragging a swatch. */}
         <input
           type="text"
           value={value}

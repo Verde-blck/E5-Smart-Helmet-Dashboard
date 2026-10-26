@@ -1,6 +1,6 @@
 import type { TelemetrySample } from '@/modules/devices/types'
 
-/** Seeded so a given helmet walks the same route every time it's replayed. */
+// Seeded so a helmet walks the same route every replay.
 function mulberry32(seed: number) {
   let state = seed
   return () => {
@@ -20,15 +20,7 @@ function seedFor(id: string): number {
 
 const STEP_MS = 60_000
 
-/**
- * A plausible walk rather than scattered coordinates.
- *
- * The device mocks jitter lat/lng independently per sample, which is fine for
- * a single position on a map but replays as noise — the helmet appears to
- * teleport around the site. Here the heading carries over between steps and
- * turns gradually, with occasional stationary stretches, so the result reads
- * as someone moving around a site and stopping to work.
- */
+// The heading carries over between samples, so a replay looks like a walk rather than teleporting.
 export function getMockTrackSamples(
   deviceId: string,
   from: number,
@@ -42,18 +34,14 @@ export function getMockTrackSamples(
   let heading = rand() * Math.PI * 2
   let battery = 96
 
-  // Cap the work: a long range at one-minute steps is a lot of points, and
-  // the real endpoint would be paginated anyway.
   const steps = Math.min(Math.floor((to - from) / STEP_MS), 1500)
 
   for (let i = 0; i < steps; i += 1) {
     const ts = from + i * STEP_MS
 
-    // Stationary roughly one step in six — working rather than walking.
     const moving = rand() > 0.16
     if (moving) {
       heading += (rand() - 0.5) * 0.8
-      // Around 1.2 m/s, expressed in degrees at this latitude.
       const metres = 50 + rand() * 40
       lat += (metres / 111_320) * Math.cos(heading)
       lng += (metres / (111_320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(heading)

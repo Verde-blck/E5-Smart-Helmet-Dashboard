@@ -1,14 +1,6 @@
 import { usePermission } from '@/shared/hooks/usePermission'
 import type { Permission } from '@/shared/constants/modules'
 
-/**
- * Conditional rendering for anything below route level — action buttons,
- * menu entries, table columns.
- *
- *   <Can perm="videos:delete">
- *     <button onClick={onDelete}>Delete recording</button>
- *   </Can>
- */
 export function Can({
   perm,
   children,

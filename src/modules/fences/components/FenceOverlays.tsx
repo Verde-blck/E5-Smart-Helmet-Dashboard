@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Fence, FenceDraft } from '../types'
 
-/** Work areas in the brand teal; no-entry zones in amber. Red stays for alarms. */
 function styleFor(fence: Pick<Fence, 'behavior' | 'active'>, dimmed: boolean) {
   if (!fence.active) {
     return { strokeColor: '#94a3b8', fillColor: '#94a3b8', fillOpacity: 0.06, strokeOpacity: 0.7 }
@@ -15,10 +14,6 @@ function styleFor(fence: Pick<Fence, 'behavior' | 'active'>, dimmed: boolean) {
   }
 }
 
-/**
- * Saved fences, drawn under the helmet pins. Rebuilt when the list changes,
- * which only happens on a save, so there's nothing to reconcile.
- */
 export function FenceShapes({
   map,
   fences,
@@ -28,9 +23,7 @@ export function FenceShapes({
 }: {
   map: google.maps.Map
   fences: Fence[]
-  /** The fence being edited, drawn by DrawLayer instead. */
   hiddenId?: number
-  /** While editing, other fences fade and stop taking clicks. */
   dimmed: boolean
   onSelect?: (id: number) => void
 }) {
@@ -63,12 +56,7 @@ export function FenceShapes({
 
 const near = (a: number, b: number) => Math.abs(a - b) < 1e-9
 
-/**
- * The fence being drawn. Clicks on the map place the circle's centre or add
- * polygon corners; the shape is editable, so corners and the circle's edge
- * can be dragged. Changes flow back through onChange; changes from the form
- * (typing a radius) flow in, without echoing back.
- */
+// Form changes flow in without echoing back to the map.
 export function DrawLayer({
   map,
   draft,
@@ -85,7 +73,6 @@ export function DrawLayer({
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
-  // Crosshair while drawing, and clicks that build the shape.
   useEffect(() => {
     map.setOptions({ draggableCursor: 'crosshair' })
     const listener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
@@ -93,7 +80,6 @@ export function DrawLayer({
       const point = { lat: e.latLng.lat(), lng: e.latLng.lng() }
       const d = draftRef.current
       if (d.type === 'ROUND') {
-        // The first click places it; after that, drag it.
         if (!d.center) onChangeRef.current({ center: point })
       } else {
         onChangeRef.current({ points: [...d.points, point] })
@@ -114,7 +100,6 @@ export function DrawLayer({
     zIndex: 2,
   }
 
-  // Circle: created once it has a centre, then kept in step with the draft.
   useEffect(() => {
     if (draft.type !== 'ROUND' || !draft.center) {
       circleRef.current?.setMap(null)
@@ -149,10 +134,7 @@ export function DrawLayer({
     }
   }, [map, draft.type, draft.center, draft.radiusMeters, draft.behavior, draft.active]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Polygon: one shape for the whole edit. A drag changes its path, which
-  // flows to the draft; the draft then matches the path, so nothing is
-  // rebuilt mid-drag. Clicks, undo and clear change the draft, which is
-  // pushed into the path.
+  // One polygon for the whole edit: the draft follows the path, so nothing is rebuilt mid-drag.
   const pathListeners = useRef<google.maps.MapsEventListener[]>([])
 
   useEffect(() => {
@@ -168,7 +150,6 @@ export function DrawLayer({
     if (!polygon) {
       polygon = new google.maps.Polygon({ map, ...style, paths: draft.points })
       polygonRef.current = polygon
-      // Clicking inside the shape adds a corner, as clicks outside do.
       polygon.addListener('click', (e: google.maps.PolyMouseEvent) => {
         if (e.vertex != null || e.edge != null || !e.latLng) return
         onChangeRef.current({
@@ -184,7 +165,6 @@ export function DrawLayer({
       polygon.setOptions(styleFor(draft, false))
     }
 
-    // (Re)bind to the current path; setPath replaces it.
     pathListeners.current.forEach((l) => l.remove())
     const path = polygon.getPath()
     const sync = () => {
@@ -197,7 +177,6 @@ export function DrawLayer({
     ]
   }, [map, draft.type, draft.points, draft.behavior, draft.active]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Remove everything on the way out.
   useEffect(
     () => () => {
       pathListeners.current.forEach((l) => l.remove())

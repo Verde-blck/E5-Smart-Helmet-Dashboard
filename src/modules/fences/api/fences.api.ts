@@ -3,18 +3,6 @@ import { env } from '@/config/env'
 import { num } from '@/shared/lib/api-normalize'
 import type { Fence, FenceBehavior, FenceDraft, FenceFrequency, FenceShape, LatLng } from '../types'
 
-/*
- * GET    /api/fences                     all fences
- * POST   /api/fences                     create   (body: the draft)
- * PUT    /api/fences/{id}                update   (same body)
- * DELETE /api/fences/{id}
- * POST   /api/fences/{id}/warning-audio  multipart `file`, max 5 MB
- * DELETE /api/fences/{id}/warning-audio
- *
- * Invalid input is a 400 with {"error": "..."}; the message is shown as-is,
- * since the backend knows its own rules best.
- */
-
 type ApiFence = Record<string, unknown>
 
 function toLatLng(raw: unknown): LatLng | null {
@@ -45,14 +33,12 @@ function toFence(api: ApiFence): Fence {
       : [],
     deviceIds: Array.isArray(api.deviceIds) ? (api.deviceIds as unknown[]).map(String) : [],
     active: api.active !== false,
-    // The guide doesn't name this field; accept the likely spellings.
     hasWarningAudio: Boolean(
       api.hasWarningAudio ?? api.warningAudioUrl ?? api.warningAudio ?? api.warningAudioKey
     ),
   }
 }
 
-/** The body for POST and PUT: only what the guide lists, shape-specific. */
 function toBody(draft: FenceDraft) {
   return {
     name: draft.name.trim(),
@@ -68,15 +54,12 @@ function toBody(draft: FenceDraft) {
   }
 }
 
-/** The backend's own explanation from a 400, if there is one. */
 export function fenceErrorMessage(error: unknown): string {
   const data = (error as { response?: { status?: number; data?: { error?: string } } })?.response
   if (data?.data?.error) return data.data.error
   if (data?.status === 413) return 'That clip is too large. The limit is 5 MB.'
   return 'Couldn’t save the fence. Check your connection and try again.'
 }
-
-// --- Mock store ---------------------------------------------------------
 
 let mockId = 3
 const mockFences: Fence[] = [
@@ -115,8 +98,6 @@ const mockFences: Fence[] = [
   },
 ]
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300))
-
-// --- Public API ---------------------------------------------------------
 
 export async function fetchFences(): Promise<Fence[]> {
   if (env.useMocks) {
@@ -157,7 +138,6 @@ export async function deleteFence(id: number): Promise<void> {
   await apiClient.delete(`/fences/${id}`)
 }
 
-/** The clip the helmet plays on a breach, e.g. "You have left the work area". */
 export async function uploadWarningAudio(id: number, clip: Blob): Promise<void> {
   if (env.useMocks) {
     await delay()

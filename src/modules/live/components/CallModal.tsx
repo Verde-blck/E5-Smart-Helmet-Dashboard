@@ -7,13 +7,11 @@ import { CameraIcon, HangUpIcon, MicIcon, PhoneIcon, VideoIcon } from './icons'
 
 interface Props {
   deviceName: string
-  /** null until the operator picks video or voice. */
   state: SessionState | null
   onStart: (withCamera: boolean) => void
   onToggleMic: () => void
   onToggleCamera: () => void
   onRetry: () => void
-  /** After "offline": call again with the same choice of video or voice. */
   onStartAgain: () => void
   onHangUp: () => void
 }
@@ -47,10 +45,6 @@ export function CallModal({
   )
 }
 
-/**
- * An explicit choice before anything happens, because starting a call puts
- * the helmet into call mode and switches on this computer's camera.
- */
 function ChooseCall({
   deviceName,
   onStart,
@@ -122,8 +116,6 @@ function InCall({
       </div>
 
       <div className="relative aspect-video bg-black">
-        {/* Not muted: this is a conversation. If the browser blocks sound,
-            the button below asks for the one click it needs. */}
         <StreamVideo
           stream={state.remoteStream}
           muted={false}

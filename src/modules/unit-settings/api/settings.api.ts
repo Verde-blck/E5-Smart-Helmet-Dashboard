@@ -3,20 +3,8 @@ import { env } from '@/config/env'
 import { DEFAULT_SETTINGS } from '../types'
 import type { AlarmSwitches, HelmetSettings, SaveResult, UploadMethod } from '../types'
 
-/*
- * GET /api/devices/{deviceId}/settings  → every field, backend defaults filled in
- * PUT /api/devices/{deviceId}/settings  ← only the fields that changed
- *                                       → { saved, delivered }
- *
- * The backend names fields differently from the dashboard and sends some
- * numbers as strings ("55" for alarmTemperature), so everything is
- * translated here and nowhere else.
- */
-
-/** The backend's field names, as documented in its Device Settings guide. */
 type ApiSettings = Record<string, unknown>
 
-/** Dashboard field → backend field, for everything outside the alarm group. */
 const FIELD_MAP = {
   heartbeatSeconds: 'beatTime',
   alarmTemperatureC: 'alarmTemperature',
@@ -50,9 +38,6 @@ const ALARM_MAP = {
 
 const UPLOAD_METHODS: readonly UploadMethod[] = ['none', '4g', 'wifi']
 
-// --- Reading ------------------------------------------------------------
-
-/** "55", 55 and 55.0 are all 55; "", null and junk are null. */
 function toNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   if (typeof value === 'string' && value.trim() !== '') {
@@ -104,13 +89,6 @@ function fromApi(raw: ApiSettings): HelmetSettings {
   }
 }
 
-// --- Writing ------------------------------------------------------------
-
-/**
- * Builds the PUT body: only fields that differ between the two versions, in
- * the backend's names. A number goes back as a string if the backend sent it
- * as one, so each field keeps the type the backend chose for it.
- */
 function changesToApi(
   before: HelmetSettings,
   after: HelmetSettings,
@@ -132,10 +110,7 @@ function changesToApi(
   return body
 }
 
-/** Which backend fields arrived as strings, per device, from the last read. */
 const rawTypesByDevice = new Map<string, Map<string, string>>()
-
-// --- Mock store ---------------------------------------------------------
 
 const mockStore = new Map<string, HelmetSettings>()
 let mockDeliverNext = false
@@ -143,8 +118,6 @@ let mockDeliverNext = false
 function cloneSettings(s: HelmetSettings): HelmetSettings {
   return { ...s, alarms: { ...s.alarms } }
 }
-
-// --- Public API ---------------------------------------------------------
 
 export async function fetchHelmetSettings(deviceId: string): Promise<HelmetSettings> {
   if (env.useMocks) {
@@ -160,11 +133,8 @@ export async function fetchHelmetSettings(deviceId: string): Promise<HelmetSetti
   return fromApi(data ?? {})
 }
 
-/**
- * Saves the difference between what was loaded and what's in the form. The
- * backend treats a missing field as "keep the current value", so sending the
- * whole object would also overwrite anything changed elsewhere meanwhile.
- */
+// Send only changes: a missing field means keep, so the full object would overwrite edits made
+// elsewhere.
 export async function saveHelmetSettings(
   deviceId: string,
   before: HelmetSettings,
@@ -173,8 +143,6 @@ export async function saveHelmetSettings(
   if (env.useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 400))
     mockStore.set(deviceId, cloneSettings(after))
-    // Alternates between delivered and queued on each save, so both
-    // outcomes can be seen in mock mode whichever helmet is picked.
     mockDeliverNext = !mockDeliverNext
     return { settings: cloneSettings(after), delivered: !mockDeliverNext, appliesAfterRestart: true }
   }
@@ -190,7 +158,6 @@ export async function saveHelmetSettings(
   return {
     settings: cloneSettings(after),
     delivered: data?.delivered === true,
-    // The backend says so on every save today; assume it if it's missing.
     appliesAfterRestart: data?.appliesAfterRestart !== false,
   }
 }

@@ -3,9 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
-  /** Shown instead of the default panel. */
   fallback?: ReactNode
-  /** Names the area, so the message says what broke. */
   label?: string
 }
 
@@ -13,16 +11,6 @@ interface State {
   error: Error | null
 }
 
-/**
- * Stops one broken component taking the whole page with it.
- *
- * React unmounts the entire tree when a render throws, which on this
- * dashboard meant a blank screen — on a system someone is meant to be
- * watching for SOS alerts. Wrapping each region means a failure is contained
- * to that card, and the rest of the fleet view keeps working.
- *
- * Has to be a class: there is still no hook equivalent for this.
- */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null }
 
@@ -31,8 +19,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Kept in the console rather than swallowed — without it the cause is
-    // invisible once the fallback renders.
     console.error(`[${this.props.label ?? 'app'}] render failed`, error, info.componentStack)
   }
 

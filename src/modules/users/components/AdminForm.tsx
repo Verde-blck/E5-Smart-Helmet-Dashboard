@@ -26,7 +26,6 @@ function Field({ label, required, hint, children }: {
   )
 }
 
-/** The backend's reason, in words an admin can act on. */
 function saveError(error: unknown, editing: boolean): string {
   const res = (error as { response?: { status?: number; data?: { error?: string; message?: string; permission?: string } } })
     ?.response
@@ -44,7 +43,6 @@ function saveError(error: unknown, editing: boolean): string {
 
 export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: () => void }) {
   const { user } = useAuth()
-  // Null for a super admin: they may grant anything.
   const grantable = user?.superAdmin ? null : new Set(user?.apiPermissions ?? [])
   const { groups } = useGroups()
   const { devices } = useDevices()
@@ -104,7 +102,6 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
       if (editing && admin) {
         await update.mutateAsync({
           id: admin.id,
-          // Blank password means "leave it alone" — the API layer strips it.
           patch: values.password ? { ...shared, password: values.password } : shared,
         })
       } else {
@@ -229,7 +226,7 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
               <p className="px-2.5 py-2 text-xs text-slate-500">No helmets match.</p>
             )}
           </div>
-      
+
         </div>
       </div>
 

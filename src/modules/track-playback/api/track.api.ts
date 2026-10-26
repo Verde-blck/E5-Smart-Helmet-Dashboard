@@ -19,12 +19,10 @@ interface ApiTelemetry {
   netStrength?: string | null
   rawGasData?: string | null
   recordedAt?: string | null
-  /** "gps" | "network" | "wifi" | "other"; null on older points */
   fixType?: string | null
   accuracyMeters?: number | string | null
 }
 
-/** How many rows one request will pull before the range is treated as cut short. */
 const PAGE_SIZE = 2000
 
 export interface TrackFetch {
@@ -32,17 +30,6 @@ export interface TrackFetch {
   truncated: boolean
 }
 
-/**
- * Position history for one helmet over an arbitrary range.
- *
- * The telemetry endpoint has no date filtering — it returns raw rows newest
- * first — so a large page is pulled and the range applied here. If the page
- * fills, the oldest part of the requested range may be missing, which the
- * caller surfaces rather than quietly showing a short track.
- *
- * Asked of the backend: `from` and `to` parameters on
- * GET /api/devices/{id}/telemetry.
- */
 export async function fetchTrackSamples(
   deviceId: string,
   from: number,
@@ -72,8 +59,6 @@ export async function fetchTrackSamples(
   }))
 
   const oldest = samples.reduce((min, s) => Math.min(min, s.ts || Infinity), Infinity)
-  // The page filled and its oldest row is still newer than the range start —
-  // so there is older history we didn't receive.
   const truncated = rows.length >= PAGE_SIZE && oldest > from
 
   return { samples, truncated }

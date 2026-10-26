@@ -16,7 +16,7 @@ function readDimensions(file: File): Promise<{ width: number; height: number }> 
     const url = URL.createObjectURL(file)
     const image = new Image()
     image.onload = () => {
-      URL.revokeObjectURL(url) // or the blob leaks for the life of the tab
+      URL.revokeObjectURL(url) // Revoke the object URL, or the blob leaks for the life of the tab.
       resolve({ width: image.naturalWidth, height: image.naturalHeight })
     }
     image.onerror = () => {
@@ -27,11 +27,6 @@ function readDimensions(file: File): Promise<{ width: number; height: number }> 
   })
 }
 
-/**
- * Client-side checks here are for fast feedback, not safety. The backend must
- * repeat every one of them against the actual bytes — a declared MIME type is
- * just a string the browser sent.
- */
 async function validate(file: File): Promise<string | null> {
   if (!LOGO_ACCEPTED_TYPES.includes(file.type as Accepted)) {
     return `Use ${describeLogoTypes()}. SVG isn't accepted, because it can carry script that would run on every page of your dashboard.`
@@ -75,7 +70,6 @@ export function LogoUploader({ logoUrl, canEdit }: { logoUrl: string; canEdit: b
     upload.mutate(file, {
       onError: (err) => setError(profileErrorMessage(err, 'Upload failed. Please try again.')),
       onSettled: () => {
-        // Clear the input so picking the same file twice still fires onChange.
         if (inputRef.current) inputRef.current.value = ''
       },
     })

@@ -6,13 +6,6 @@ interface JwtPayload {
   iat?: number
 }
 
-/**
- * Reads a JWT's payload without verifying it.
- *
- * Verification is the server's job — this is only used to recover the
- * username and expiry after a page reload, because the API has no /auth/me
- * endpoint to ask. Never treat anything in here as trustworthy.
- */
 export function decodeToken(token: string): JwtPayload | null {
   const parts = token.split('.')
   if (parts.length !== 3) return null
@@ -28,20 +21,10 @@ export function decodeToken(token: string): JwtPayload | null {
 
 export function isExpired(token: string, skewMs = 30_000): boolean {
   const exp = decodeToken(token)?.exp
-  if (!exp) return false // no expiry claim — let the server decide
-  // Treat a token that's about to expire as already expired, so a request
-  // doesn't set off mid-flight and come back 401.
+  if (!exp) return false // Treat a token about to expire as expired, so a request doesn't leave valid and arrive 401.
   return Date.now() + skewMs >= exp * 1000
 }
 
-/**
- * The token lives in localStorage because there is no refresh endpoint and no
- * httpOnly cookie — without it, every page reload would force a fresh login.
- *
- * That is a deliberate trade-off, not an oversight: a token readable by
- * JavaScript is exposed to XSS. It should move to an httpOnly cookie with a
- * refresh flow when the backend supports one.
- */
 export const tokenStore = {
   get(): string | null {
     const token = localStorage.getItem(STORAGE_KEY)

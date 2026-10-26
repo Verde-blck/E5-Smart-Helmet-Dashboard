@@ -12,7 +12,6 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
   const { groups } = useGroups()
   const remove = useDeleteAdmin()
   const reset2fa = useResetTwoFactor()
-  // Which admin is being confirmed for a 2FA reset; separate from delete.
   const [confirmingReset, setConfirmingReset] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const [mode, setMode] = useState<
@@ -38,8 +37,6 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
     ? admins.filter((a) => a.username.toLowerCase().includes(needle))
     : admins
 
-  // A group that no longer exists still leaves its id on the account. Naming
-  // that explicitly beats rendering a blank cell that looks like "no group".
   const groupName = (id: number | null | undefined) => {
     if (id == null) return '—'
     const found = groups.find((g) => g.id === id)
@@ -48,8 +45,6 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
 
   const actions = (admin: Administrator) => {
     if (!canEdit) return null
-    // The backend's rules: only a super admin edits or deletes a super
-    // admin, and nobody deletes their own account.
     const lockedSuper = admin.superAdmin && !user?.superAdmin
     const isSelf = admin.username === user?.username
     if (lockedSuper) {
@@ -98,7 +93,6 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
         >
           Edit
         </button>
-        {/* For a lost or changed phone. Not on your own account: use Security. */}
         {!isSelf && admin.twoFactorEnabled && (
           <button onClick={() => setConfirmingReset(admin.id)} className="text-slate-500 hover:text-slate-800">
             Reset 2FA
@@ -134,8 +128,6 @@ export function AdminList({ canEdit }: { canEdit: boolean }) {
       </div>
 
       <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-        {/* Stated by the backend, and worth repeating where the choices are
-            actually made rather than burying it in a document. */}
         Permissions and device restrictions are saved but not yet enforced —
         every signed-in administrator can currently reach the whole system.
       </p>

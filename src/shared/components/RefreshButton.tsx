@@ -2,20 +2,11 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { QueryKey } from '@tanstack/react-query'
 
-/**
- * Reloads a page's data in place: new photos, videos, alarms or helmets
- * appear without a browser refresh, so filters, selections and anything
- * playing are kept.
- *
- * Pass the key prefix the page reads from (qk.media.all(t), etc.); every
- * query under it that's on screen is fetched again.
- */
 export function RefreshButton({ queryKey, className = '' }: { queryKey: QueryKey; className?: string }) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
 
-  // "Updated" shows briefly, then the button goes back to normal.
   useEffect(() => {
     if (!done) return
     const id = setTimeout(() => setDone(false), 2000)

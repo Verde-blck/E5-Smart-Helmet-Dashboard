@@ -5,15 +5,6 @@ export interface DataCardRow {
   value: React.ReactNode
 }
 
-/**
- * The small-screen counterpart to a table row.
- *
- * A five-column table on a 375px phone is unreadable even when it scrolls, so
- * below md the list views render these instead: the identifying field on top,
- * supporting fields as labelled pairs underneath. Sharing one shell keeps
- * devices, alarms and the role editor visually consistent rather than each
- * inventing its own card.
- */
 export function DataCard({
   to,
   title,

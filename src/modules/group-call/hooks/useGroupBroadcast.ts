@@ -4,16 +4,9 @@ import { sendBroadcast } from '@/modules/messaging/api/messages.api'
 export interface BroadcastOutcome {
   deviceId: string
   deviceName: string
-  /** sent: played now · queued: offline, plays on reconnect · failed: not accepted */
   status: 'sent' | 'queued' | 'failed'
 }
 
-/**
- * Walkie-talkie: sends one recording to several helmets in a single request
- * (POST /api/broadcast). The backend reports each helmet separately, and the
- * results stay per helmet: a partial outcome has to be visible, not averaged
- * into one success message.
- */
 export function useGroupBroadcast() {
   const [sending, setSending] = useState(false)
   const [results, setResults] = useState<BroadcastOutcome[] | null>(null)
@@ -33,8 +26,6 @@ export function useGroupBroadcast() {
           return {
             deviceId: t.id,
             deviceName: t.name,
-            // Missing from the reply means the backend didn't take it for
-            // that helmet (e.g. it's no longer active).
             status: !d ? 'failed' : d.delivered ? 'sent' : 'queued',
           }
         })

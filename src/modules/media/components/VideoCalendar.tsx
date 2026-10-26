@@ -19,23 +19,16 @@ function shiftMonth(month: string, by: number) {
 
 interface Props {
   deviceId?: string
-  /** Selected day, YYYY-MM-DD. */
   date?: string
   onDateChange: (date: string | undefined) => void
 }
 
-/**
- * Month view of when recordings were made, by the helmet's recording date
- * rather than upload date: clips often upload days later and would land on
- * the wrong day. Days with clips show a count; clicking one lists that day.
- */
 export function VideoCalendar({ deviceId, date, onDateChange }: Props) {
   const today = new Date()
   const thisMonth = monthKey(today)
   const todayKey = `${thisMonth}-${pad(today.getDate())}`
   const [month, setMonth] = useState(date?.slice(0, 7) ?? thisMonth)
 
-  // Picking a date in the filter bar moves the calendar to that month.
   useEffect(() => {
     if (date) setMonth(date.slice(0, 7))
   }, [date])
@@ -45,7 +38,6 @@ export function VideoCalendar({ deviceId, date, onDateChange }: Props) {
   const [y, m] = month.split('-').map(Number)
   const first = new Date(y, m - 1, 1)
   const daysInMonth = new Date(y, m, 0).getDate()
-  // Monday-first grid: blanks before the 1st.
   const leading = (first.getDay() + 6) % 7
   const cells: (number | null)[] = [
     ...Array.from({ length: leading }, () => null),

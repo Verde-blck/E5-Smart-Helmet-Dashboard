@@ -8,30 +8,15 @@ import {
 } from './profile.mock'
 import type { TenantProfile } from '../types'
 
-/*
- * Company profile and branding, from the backend's guide of 21 Oct 2026.
- *
- *   GET    /branding               public: the sign-in page and start-up
- *   GET    /settings/company       any signed-in user
- *   PUT    /settings/company       ADMINISTRATOR_SETTING; any subset, "" clears a field
- *   POST   /settings/company/logo  ADMINISTRATOR_SETTING; multipart field "file"
- *   DELETE /settings/company/logo  ADMINISTRATOR_SETTING
- *
- * All five answer with the profile. The tenant comes from the session, never
- * from the request, so nobody can rebrand another company by editing one.
- */
-
 interface ApiCompany {
   companyName?: string | null
   supportEmail?: string | null
-  /** Signed, valid for an hour: use it, never store it. */
   logoUrl?: string | null
   primaryColor?: string | null
   secondaryColor?: string | null
   updatedAt?: string | null
 }
 
-/** Fields that aren't set come back null: fall back to the default E5 look. */
 function toProfile(api: ApiCompany | null | undefined): TenantProfile {
   return {
     id: 'standalone',
@@ -45,7 +30,6 @@ function toProfile(api: ApiCompany | null | undefined): TenantProfile {
   }
 }
 
-/** The look before anyone signs in. No token needed. */
 export async function fetchBranding(): Promise<TenantProfile> {
   if (env.useMocks) return getMockProfile()
   const { data } = await apiClient.get<ApiCompany>('/branding')
@@ -58,7 +42,6 @@ export async function fetchProfile(): Promise<TenantProfile> {
   return toProfile(data)
 }
 
-/** Sends only what's in the patch. An empty support email clears it. */
 export async function updateProfile(patch: Partial<TenantProfile>): Promise<TenantProfile> {
   if (env.useMocks) return updateMockProfile(patch)
   const body: Partial<ApiCompany> = {}
@@ -72,11 +55,6 @@ export async function updateProfile(patch: Partial<TenantProfile>): Promise<Tena
   return toProfile(data)
 }
 
-/**
- * Logos go through the API, which checks the real image (not the file name):
- * PNG, JPEG or WebP, at most 512 KB and 1024 px a side. Replacing one
- * deletes the old file.
- */
 export async function uploadLogo(file: File): Promise<TenantProfile> {
   if (env.useMocks) {
     const { logoUrl } = await uploadMockLogo(file)
@@ -97,10 +75,6 @@ export async function removeLogo(): Promise<TenantProfile> {
   return toProfile(data)
 }
 
-/**
- * The backend's own reason, e.g. "logo must be at most 1024 px on each side
- * (this one is 1200 x 800)". Nothing is saved if any field is invalid.
- */
 export function profileErrorMessage(error: unknown, fallback: string): string {
   const res = (error as { response?: { status?: number; data?: { error?: string; message?: string } } })
     ?.response

@@ -37,8 +37,6 @@ function Bubble({
           ) : (
             <VoicePlayer
               url={message.audioUrl}
-              // Helmets record AMR. The file name usually says so; on the
-              // live backend, anything from a helmet is treated as AMR too.
               amr={
                 looksLikeAmr(message.audioUrl) ||
                 (!env.useMocks && message.direction === 'FROM_HELMET')
@@ -83,7 +81,6 @@ export function BroadcastPanel({
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.length])
 
-
   useEffect(() => () => {
     if (pending) URL.revokeObjectURL(pending.url)
   }, [pending])
@@ -107,7 +104,7 @@ export function BroadcastPanel({
         setNote(
           result.delivered
             ? 'Delivered to the helmet.'
-            : 
+            :
               'Queued — the helmet will play it when it next connects.'
         )
       },

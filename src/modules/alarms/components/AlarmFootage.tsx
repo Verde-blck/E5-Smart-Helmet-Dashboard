@@ -12,10 +12,6 @@ import type { Alarm, AlarmType } from '../types'
 import { fetchAlarmFootage } from '../api/alarms.api'
 
 const MIN = 60_000
-/**
- * The window around the alarm. Videos reach further back: a clip that started
- * before the alarm can still contain the moment it happened.
- */
 export const WINDOW = { photoBefore: 10 * MIN, videoBefore: 30 * MIN, after: 5 * MIN }
 
 function dayOf(ts: number): string {
@@ -23,7 +19,6 @@ function dayOf(ts: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** "4 min before", "at the time", "2 min after" */
 export function relativeTo(at: number, alarmAt: number): string {
   const diff = Math.round((at - alarmAt) / MIN)
   if (diff === 0) return 'at the time'
@@ -35,20 +30,11 @@ export function inWindow(item: Pick<MediaItem, 'kind' | 'capturedAt'>, alarmAt: 
   return item.capturedAt >= alarmAt - before && item.capturedAt <= alarmAt + WINDOW.after
 }
 
-/**
- * Photos and videos from the alarm's helmet around the time it fired.
- * Matched by device and recording time, since the backend doesn't link
- * footage to alarms yet.
- */
-/** Alarm types the backend captures footage for by itself (7, 4 and 11). */
 const AUTO_CAPTURE: ReadonlySet<AlarmType> = new Set<AlarmType>(['sos', 'fall', 'near-electric'])
-/** How long after an alarm to keep expecting its clip: they can take 35+ minutes. */
 const EXPECT_FOR = 2 * 60 * MIN
 
 export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
   const tenantId = useTenantId()
-  // Footage linked to this alarm by the backend. Polled every 30 s while
-  // we're still expecting its clip.
   const expecting = AUTO_CAPTURE.has(alarm.type) && now - alarm.raisedAt < EXPECT_FOR
   const linkedQuery = useQuery({
     queryKey: [...qk.alarms.all(tenantId), 'footage', alarm.id],
@@ -60,7 +46,6 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
   const linkedIds = useMemo(() => new Set(linked.map((m) => m.id)), [linked])
   const waitingForClip = expecting && !linked.some((m) => m.kind === 'video')
 
-  // Two days when the window crosses midnight; the same query otherwise.
   const startDay = dayOf(alarm.raisedAt - WINDOW.videoBefore)
   const endDay = dayOf(alarm.raisedAt + WINDOW.after)
   const first = useMediaList({ deviceId: alarm.deviceId, date: startDay })
@@ -69,12 +54,10 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
 
   const footage = useMemo(() => {
     const byId = new Map<string, MediaItem>()
-    // Linked footage first, whatever its timestamp.
     for (const m of linked) if (m.status === 'available') byId.set(m.id, m)
     for (const m of [...first.media, ...(endDay !== startDay ? second.media : [])]) {
       if (m.status === 'available' && inWindow(m, alarm.raisedAt) && !byId.has(m.id)) byId.set(m.id, m)
     }
-    // This alarm's own footage first, then closest to the moment.
     return [...byId.values()].sort((a, b) => {
       const linkedDelta = Number(linkedIds.has(b.id)) - Number(linkedIds.has(a.id))
       if (linkedDelta !== 0) return linkedDelta
@@ -180,17 +163,12 @@ export function AlarmFootage({ alarm, now }: { alarm: Alarm; now: number }) {
 
 type CardPhase = 'idle' | 'checking' | 'offline' | 'no-report' | 'listed' | 'requested'
 
-/**
- * Nothing uploaded from that time. The clip may still be on the helmet's
- * memory card: ask the helmet, then ask it to upload the ones that matter.
- */
 function MemoryCardCheck({ alarm }: { alarm: Alarm }) {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
   const [phase, setPhase] = useState<CardPhase>('idle')
   const [clips, setClips] = useState<HelmetVideo[]>([])
 
-  // After asking for uploads, look again every 30 s so clips appear as they land.
   useEffect(() => {
     if (phase !== 'requested') return
     const id = setInterval(

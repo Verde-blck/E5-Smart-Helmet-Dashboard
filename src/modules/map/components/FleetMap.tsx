@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { useGoogleMaps } from '../hooks/useGoogleMaps'
 import type { DeviceView, Presence } from '@/modules/devices/types'
 
-// Matches the dot colours used in the device list, so a helmet reads the same
-// on the map as it does in the table.
 const PIN: Record<Presence, { background: string; border: string; glyph: string }> = {
   online: { background: '#10b981', border: '#047857', glyph: '#ffffff' },
   degraded: { background: '#fbbf24', border: '#b45309', glyph: '#ffffff' },
@@ -16,15 +14,9 @@ const ALARM_PIN = { background: '#ef4444', border: '#991b1b', glyph: '#ffffff' }
 
 interface Props {
   devices: DeviceView[]
-  /** Centre on one helmet instead of fitting the whole fleet. */
   focusDeviceId?: string
   heightClass?: string
-  /** Hands over the map once it exists, for layers drawn on top (fences). */
   onMapReady?: (map: google.maps.Map) => void
-  /**
-   * False while drawing a fence: a click meant for the map mustn't open a
-   * helmet's page and lose the drawing.
-   */
   markersClickable?: boolean
 }
 
@@ -39,25 +31,20 @@ export function FleetMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map())
-  // The likely area around positions that aren't GPS fixes.
   const circlesRef = useRef<Map<string, google.maps.Circle>>(new Map())
   const navigate = useNavigate()
-  // Read by the click listeners at click time, so toggling it doesn't mean
-  // rebuilding every marker.
+  // Read at click time, so toggling it doesn't rebuild every marker.
   const clickableRef = useRef(markersClickable)
   clickableRef.current = markersClickable
 
   const located = devices.filter((d) => d.telemetry.lat != null && d.telemetry.lng != null)
 
-  // Create the map once. Re-creating it on every render would reset the
-  // operator's pan and zoom every time a heartbeat arrives.
   useEffect(() => {
     if (status !== 'ready' || !libraries || !containerRef.current || mapRef.current) return
 
     mapRef.current = new libraries.maps.Map(containerRef.current, {
       center: { lat: 6.5244, lng: 3.3792 },
       zoom: 12,
-      // Advanced markers refuse to render without this.
       mapId,
       mapTypeControl: true,
       streetViewControl: false,
@@ -66,9 +53,7 @@ export function FleetMap({
     onMapReady?.(mapRef.current)
   }, [status, libraries, mapId, onMapReady])
 
-  // Markers are reconciled in place — updated, added or removed — rather than
-  // cleared and rebuilt, so a marker the operator has open doesn't vanish
-  // underneath them every few seconds.
+  // Reconciled in place, so an open marker doesn't vanish on every poll.
   useEffect(() => {
     const map = mapRef.current
     if (status !== 'ready' || !libraries || !map) return
@@ -88,8 +73,6 @@ export function FleetMap({
         scale: device.activeAlarm ? 1.2 : 1,
       })
 
-      // Approximate positions (mobile network, Wi-Fi, no GPS) get a circle
-      // for where the helmet probably is, so nobody takes the pin as exact.
       const quality = locationQuality(device.telemetry)
       const title = [device.name, device.site, quality?.label].filter(Boolean).join(' · ')
       const circle = circlesRef.current.get(device.id)
@@ -153,7 +136,6 @@ export function FleetMap({
     }
   }, [status, libraries, located, navigate])
 
-  // Fit the view once there's something to fit, then leave it alone.
   const fittedRef = useRef(false)
   useEffect(() => {
     const map = mapRef.current

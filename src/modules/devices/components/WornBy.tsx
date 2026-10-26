@@ -4,11 +4,6 @@ import { WORKER_NAME_MAX } from '../api/devices.api'
 import { useAssignWorker } from '../hooks/useDevices'
 import type { DeviceView } from '../types'
 
-/**
- * Who wears this helmet. It turns an alarm from a device ID into a person to
- * call: notifications read "SOS: John Ade (ES5 3)". The worker never signs
- * in to the dashboard; this is just the helmet's record.
- */
 export function WornBy({ device }: { device: DeviceView }) {
   const worker = device.assignedTo
   const save = useAssignWorker()

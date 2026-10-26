@@ -5,14 +5,6 @@ import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { SosCallButton } from '@/modules/live/components/SosCallButton'
 import { useAlarms } from '../hooks/useAlarms'
 
-/**
- * Unresolved SOS alarms, one card each, above everything else.
- *
- * When a wearer holds SOS, the helmet announces "calling the central office"
- * and waits in a video call for the control room to join. Each card's job
- * is to make that one click obvious. Joining works for any SOS: if the
- * helmet isn't already waiting, starting the call puts it into one.
- */
 export function SosAlerts() {
   const { active: rawActive, now } = useAlarms()
   const nameOf = useDeviceNames()

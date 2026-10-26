@@ -20,10 +20,6 @@ export function VideosPage() {
     useMediaList(query);
   const remove = useDeleteMedia(cacheKey);
 
-  // Recordings the helmet has flagged but not yet delivered. On this fleet
-  // that's where most footage lives — one device in the vendor's own console
-  // showed 193 recordings with 2 uploaded — so it's worth surfacing rather
-  // than leaving an operator to wonder why the list looks short.
   const pending = media.filter((m) => m.status === "uploading").length;
 
   const tabSwitch = (
@@ -54,8 +50,6 @@ export function VideosPage() {
     </div>
   );
 
-  // "Videos on helmet" has its own Refresh, which asks the helmet; this one
-  // reloads the uploaded list and the calendar.
   const tabs = (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
       {tabSwitch}
@@ -93,7 +87,6 @@ export function VideosPage() {
       />
 
       <div className="grid items-start gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
-        {/* Same state as the date filter above, so the two always agree. */}
         <div className="lg:sticky lg:top-4">
           <VideoCalendar
             deviceId={query.deviceId}

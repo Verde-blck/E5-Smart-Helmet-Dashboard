@@ -15,9 +15,8 @@ export function startRealtime() {
       if (tenantId) routeEvent(queryClient, tenantId, data)
     },
     onReconnect: () => {
-      // Events that arrived while the socket was down are gone. At this fleet
-      // size a blanket invalidation costs a handful of requests and removes an
-      // entire class of "the dashboard was wrong until I refreshed" reports.
+      // Events missed while the socket was down are gone; a blanket invalidation is cheap at this
+      // fleet size.
       const tenantId = currentTenantId()
       if (tenantId) queryClient.invalidateQueries({ queryKey: qk.tenant(tenantId) })
     },

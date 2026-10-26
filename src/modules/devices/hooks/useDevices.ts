@@ -19,9 +19,7 @@ import { toDeviceView } from '../lib/presence'
 import type { WorkerInput } from '../api/devices.api'
 import type { DeviceView } from '../types'
 
-// These hooks return DeviceView, not Device: presence is resolved here against
-// a ticking clock so every consumer sees the same answer and none of them have
-// to remember to recompute it.
+// Presence is resolved here against a ticking clock so every consumer agrees.
 
 export function useDevices() {
   const tenantId = useTenantId()
@@ -30,8 +28,6 @@ export function useDevices() {
   const { data, dataUpdatedAt, isLoading, isError, refetch } = useQuery({
     queryKey: qk.devices.all(tenantId),
     queryFn: fetchDevices,
-    // Polling stands in for push: the backend's WebSocket is for helmets, not
-    // for the dashboard. See config/features.ts.
     refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
   })
 
@@ -59,18 +55,11 @@ export function useDevice(id: string) {
     [data, now]
   )
 
-  // Reached by a pasted or bookmarked link to a helmet at another site. The
-  // server should 404 it; this keeps the UI honest if it doesn't.
   const outOfScope = !!data && !inScope(data.site)
 
   return { device: outOfScope ? null : device, outOfScope, now, isLoading, isError }
 }
 
-/**
- * Activate or deactivate a helmet — a registration state an administrator
- * controls, not something the device reports. Both the fleet list and the
- * detail view are refreshed, since either may be on screen.
- */
 export function useSetDeviceActive() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
@@ -85,13 +74,6 @@ export function useSetDeviceActive() {
   })
 }
 
-/**
- * Fleet totals straight from the backend.
- *
- * Deliberately a separate query from the device list: the counts must stay
- * correct even if /devices is ever paginated, and the server is the authority
- * on what "online" means.
- */
 export function useFleetSummary() {
   const tenantId = useTenantId()
   const { data, isLoading, isError } = useQuery({
@@ -103,11 +85,6 @@ export function useFleetSummary() {
   return { summary: data ?? null, isLoading, isError }
 }
 
-/**
- * Registers a helmet, then names it if a name was given. The register call
- * takes only the ID, so naming is a second request; if that one fails, the
- * helmet is still registered and can be named from its page.
- */
 export function useRegisterDevice() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
@@ -131,7 +108,6 @@ export function useRegisterDevice() {
   })
 }
 
-/** Renames a helmet; every screen showing it updates from the refetch. */
 export function useRenameDevice() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()
@@ -145,11 +121,6 @@ export function useRenameDevice() {
   })
 }
 
-/**
- * Display names for lists that only carry a deviceId (alarms, photos,
- * videos, messages), looked up from the device list that's already loaded.
- * Falls back to whatever name the list had, then the shortened ID.
- */
 export function useDeviceNames() {
   const { devices } = useDevices()
   return useMemo(() => {
@@ -159,7 +130,6 @@ export function useDeviceNames() {
   }, [devices])
 }
 
-/** Assigns or clears the worker wearing a helmet. */
 export function useAssignWorker() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()

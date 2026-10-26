@@ -24,12 +24,6 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-/**
- * Rendered outside the app shell, with no navigation, and reached only by
- * redirect from RequireAuth. The point of the forced change is that the
- * administrator who issued the password stops knowing it — so this screen has
- * to be genuinely unskippable rather than a dismissible prompt.
- */
 export function ChangePasswordPage() {
   const {
     register,

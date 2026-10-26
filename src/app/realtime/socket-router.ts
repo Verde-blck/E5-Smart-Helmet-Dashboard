@@ -8,7 +8,6 @@ export type ServerEvent =
       type: 'device.heartbeat'
       deviceId: string
       ts: number
-      /** Partial by design — a helmet sends what it has. See Telemetry. */
       telemetry: Telemetry
     }
   | { type: 'device.alarm'; deviceId: string; severity: AlarmSeverity | null }
@@ -19,19 +18,8 @@ function isServerEvent(value: unknown): value is ServerEvent {
   return typeof value === 'object' && value !== null && 'type' in value
 }
 
-/**
- * Two rules decide setQueryData vs invalidateQueries:
- *
- *  - High-frequency events with a complete payload (heartbeats) are patched
- *    directly. Fifteen helmets at 2/min is 30 refetches a minute otherwise.
- *  - Low-frequency events implying joined data (alarm raised, media ready) are
- *    invalidated, because the socket payload lacks the enrichment the list
- *    view needs and a half-built record renders subtly wrong.
- *
- * Note what is NOT here: invalidateQueries({ queryKey: ['devices'] }). Query
- * filters are prefix matches, so that also invalidates ['devices', id] — it
- * throws away the patch written the line above and refetches the whole fleet.
- */
+// Heartbeats are patched into the cache (15 helmets at 2/min would be 30 refetches a minute); rarer
+// events invalidate.
 export function routeEvent(qc: QueryClient, tenantId: string, incoming: unknown) {
   if (!isServerEvent(incoming)) return
   const event = incoming
@@ -50,8 +38,6 @@ export function routeEvent(qc: QueryClient, tenantId: string, incoming: unknown)
       patchDevice(event.deviceId, (device) => ({
         ...device,
         lastSeenAt: event.ts,
-        // Merged, not replaced: a heartbeat carrying only battery must not
-        // wipe the last known GPS fix.
         telemetry: { ...device.telemetry, ...event.telemetry },
       }))
       break
@@ -67,7 +53,6 @@ export function routeEvent(qc: QueryClient, tenantId: string, incoming: unknown)
       break
 
     case 'media.ready':
-      // One prefix covers every filtered list — photos, videos, per-device.
       qc.invalidateQueries({ queryKey: qk.media.all(tenantId) })
       break
   }

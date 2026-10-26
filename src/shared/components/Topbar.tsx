@@ -10,8 +10,7 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
   const navigate = useNavigate()
 
   async function handleLogout() {
-    // endSession also stops the socket and clears the query cache — otherwise
-    // the next person to sign in on this browser sees the old fleet flash.
+    // endSession also clears the cache, or the next user sees the old fleet flash.
     await endSession({ notifyBackend: true })
     navigate('/login', { replace: true })
   }
@@ -28,8 +27,6 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
         </svg>
       </button>
 
-      {/* The tenant name lives in the sidebar on desktop, which is off-screen
-          on mobile — without this a white-labelled phone view shows no brand. */}
       <span className="truncate font-medium text-slate-800 md:hidden">{tenant?.name}</span>
 
       <div className="ml-auto flex shrink-0 items-center gap-3">
@@ -39,8 +36,6 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
           {user?.role}
         </span>
 
-        {/* Account security (2FA). Just the shield on phones, where the top
-            bar has no room for another word. */}
         <NavLink
           to="/account/security"
           aria-label="Account security"

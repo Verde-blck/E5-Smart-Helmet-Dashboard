@@ -15,8 +15,7 @@ export function useDeviceHistory(deviceId: string, range: HistoryRange) {
   const tenantId = useTenantId()
 
   const { data, isLoading, isError } = useQuery({
-    // Keyed on range only. Putting the window's end timestamp in the key would
-    // mint a new cache entry every render and refetch forever.
+    // A stable key, or every render mints a new cache entry and refetches forever.
     queryKey: qk.devices.telemetry(tenantId, deviceId, range),
     queryFn: () => fetchDeviceTelemetry(deviceId, range),
     enabled: !!deviceId,

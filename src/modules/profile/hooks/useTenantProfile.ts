@@ -6,12 +6,8 @@ import { qk } from '@/shared/lib/query-keys'
 import { fetchProfile, removeLogo, updateProfile, uploadLogo } from '../api/profile.api'
 import type { TenantProfile } from '../types'
 
-/**
- * Saving branding has to update two places: the query cache (so this form is
- * consistent) and the auth store's tenant (so the sidebar, topbar and login
- * screen repaint immediately). Missing the second is why rebranding tools
- * usually need a page refresh to show their own result.
- */
+// Update both the query cache and the auth store's tenant, or the sidebar and sign-in page keep the
+// old branding until a reload.
 function useCommitProfile() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()

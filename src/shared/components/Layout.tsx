@@ -8,15 +8,10 @@ import { SosBanner } from '@/modules/alarms/components/SosBanner'
 import { LiveAlarms } from '@/modules/alarms/components/LiveAlarms'
 import { ForbiddenNotice } from './ForbiddenNotice'
 
-// App-shell layout: the page itself never scrolls, only <main> does. That
-// removes the need for a sticky sidebar entirely — a sticky flex child can end
-// up painted over the content instead of beside it.
 export function Layout() {
   const [navOpen, setNavOpen] = useState(false)
   const location = useLocation()
 
-  // Close the drawer on navigation, or tapping a nav item leaves the overlay
-  // sitting on top of the page it just opened.
   useEffect(() => setNavOpen(false), [location.pathname])
 
   useEffect(() => {
@@ -32,21 +27,12 @@ export function Layout() {
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar onOpenNav={() => setNavOpen(true)} />
-        {/* Outside <main>, so an emergency never scrolls out of view. Its own
-            error boundary: a fault here mustn't take the page down with it. */}
-        {/* Everyone signed in, whatever their role: an emergency must reach
-            whoever is at the screen. The backend only sends each user the
-            alarms for their own helmets. */}
         <ErrorBoundary label="Live alarms">
           <LiveAlarms />
           <SosBanner />
         </ErrorBoundary>
-        {/* Transparent so the canvas behind shows through as this scrolls. */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {/* Shown once, above every page, rather than repeated per module. */}
           <ScopeBanner />
-          {/* Keyed on the path so navigating away from a crashed page clears
-              the error, rather than leaving the fallback stuck there. */}
           <ErrorBoundary key={location.pathname} label="This page">
             <Outlet />
           </ErrorBoundary>

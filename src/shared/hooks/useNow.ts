@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 
-/**
- * A ticking clock. Needed because device presence is derived from a timestamp
- * rather than pushed as a status: without this, a helmet that dies silently
- * stays green forever, since no event ever arrives to change it.
- */
+// Presence is derived from timestamps, so without a ticking clock a silently dead helmet stays
+// green.
 export function useNow(intervalMs = 10_000) {
   const [now, setNow] = useState(() => Date.now())
 

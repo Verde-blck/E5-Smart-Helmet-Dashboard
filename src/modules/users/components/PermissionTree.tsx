@@ -5,12 +5,7 @@ interface Props {
   granted: ApiPermission[]
   disabled?: boolean
   onChange: (next: ApiPermission[]) => void
-  /** Codes the backend reported. Anything outside this is hidden. */
   available: ApiPermission[]
-  /**
-   * Codes the signed-in admin may hand out: the backend refuses to let
-   * anyone grant a code they don't hold. Null means everything (super admin).
-   */
   grantable?: Set<string> | null
 }
 
@@ -35,7 +30,6 @@ function Row({
   onToggleView: (node: PermissionNode) => void
   onToggleManage: (node: PermissionNode) => void
 }) {
-  // "Set" is a heading in the reference platform, not a permission.
   const isHeading = !node.code
   const hidden = node.code && offered.size > 0 && !offered.has(node.code)
   const manage = node.manageCode && (offered.size === 0 || offered.has(node.manageCode)) ? node.manageCode : undefined
@@ -110,11 +104,6 @@ function Row({
   )
 }
 
-/**
- * Permissions for one administrator. Areas with a view/change split show two
- * boxes: View grants the plain code; Can change grants the _MANAGE code,
- * which includes view, so only one of the two is ever stored.
- */
 export function PermissionTree({ granted, disabled, onChange, available, grantable = null }: Props) {
   const held = new Set(granted)
   const offered = new Set(available)
@@ -139,7 +128,6 @@ export function PermissionTree({ granted, disabled, onChange, available, grantab
     if (!node.code || !node.manageCode) return
     const next = new Set(held)
     if (next.has(node.manageCode)) {
-      // Back to view only.
       next.delete(node.manageCode)
       next.add(node.code)
     } else {
@@ -149,8 +137,6 @@ export function PermissionTree({ granted, disabled, onChange, available, grantab
     onChange([...next])
   }
 
-  // "Select all" gives the strongest code for each area, within what the
-  // backend offers and what this admin may grant.
   const selectAll = () => {
     const best = new Map<string, ApiPermission>()
     for (const code of allPermissionCodes()) {

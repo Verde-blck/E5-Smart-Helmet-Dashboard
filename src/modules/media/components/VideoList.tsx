@@ -28,11 +28,6 @@ function StatusChip({ status }: { status: MediaItem['status'] }) {
   )
 }
 
-/**
- * Recordings read better as a file list than a thumbnail grid — the useful
- * columns are name, length and size, and a wall of near-identical video
- * stills tells an operator nothing.
- */
 export function VideoList({
   items,
   onDelete,
@@ -51,7 +46,6 @@ export function VideoList({
     )
   }
 
-  // Live recordings come without a duration; an all-dash column is noise.
   const hasLength = items.some((m) => m.durationMs != null)
 
   const actions = (item: MediaItem, index: number) => (

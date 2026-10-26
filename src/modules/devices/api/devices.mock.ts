@@ -11,10 +11,7 @@ import { ONLINE_WINDOW_MS } from '../lib/presence'
 import type { FleetSummary } from '../types'
 import type { AlarmSeverity } from '@/modules/alarms/types'
 
-// A 15-helmet fleet so the whole app is browsable with VITE_USE_MOCKS=true and
-// no backend running. Held as mutable state rather than a frozen array so the
-// simulated heartbeats in app/realtime/mock-heartbeats.ts and a React Query
-// refetch can't disagree about what the fleet looks like.
+// Mutable so the simulated heartbeats and a refetch agree on the fleet.
 
 const NAMES = [
   'Tom_Dave', 'Joseph', 'WALE', 'lukman', 'Sarah_K', 'MikeO', 'ChenL', 'Priya',
@@ -32,11 +29,8 @@ const WEARERS: (DeviceAssignment | undefined)[] = [
   undefined, // unassigned helmet — spare in the store
 ]
 
-/** Never heartbeats — demonstrates presence decaying to 'offline'. */
 export const OFFLINE_DEVICE_INDEX = 9
-/** Heartbeats rarely — oscillates online → degraded, like a real SIM link. */
 export const INTERMITTENT_DEVICE_INDEX = 4
-/** Reports almost nothing, to prove the UI tolerates sparse telemetry. */
 export const SPARSE_DEVICE_INDEX = 13
 
 const fleet: Device[] = NAMES.map((name, i) => {
@@ -53,12 +47,12 @@ const fleet: Device[] = NAMES.map((name, i) => {
     connectivity,
     lastSeenAt:
       i === OFFLINE_DEVICE_INDEX
-        ? Date.now() - 2 * 60 * 60 * 1000 // two hours dark
+        ? Date.now() - 2 * 60 * 60 * 1000
         : Date.now() - Math.floor(Math.random() * 20_000),
     activeAlarm,
     telemetry:
       i === SPARSE_DEVICE_INDEX
-        ? { batteryPercent } // a helmet whose firmware exposes almost nothing
+        ? { batteryPercent }
         : {
             batteryPercent,
             batteryVoltage: Number((3.5 + (batteryPercent / 100) * 0.7).toFixed(2)),
@@ -72,9 +66,6 @@ const fleet: Device[] = NAMES.map((name, i) => {
             isWorn: i !== 7,
             isCharging: i === OFFLINE_DEVICE_INDEX,
             isRecording: i === 2,
-            // Device 6 is in a confined space with oxygen displaced and CO
-            // building — the scenario the thresholds exist for. Device 10 is
-            // borderline, to show the warning state as well as danger.
             gas:
               i === 6
                 ? [
@@ -104,7 +95,6 @@ export function getMockFleet(): Device[] {
   return fleet.map((d) => ({ ...d, telemetry: { ...d.telemetry } }))
 }
 
-/** Mirrors what the backend counts, so mock and live behave the same way. */
 export function getMockSummary(): FleetSummary {
   const now = Date.now()
   const online = fleet.filter((d) => now - d.lastSeenAt < ONLINE_WINDOW_MS).length
@@ -120,7 +110,6 @@ export function getMockSummary(): FleetSummary {
   }
 }
 
-/** Commissioning a helmet that hasn't reported yet. */
 export function registerMockDevice(deviceId: string): Device {
   const existing = fleet.find((d) => d.id === deviceId)
   if (existing) return { ...existing, telemetry: { ...existing.telemetry } }
@@ -129,8 +118,6 @@ export function registerMockDevice(deviceId: string): Device {
     id: deviceId,
     name: `…${deviceId.slice(-5)}`,
     connectivity: 'sim',
-    // Never seen. Presence derives to offline, which is correct — it exists
-    // in the system but has not yet phoned home.
     lastSeenAt: 0,
     activeAlarm: null,
     active: true,
@@ -160,7 +147,6 @@ export function getMockDevice(id: string): Device | undefined {
   return found ? { ...found, telemetry: { ...found.telemetry } } : undefined
 }
 
-/** Advances the simulated fleet one tick and returns the devices that reported. */
 export function tickMockFleet(tick: number): Device[] {
   const reporting: Device[] = []
 
@@ -185,11 +171,7 @@ export function tickMockFleet(tick: number): Device[] {
   return reporting
 }
 
-// ---------------------------------------------------------------------------
-// Simulated telemetry history
-// ---------------------------------------------------------------------------
-
-/** Seeded PRNG so a device's history is stable across refetches. */
+// Seeded so a device's history is stable across refetches.
 function mulberry32(seed: number) {
   let state = seed
   return () => {
@@ -207,12 +189,6 @@ function seedFor(id: string): number {
   return Math.abs(hash) || 1
 }
 
-/**
- * Battery follows a shift pattern rather than a straight line: drains through
- * the working day, charges overnight. A linear ramp looks obviously synthetic
- * on the 7-day view, and it also hides the sawtooth an operator actually needs
- * to recognise — a helmet that stopped charging.
- */
 function batteryAt(ts: number, rand: () => number): number {
   const hour = new Date(ts).getHours() + new Date(ts).getMinutes() / 60
   const inShift = hour >= 7 && hour <= 17
@@ -231,15 +207,12 @@ export function getMockTelemetryWindow(deviceId: string, range: HistoryRange): T
   const device = fleet[index] ?? fleet[0]
   const rand = mulberry32(seedFor(deviceId))
 
-  // Matches the live fixtures: this helmet has been dark for two hours.
   const goesDarkAt = index === OFFLINE_DEVICE_INDEX ? rangeEnd - 2 * 60 * 60_000 : Infinity
 
   const samples: TelemetrySample[] = []
   for (let ts = rangeStart; ts <= rangeEnd; ts += stepMs) {
     if (ts > goesDarkAt) break
 
-    // The intermittent helmet drops out in bursts, the way a SIM link does
-    // moving between cells or into a basement.
     if (index === INTERMITTENT_DEVICE_INDEX && rand() < 0.14) continue
 
     const onWifi = device.connectivity === 'wifi' ? rand() > 0.15 : rand() < 0.1
@@ -257,8 +230,6 @@ export function getMockTelemetryWindow(deviceId: string, range: HistoryRange): T
     })
   }
 
-  // Land the right-hand edge on the value the device list is showing, so the
-  // chart and the table never disagree about the current battery.
   const current = device.telemetry.batteryPercent
   const last = samples[samples.length - 1]
   if (current != null && last?.batteryPercent != null) {

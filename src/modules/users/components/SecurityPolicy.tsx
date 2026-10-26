@@ -1,11 +1,6 @@
 import { useState } from 'react'
 import { useRequire2fa } from '../hooks/useAdmins'
 
-/**
- * The company rule for two-factor sign-in. When it's on, anyone without 2FA
- * is taken straight to setup at their next sign-in (and signed-in users on
- * their next action), and nobody can turn theirs off.
- */
 export function SecurityPolicy({ canEdit }: { canEdit: boolean }) {
   const { require2fa, isLoading, isError, save } = useRequire2fa()
   const [confirming, setConfirming] = useState(false)

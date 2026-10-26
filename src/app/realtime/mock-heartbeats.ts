@@ -6,13 +6,8 @@ import { routeEvent } from './socket-router'
 
 const TICK_MS = 5_000
 
-/**
- * Drives the mock fleet through the real socket-router path so the whole
- * event → cache → derived-presence chain is exercised with no backend.
- *
- * Without this, mock timestamps are frozen at import and every helmet decays
- * to 'offline' 90 seconds after the page loads.
- */
+// Without simulated heartbeats, mock timestamps freeze at import and every helmet decays to
+// offline.
 export function startMockHeartbeats(): () => void {
   let tick = 0
   useConnectionStore.getState().set('live')

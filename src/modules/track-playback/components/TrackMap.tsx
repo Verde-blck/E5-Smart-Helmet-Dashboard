@@ -3,21 +3,12 @@ import { useGoogleMaps } from '@/modules/map/hooks/useGoogleMaps'
 import { segmentsOf } from '../lib/track'
 import type { Track } from '../types'
 
-/**
- * The route drawn as a line, with start and end pinned and a marker at the
- * current playback position.
- *
- * Kept separate from FleetMap: that one plots independent helmets, this one
- * plots one helmet over time. Sharing a component would mean a props object
- * full of mutually exclusive options.
- */
 export function TrackMap({
   track,
   cursor,
   heightClass = 'h-[26rem]',
 }: {
   track: Track
-  /** Index of the point to highlight. */
   cursor: number
   heightClass?: string
 }) {
@@ -27,7 +18,6 @@ export function TrackMap({
   const linesRef = useRef<google.maps.Polyline[]>([])
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
   const cursorRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
-  // The likely area when the point under the cursor is approximate.
   const cursorAreaRef = useRef<google.maps.Circle | null>(null)
 
   useEffect(() => {
@@ -41,7 +31,6 @@ export function TrackMap({
     })
   }, [status, libraries, mapId])
 
-  // Redraw the route whenever the track changes, and fit the view to it once.
   useEffect(() => {
     const map = mapRef.current
     if (status !== 'ready' || !libraries || !map) return
@@ -53,9 +42,6 @@ export function TrackMap({
 
     if (track.points.length === 0) return
 
-    // One line per continuous run. Drawing a single polyline across the whole
-    // track would connect a coverage gap — or a bad fix on another continent —
-    // with a straight line that never happened.
     const runs = segmentsOf(track.points)
 
     for (const run of runs) {
@@ -87,16 +73,12 @@ export function TrackMap({
     endpoint(track.points[0], '#10b981', 'A')
     if (track.points.length > 1) endpoint(track.points[track.points.length - 1], '#ef4444', 'B')
 
-    // Fit to the longest run rather than everything. With an out-of-region
-    // fix in the history, fitting all of it zooms out to show two continents
-    // and the actual route becomes a dot.
     const largest = runs.reduce((best, run) => (run.length > best.length ? run : best), runs[0])
     const bounds = new google.maps.LatLngBounds()
     largest.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }))
     map.fitBounds(bounds, 48)
   }, [status, libraries, track])
 
-  // Move the cursor marker without touching the route or the viewport.
   useEffect(() => {
     const map = mapRef.current
     if (status !== 'ready' || !libraries || !map) return
@@ -150,8 +132,6 @@ export function TrackMap({
         <div className="max-w-md text-center">
           <p className="text-sm font-medium text-slate-700">Map not configured</p>
           <p className="mt-1 text-xs text-slate-500">
-            {/* The track itself still loads — stats and export work without a
-                key, so the module is usable before billing is sorted out. */}
             Add a Google Maps browser key to see the route drawn. The track,
             its statistics and the CSV export all work without one.
           </p>

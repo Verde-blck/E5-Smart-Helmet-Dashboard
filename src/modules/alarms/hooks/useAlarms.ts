@@ -20,14 +20,10 @@ export function useAlarms() {
   const { data, isLoading, isError } = useQuery({
     queryKey: qk.alarms.all(tenantId),
     queryFn: fetchAlarms,
-    // New alarms arrive instantly over the stream (see LiveAlarms). While it's
-    // up, polling is only a slow safety net; while it's down, it's the only
-    // way alarms arrive, so it goes back to the normal interval.
+    // While the stream is up, polling is only a slow safety net.
     refetchInterval: streaming ? 120_000 : features.pollIntervalMs,
   })
 
-  // Newest first, unresolved always above history — an operator opening this
-  // page during an incident should not have to scroll to find the live event.
   const alarms = useMemo(() => {
     const list = (data ?? []).filter((a) => inScope(a.site))
     return [...list].sort((a, b) => {
@@ -50,8 +46,6 @@ export function useResolveAlarm() {
     mutationFn: ({ id, resolved }: { id: string; resolved: boolean }) =>
       setAlarmResolved(id, resolved, user?.name ?? 'Unknown'),
     onMutate: async ({ id, resolved }) => {
-      // Optimistic: a resolve that takes a round-trip to grey out feels broken
-      // during an incident, which is exactly when it gets used.
       const key = qk.alarms.all(tenantId)
       await queryClient.cancelQueries({ queryKey: key })
       const previous = queryClient.getQueryData<Alarm[]>(key)

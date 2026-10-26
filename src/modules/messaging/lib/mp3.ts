@@ -1,17 +1,10 @@
 import { downmix, resample } from './wav'
 
-/**
- * Mono MP3 at 44.1 kHz, 64 kbit/s: the most widely supported MP3 there is
- * (MPEG-1 Layer III), at about 8 KB per second of speech, so a one-minute
- * message is under 0.5 MB against the 10 MB limit.
- *
- * The encoder is LAME compiled to JavaScript (@breezystack/lamejs, LGPL-3.0),
- * loaded only when a recording is first encoded so it isn't in the main
- * bundle.
- */
+// MPEG-1 Layer III, mono 44.1 kHz at 64 kbit/s: the most widely supported MP3, about 0.5 MB a
+// minute.
 export const MP3_SAMPLE_RATE = 44_100
 const KBPS = 64
-/** LAME's frame size; feeding whole frames avoids an internal copy. */
+// LAME's frame size; whole frames avoid an internal copy.
 const FRAME = 1152
 
 function toInt16(samples: Float32Array): Int16Array {
@@ -23,7 +16,6 @@ function toInt16(samples: Float32Array): Int16Array {
   return out
 }
 
-/** Encodes mono samples already at MP3_SAMPLE_RATE. */
 export async function encodeMp3(samples: Float32Array): Promise<Blob> {
   const { Mp3Encoder } = await import('@breezystack/lamejs')
   const encoder = new Mp3Encoder(1, MP3_SAMPLE_RATE, KBPS)
@@ -38,7 +30,6 @@ export async function encodeMp3(samples: Float32Array): Promise<Blob> {
   return new Blob(parts as BlobPart[], { type: 'audio/mpeg' })
 }
 
-/** A browser recording (webm/ogg/mp4) to MP3. */
 export async function toMp3(recorded: Blob): Promise<Blob> {
   const AudioContextClass =
     window.AudioContext ??

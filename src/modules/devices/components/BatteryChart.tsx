@@ -7,21 +7,11 @@ const VIEW_W = 600
 const VIEW_H = 150
 const LOW_BATTERY = 20
 
-/**
- * Hand-rolled SVG rather than a charting library. At this scale a line, four
- * gridlines and a readout is about eighty lines of code, and it avoids adding
- * ~100KB to a bundle that supervisors may load over a site's mobile
- * connection. If this ever needs brushing, zoom or stacked series, that's the
- * point to reach for Recharts.
- */
 export function BatteryChart({ window: win }: { window: TelemetryWindow }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoverTs, setHoverTs] = useState<number | null>(null)
   const isWide = useMediaQuery('(min-width: 640px)')
 
-  // The SVG scales to its container, so a 600-unit viewBox shrinks to roughly
-  // 340px on a phone — 9px axis labels land at about 5px. Scale the type and
-  // padding up in viewBox units so they come out legible after the squeeze.
   const fontSize = isWide ? 9 : 15
   const padL = isWide ? 28 : 40
   const padR = isWide ? 8 : 10
@@ -53,7 +43,6 @@ export function BatteryChart({ window: win }: { window: TelemetryWindow }) {
   function inspectAt(clientX: number) {
     const rect = svgRef.current?.getBoundingClientRect()
     if (!rect) return
-    // Map client pixels back into viewBox units before converting to a time.
     const viewX = ((clientX - rect.left) / rect.width) * VIEW_W
     const ratio = (viewX - padL) / (VIEW_W - padL - padR)
     setHoverTs(rangeStart + Math.min(1, Math.max(0, ratio)) * span)
@@ -75,9 +64,6 @@ export function BatteryChart({ window: win }: { window: TelemetryWindow }) {
         className="h-auto w-full touch-none"
         onMouseMove={(e) => inspectAt(e.clientX)}
         onMouseLeave={() => setHoverTs(null)}
-        // Touch devices have no hover, so drag-to-inspect stands in. The
-        // readout stays put on release rather than vanishing the instant a
-        // finger lifts, which would make it unreadable.
         onTouchStart={(e) => inspectAt(e.touches[0].clientX)}
         onTouchMove={(e) => inspectAt(e.touches[0].clientX)}
         role="img"

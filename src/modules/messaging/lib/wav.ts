@@ -1,5 +1,3 @@
-
-
 export const TARGET_SAMPLE_RATE = 16_000
 
 export function downmix(buffer: AudioBuffer): Float32Array {
@@ -36,7 +34,6 @@ function writeString(view: DataView, offset: number, value: string): void {
   for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i))
 }
 
-/** 16-bit PCM mono WAV. */
 export function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   const bytes = new ArrayBuffer(44 + samples.length * 2)
   const view = new DataView(bytes)
@@ -45,13 +42,13 @@ export function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   view.setUint32(4, 36 + samples.length * 2, true)
   writeString(view, 8, 'WAVE')
   writeString(view, 12, 'fmt ')
-  view.setUint32(16, 16, true) // PCM header size
-  view.setUint16(20, 1, true) // format: PCM
-  view.setUint16(22, 1, true) // channels: mono
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
   view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * 2, true) // byte rate
-  view.setUint16(32, 2, true) // block align
-  view.setUint16(34, 16, true) // bits per sample
+  view.setUint32(28, sampleRate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
   writeString(view, 36, 'data')
   view.setUint32(40, samples.length * 2, true)
 
@@ -85,7 +82,6 @@ export function toneWav(seconds = 0.6, frequency = 660): Blob {
   const length = Math.floor(TARGET_SAMPLE_RATE * seconds)
   const samples = new Float32Array(length)
   for (let i = 0; i < length; i += 1) {
-
     const fade = Math.min(1, Math.min(i, length - i) / (TARGET_SAMPLE_RATE * 0.05))
     samples[i] = Math.sin((2 * Math.PI * frequency * i) / TARGET_SAMPLE_RATE) * 0.3 * fade
   }

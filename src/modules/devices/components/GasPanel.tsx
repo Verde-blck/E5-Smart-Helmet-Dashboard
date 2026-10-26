@@ -88,8 +88,6 @@ export function GasPanel({
       </div>
 
       <p className="mb-3 text-[11px] text-slate-400">
-        {/* A missing sensor and a reading of zero are very different things on
-            a gas detector, so only fitted sensors appear here. */}
         Only sensors fitted to this helmet are shown. Thresholds are defaults
         and should be confirmed against your site's safety policy.
         {capturedAt && ` Last reading ${new Date(capturedAt).toLocaleTimeString()}.`}

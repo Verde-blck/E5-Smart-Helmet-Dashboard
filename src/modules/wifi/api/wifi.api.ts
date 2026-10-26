@@ -2,20 +2,8 @@ import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
 import { ts } from '@/shared/lib/api-normalize'
 
-/*
- * Helmet Wi-Fi (replaces the Anlink app). From the guide of 14 Oct 2026.
- *
- * POST /api/devices/{id}/wifi/scan     → { delivered }   false = offline
- * GET  /api/devices/{id}/wifi          → { scannedAt, networks[] }
- * POST /api/devices/{id}/wifi/connect  ← { ssid, password }
- *
- * Not queued: an offline helmet simply doesn't get the command. Not yet
- * tested on a real helmet.
- */
-
 export interface WifiNetwork {
   ssid: string
-  /** 0 (weak) to 4 (strong). */
   signal: number
   connected: boolean
 }
@@ -43,7 +31,6 @@ function toScan(data: ApiWifi | null | undefined): WifiScan {
   }
 }
 
-// --- Mock ---------------------------------------------------------------
 let mockScan: WifiScan = { scannedAt: null, networks: [] }
 let mockConnected = 'E5-Setup'
 const MOCK_NETWORKS = [
@@ -55,7 +42,6 @@ const MOCK_NETWORKS = [
 
 export async function scanWifi(deviceId: string): Promise<{ delivered: boolean }> {
   if (env.useMocks) {
-    // The helmet reports a few seconds later, as the real one does.
     setTimeout(() => {
       mockScan = {
         scannedAt: Date.now(),
@@ -88,14 +74,9 @@ export async function connectWifi(
     `/devices/${deviceId}/wifi/connect`,
     { ssid, password }
   )
-  // Some endpoints answer an empty 200; treat that as accepted.
   return { delivered: data?.delivered !== false }
 }
 
-/**
- * Asks the helmet to scan, then waits for a report newer than the one before.
- * Polls every 2 s, as the guide suggests, and gives up after 30 s.
- */
 export async function scanAndWait(
   deviceId: string,
   signal: AbortSignal
@@ -114,17 +95,13 @@ export async function scanAndWait(
   return { delivered, scan: null }
 }
 
-// --- Site Wi-Fi: one network every helmet gets at start-up --------------
-
 export interface SiteWifi {
   ssid: string | null
-  /** The password is never returned, only whether one is stored. */
   passwordSet: boolean
 }
 
 let mockSite: SiteWifi = { ssid: 'E5ENERGY', passwordSet: true }
 
-/** GET /api/settings/site-wifi. 404 or an empty body means none is set. */
 export async function fetchSiteWifi(): Promise<SiteWifi> {
   if (env.useMocks) return { ...mockSite }
   try {
@@ -138,7 +115,6 @@ export async function fetchSiteWifi(): Promise<SiteWifi> {
   }
 }
 
-/** Leave `password` undefined to keep the current one. */
 export async function saveSiteWifi(ssid: string, password?: string): Promise<SiteWifi> {
   if (env.useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 300))
@@ -160,19 +136,11 @@ export async function removeSiteWifi(): Promise<void> {
   await apiClient.delete('/settings/site-wifi')
 }
 
-// --- Switching a helmet to mobile data ----------------------------------
-
 export type MobileSwitchResult =
   | { status: 'sent'; delivered: boolean }
   /** The helmet hasn't reported a SIM; retry with force to send anyway. */
   | { status: 'no-sim'; message: string }
 
-/**
- * POST /api/devices/{id}/network/mobile: the helmet drops Wi-Fi and
- * reconnects over 4G. If its SIM has no data it stays offline until it's
- * back on a known Wi-Fi, so the UI always confirms first. Not yet tested
- * with a live SIM.
- */
 export async function switchToMobileData(deviceId: string, force = false): Promise<MobileSwitchResult> {
   if (env.useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 400))

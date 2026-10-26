@@ -1,15 +1,6 @@
 import { HEARTBEAT_MS } from './presence'
 import type { HistoryRange, Presence, TelemetrySample, TelemetryWindow } from '../types'
 
-/**
- * Resolution per range, chosen so every window lands between ~120 and ~340
- * points. Seven days of 30-second heartbeats is 20,160 samples per helmet —
- * shipping that to a browser to draw a 600px-wide chart wastes bandwidth on a
- * metered connection and renders no better.
- *
- * The backend should aggregate to these steps (a Postgres window function, or
- * a TimescaleDB continuous aggregate) rather than sending raw rows.
- */
 export const HISTORY_RANGES: Record<HistoryRange, { label: string; durationMs: number; stepMs: number }> = {
   '1h': { label: 'Last hour', durationMs: 60 * 60_000, stepMs: 30_000 },
   '24h': { label: 'Last 24 hours', durationMs: 24 * 60 * 60_000, stepMs: 5 * 60_000 },
@@ -22,17 +13,6 @@ export interface ConnectionPeriod {
   presence: Presence
 }
 
-/**
- * Presence over time, derived from the spacing of samples — the same rule the
- * live list uses, just applied to history. Deriving it in both places is what
- * keeps the device row and its own history chart from disagreeing about
- * whether a helmet was online, which is the fastest way to lose an operator's
- * trust in a dashboard.
- *
- * Thresholds scale with the sample step. A downsampled window cannot resolve a
- * gap shorter than its own resolution, so at 30-minute steps we only call
- * something an outage once it exceeds several steps, not several heartbeats.
- */
 export function deriveConnectionPeriods(window: TelemetryWindow): ConnectionPeriod[] {
   const { samples, rangeStart, rangeEnd, stepMs } = window
   const degradedAfter = Math.max(HEARTBEAT_MS * 3, stepMs * 1.5)
@@ -45,8 +25,6 @@ export function deriveConnectionPeriods(window: TelemetryWindow): ConnectionPeri
   const push = (from: number, to: number, presence: Presence) => {
     if (to <= from) return
     const last = periods[periods.length - 1]
-    // Merge touching runs of the same state so the timeline is a handful of
-    // bars rather than one per sample.
     if (last && last.presence === presence && last.to === from) last.to = to
     else periods.push({ from, to, presence })
   }
@@ -55,7 +33,6 @@ export function deriveConnectionPeriods(window: TelemetryWindow): ConnectionPeri
     return [{ from: rangeStart, to: rangeEnd, presence: 'offline' }]
   }
 
-  // Leading edge: silence before the first sample in the window.
   push(rangeStart, samples[0].ts, classify(samples[0].ts - rangeStart))
 
   for (let i = 1; i < samples.length; i += 1) {
@@ -63,7 +40,6 @@ export function deriveConnectionPeriods(window: TelemetryWindow): ConnectionPeri
     push(samples[i - 1].ts, samples[i].ts, classify(gap))
   }
 
-  // Trailing edge: silence between the last sample and now.
   const last = samples[samples.length - 1]
   push(last.ts, rangeEnd, classify(rangeEnd - last.ts))
 
@@ -88,12 +64,6 @@ export function lowestBattery(samples: TelemetrySample[]): number | null {
   return values.length ? Math.min(...values) : null
 }
 
-/**
- * Splits samples into runs with no significant gap, so the chart draws
- * separate lines instead of one straight segment bridging a two-hour outage —
- * which would read as "battery declined smoothly" when in fact nothing was
- * reported at all.
- */
 export function splitOnGaps(
   samples: TelemetrySample[],
   stepMs: number

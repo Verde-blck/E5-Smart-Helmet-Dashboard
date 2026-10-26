@@ -40,7 +40,6 @@ export function usePermissionCatalogue() {
   const { data } = useQuery({
     queryKey: [...qk.tenant(tenantId), 'permissions'] as const,
     queryFn: fetchPermissions,
-    // The catalogue is fixed server-side; no reason to re-request it often.
     staleTime: 60 * 60_000,
   })
   return data ?? []
@@ -100,7 +99,6 @@ export function useResetTwoFactor() {
   return useMutation({ mutationFn: (id: number) => resetAdminTwoFactor(id), onSuccess: invalidate })
 }
 
-/** The company rule: every account must use two-factor sign-in. */
 export function useRequire2fa() {
   const queryClient = useQueryClient()
   const tenantId = useTenantId()

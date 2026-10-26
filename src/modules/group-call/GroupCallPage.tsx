@@ -201,8 +201,6 @@ export function GroupCallPage() {
                   </span>
                 </div>
                 <p className="mb-3 text-[11px] text-slate-400">
-                  {/* Groups hold administrators, not helmets (the API has no
-                      device membership), so the helmets are chosen here. */}
                   Choose which helmets to include. Group membership covers administrators only, so
                   helmets are picked each time.
                 </p>
@@ -415,11 +413,6 @@ export function GroupCallPage() {
   )
 }
 
-/**
- * A call this tab started and didn't hang up, typically after a reload. The
- * helmets are still in call mode, so offer to rejoin it or end it for
- * everyone rather than leave them hanging.
- */
 function LeftoverCall({
   onRejoin,
   inCall,
@@ -435,7 +428,6 @@ function LeftoverCall({
     retry: false,
   })
 
-  // Already over (e.g. the backend restarted): forget it quietly.
   useEffect(() => {
     if (data === null) activeGroupCall.set(null)
   }, [data])

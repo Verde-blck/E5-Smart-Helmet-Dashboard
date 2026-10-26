@@ -31,8 +31,6 @@ function make(
   }
 }
 
-// Covers every severity and both states, plus the three alarm types the
-// firmware raises that weren't modelled before this integration.
 const alarms: Alarm[] = [
   make('alm-001', 2, 'sos', 4 * MINUTE, { note: 'SOS button held for 3s' }),
   make('alm-002', 7, 'helmet-removal', 22 * MINUTE),

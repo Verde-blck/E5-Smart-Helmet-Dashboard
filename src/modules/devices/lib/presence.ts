@@ -2,31 +2,12 @@ import type { Device, DeviceView, Presence } from '../types'
 
 export const HEARTBEAT_MS = 30_000
 
-/**
- * Matches the backend's own rule: a device is online if it reported in the
- * last two minutes.
- *
- * This used to be ninety seconds, chosen before the API existed. Keeping two
- * different definitions meant the dashboard's own summary count could
- * disagree with the dots in its own device list — the kind of contradiction
- * that makes an operator stop trusting the screen. The server owns the rule;
- * we follow it.
- */
 export const ONLINE_WINDOW_MS = 120_000
 
-/** Reported recently enough to be live, but not within the online window. */
 export const DEGRADED_WINDOW_MS = 10 * 60_000
 
-/**
- * A helmet on a SIM will drop routinely — cell handoff, a basement, a tunnel.
- * If "online" means "we hold an open socket" the alarm feed becomes noise
- * within a day and operators stop reading it. Presence is a function of time
- * since last contact instead.
- *
- * 'degraded' has no equivalent on the backend, which is binary. It sits
- * between the two so a helmet that has just slipped out of coverage reads
- * differently from one that has been dark for an hour.
- */
+// Presence comes from time since last contact, not an open socket: SIM helmets drop routinely, and
+// socket-based status would make the alarm feed noise.
 export function derivePresence(lastSeenAt: number, now: number): Presence {
   const age = now - lastSeenAt
   if (age < ONLINE_WINDOW_MS) return 'online'

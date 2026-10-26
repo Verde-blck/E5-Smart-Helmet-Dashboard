@@ -128,8 +128,6 @@ export function GroupList({ canEdit }: { canEdit: boolean }) {
                     ) : confirming === group.id ? (
                       <span className="flex items-center justify-end gap-2">
                         <span className="text-slate-600">
-                          {/* Deleting a group on the live backend leaves
-                              administrators still pointing at its id. */}
                           {memberCount(group.id) > 0
                             ? `${memberCount(group.id)} admin${memberCount(group.id) === 1 ? '' : 's'} will lose their group.`
                             : 'Delete this group?'}

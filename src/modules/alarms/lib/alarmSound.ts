@@ -1,12 +1,5 @@
-/*
- * Alarm sounds for this tab: a ringtone that repeats while any critical alarm
- * is unacknowledged, and a single chime for everything else. Generated with
- * Web Audio, so there are no files to load.
- *
- * Browsers only allow sound after the user has interacted with the page, so
- * the audio is unlocked by the first click or key press, and the UI shows an
- * "Enable alarm sound" prompt until then.
- */
+// Browsers block audio until the user interacts with the page, so the first click or key press
+// unlocks it.
 
 type Listener = () => void
 
@@ -14,7 +7,7 @@ let ctx: AudioContext | null = null
 const ringing = new Set<string>()
 const listeners = new Set<Listener>()
 let loop: ReturnType<typeof setInterval> | null = null
-/** Same array until something changes, as React's store subscription needs. */
+// useSyncExternalStore needs the same snapshot until something changes.
 let snapshot: string[] = []
 
 function notify() {
@@ -32,7 +25,6 @@ function context(): AudioContext | null {
   return ctx
 }
 
-/** Call once at start-up: the first interaction anywhere unlocks sound. */
 export function installSoundUnlock(): () => void {
   const unlock = () => {
     const c = context()
@@ -46,7 +38,6 @@ export function installSoundUnlock(): () => void {
   }
 }
 
-/** True once the browser lets this tab play sound. */
 export function soundEnabled(): boolean {
   return ctx?.state === 'running'
 }
@@ -55,7 +46,7 @@ export async function enableSound(): Promise<void> {
   const c = context()
   if (c && c.state !== 'running') await c.resume()
   notify()
-  chime() // confirms it works
+  chime()
 }
 
 function tone(c: AudioContext, freq: number, start: number, length: number, volume: number) {
@@ -72,7 +63,6 @@ function tone(c: AudioContext, freq: number, start: number, length: number, volu
   osc.stop(t + length + 0.02)
 }
 
-/** One short two-note chime: a new alarm that isn't critical. */
 export function chime(): void {
   const c = context()
   if (!c || c.state !== 'running') return
@@ -80,14 +70,12 @@ export function chime(): void {
   tone(c, 880, 0.2, 0.25, 0.18)
 }
 
-/** One burst of the ringtone: four quick alternating notes. */
 function ringOnce() {
   const c = context()
   if (!c || c.state !== 'running') return
   ;[0, 0.22, 0.44, 0.66].forEach((at, i) => tone(c, i % 2 ? 660 : 988, at, 0.18, 0.3))
 }
 
-/** Starts ringing for this alarm (until it's acknowledged or resolved). */
 export function ring(alarmId: string): void {
   if (ringing.has(alarmId)) return
   ringing.add(alarmId)
@@ -101,7 +89,6 @@ export function ring(alarmId: string): void {
   notify()
 }
 
-/** Stops ringing for one alarm. */
 export function acknowledge(alarmId: string): void {
   if (!ringing.delete(alarmId)) return
   if (ringing.size === 0 && loop) {

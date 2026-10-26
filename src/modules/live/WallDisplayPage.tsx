@@ -5,22 +5,14 @@ import { useTenant } from '@/shared/hooks/useTenant'
 import { WALL_MAX, useWallSessions } from './hooks/useWallSessions'
 import { FocusView, WallTile } from './components/LiveWall'
 
-/** Columns that keep tiles as large as possible for each count. */
 function columnsFor(count: number): number {
   if (count <= 1) return 1
   if (count <= 4) return 2
   return 3
 }
 
-/**
- * The live wall on its own, for a second screen or TV: opened from
- * Monitoring Center → Live wall → Open in new window.
- *
- * Unlike the wall inside the dashboard, it doesn't pause when the window is
- * hidden; staying up while the admin works elsewhere is its whole job. It
- * still starts from a click, which is also what browsers require before
- * they allow full screen.
- */
+// Unlike the in-dashboard wall, this never pauses when hidden: staying up on a second screen is its
+// job.
 export function WallDisplayPage() {
   const [params, setParams] = useSearchParams()
   const { devices } = useDevices()
@@ -48,8 +40,6 @@ export function WallDisplayPage() {
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
 
-  // In full screen the header gets out of the way, and comes back when the
-  // mouse moves, like a video player.
   useEffect(() => {
     if (!fullscreen) {
       setChromeVisible(true)

@@ -13,7 +13,6 @@ import { usePermission } from '@/shared/hooks/usePermission'
 
 type Editing = { id?: number; draft: FenceDraft } | null
 
-/** Pans and zooms to show one fence. */
 function showFence(map: google.maps.Map, fence: Fence) {
   if (fence.type === 'ROUND' && fence.center) {
     const circle = new google.maps.Circle({ center: fence.center, radius: fence.radiusMeters })
@@ -44,8 +43,6 @@ export function MapPage() {
 
   const located = devices.filter((d) => d.telemetry.lat != null)
   const alarming = devices.filter((d) => d.activeAlarm !== null)
-  // A helmet with no fix isn't on the map, and an operator counting pins
-  // needs to know that rather than assume the fleet is smaller.
   const missing = devices.length - located.length
 
   const stale = located

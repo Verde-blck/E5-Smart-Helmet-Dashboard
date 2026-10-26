@@ -4,11 +4,6 @@ import { DEVICE_NAME_MAX } from '../api/devices.api'
 import { useRenameDevice } from '../hooks/useDevices'
 import type { DeviceView } from '../types'
 
-/**
- * The helmet's name as the page heading, with its device ID underneath and
- * an inline rename. The ID stays visible because it's what's printed on the
- * helmet, and what support will ask for.
- */
 export function DeviceNameHeading({ device }: { device: DeviceView }) {
   const rename = useRenameDevice()
   const named = device.named !== false

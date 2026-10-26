@@ -10,14 +10,6 @@ function dayLabel(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }
 
-/**
- * Uptime rather than location — the question the reference platform's Track
- * Playback actually answers: was this helmet switched on and reporting?
- *
- * It sits alongside the route rather than replacing it, because the two
- * answer different questions: the route is for incidents, this is for
- * compliance and payroll.
- */
 export function AvailabilityChart({ summary }: { summary: AvailabilitySummary }) {
   const isWide = useMediaQuery('(min-width: 640px)')
   const [hover, setHover] = useState<number | null>(null)
@@ -32,7 +24,6 @@ export function AvailabilityChart({ summary }: { summary: AvailabilitySummary })
   const padB = isWide ? 22 : 30
 
   const peakMs = Math.max(...days.map((d) => d.availableMs), 60_000)
-  // Round the axis up to a whole hour so the gridline labels are readable.
   const axisMax = Math.ceil(peakMs / 3_600_000) * 3_600_000
 
   const plotW = VIEW_W - padL - padR
@@ -89,8 +80,6 @@ export function AvailabilityChart({ summary }: { summary: AvailabilitySummary })
 
             {days.map((day, i) => (
               <g key={day.dayStart}>
-                {/* Full-height hit area, so a zero-minute day is still
-                    hoverable — that's often the day you want to ask about. */}
                 <rect
                   x={padL + i * slot}
                   y={padT}
@@ -161,8 +150,6 @@ export function AvailabilityChart({ summary }: { summary: AvailabilitySummary })
       </div>
 
       <p className="mt-3 text-[11px] text-slate-400">
-        {/* The tolerance is derived, so it's worth saying what it landed on —
-            a helmet on a long BEATTIM isn't penalised for reporting rarely. */}
         Counted from the spacing between reports, which arrive roughly every{' '}
         {Math.round(summary.medianIntervalMs / 1000)}s on this helmet. A silence
         longer than {Math.round(summary.toleranceMs / 60_000)} min counts as offline.

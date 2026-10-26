@@ -1,13 +1,6 @@
 import type { ModuleKey } from '@/shared/constants/modules'
 
-/**
- * The permission codes the backend defines (GET /api/permissions, 16 Oct 2026).
- *
- * Seven areas come in pairs: the plain code lets someone view, and the
- * _MANAGE code also lets them make changes. Holding _MANAGE includes view.
- * The others are single codes: holding one means full access to that area.
- * GEO_FENCE is retired; the backend turns it into FENCE.
- */
+// Holding a _MANAGE code includes view.
 export type ApiPermission =
   | 'DASHBOARD'
   | 'MONITORING_CENTER'
@@ -36,23 +29,12 @@ export type ApiPermission =
 
 export interface PermissionNode {
   label: string
-  /** The view code, or the only code for single-code areas. Absent for a heading. */
   code?: ApiPermission
-  /** The "can change" code, for areas that split view and manage. */
   manageCode?: ApiPermission
-  /** What view and change mean here, shown under the label. */
   hint?: string
   children?: PermissionNode[]
 }
 
-/**
- * What an administrator can be granted, in the order of the sidebar.
- *
- * Deliberately shorter than the backend's catalogue: Task Manager, Bluetooth
- * Beacon and Attendance Record have no screen yet, and granting access to
- * something that doesn't exist is worse than not offering it. To restore one
- * when its module is built, add a node here and map it in MODULE_PERMISSION.
- */
 export const PERMISSION_TREE: PermissionNode[] = [
   { label: 'Dashboard', code: 'DASHBOARD' },
   {
@@ -103,7 +85,6 @@ export const PERMISSION_TREE: PermissionNode[] = [
   },
 ]
 
-/** Every code the tree can grant, view and manage alike. */
 export function allPermissionCodes(): ApiPermission[] {
   const codes: ApiPermission[] = []
   const walk = (nodes: PermissionNode[]) => {
@@ -117,18 +98,10 @@ export function allPermissionCodes(): ApiPermission[] {
   return codes
 }
 
-/** The plain code for a _MANAGE code, or the code itself. */
 export function viewCodeOf(code: string): string {
   return code.endsWith('_MANAGE') ? code.slice(0, -'_MANAGE'.length) : code
 }
 
-/**
- * Which backend codes gate each area of this dashboard. `manage` is the code
- * that allows changes; without one, the view code allows everything.
- *
- * Live Map shares Monitoring Center, as in the backend's model; Wi-Fi follows
- * Unit Setting; Company Profile follows Administrator Setting.
- */
 export const MODULE_PERMISSION: Record<ModuleKey, { view: ApiPermission; manage?: ApiPermission }> = {
   dashboard: { view: 'DASHBOARD' },
   devices: { view: 'MONITORING_CENTER', manage: 'MONITORING_CENTER_MANAGE' },
@@ -147,17 +120,7 @@ export const MODULE_PERMISSION: Record<ModuleKey, { view: ApiPermission; manage?
   profile: { view: 'ADMINISTRATOR_SETTING' },
 }
 
-/**
- * Turns the backend's codes into the module:action permissions the
- * dashboard's guards check.
- *
- *   view code             → module:read
- *   _MANAGE code          → module:read, :write, :delete
- *   single code (no pair) → module:read, :write, :delete
- *
- * Unknown codes are ignored, so a code the backend adds later can't grant
- * anything here by accident.
- */
+// Unknown codes are ignored, so a code the backend adds later can't grant anything by accident.
 export function expandPermissions(granted: string[]): string[] {
   const held = new Set(granted)
   const expanded: string[] = []

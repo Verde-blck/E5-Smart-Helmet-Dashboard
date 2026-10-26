@@ -1,27 +1,12 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { HelmetSession } from '../lib/session'
 
-/** Cypher's suggestion: six fits a 3 × 2 grid and keeps data use sensible. */
 export const WALL_MAX = 6
 
-/** Hidden this long (another tab, minimised) and the streams are stopped to save data. */
 const PAUSE_AFTER_HIDDEN_MS = 60_000
 
-/**
- * The live sessions behind the wall, one per helmet.
- *
- * Kept in a ref-held map rather than per-tile hooks so sessions are only ever
- * started by a click or by returning to the tab, never by a component
- * mounting (see useHelmetSession for why that matters). Leaving the wall
- * disconnects from every helmet; the server stops the ones nobody else is
- * watching.
- */
 export function useWallSessions({
-  /**
-   * Off for the dedicated wall window: it's meant to stay on a second screen
-   * while the admin works elsewhere, and some browsers report a window on
-   * another monitor as hidden.
-   */
+  // Off for the wall window: some browsers report a window on another monitor as hidden.
   pauseWhenHidden = true,
 }: { pauseWhenHidden?: boolean } = {}) {
   const sessions = useRef(new Map<string, HelmetSession>())
@@ -53,10 +38,7 @@ export function useWallSessions({
 
   const get = useCallback((deviceId: string) => sessions.current.get(deviceId) ?? null, [])
 
-  // Six helmets streaming to a tab nobody is looking at is about 5 GB an hour
-  // of their mobile data. After a minute hidden, disconnect from them; the
-  // media server then stops each helmet about 20 seconds later, unless
-  // someone else is watching it. When the tab comes back, rejoin the same ones.
+  // Six hidden streams are about 5 GB an hour of helmet data, so disconnect after a minute hidden.
   useEffect(() => {
     if (!pauseWhenHidden) return
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -94,7 +76,6 @@ export function useWallSessions({
     }
   }, [pauseWhenHidden])
 
-  // Leaving Monitoring Center, or switching away from the wall view.
   useEffect(() => {
     const map = sessions.current
     return () => {
