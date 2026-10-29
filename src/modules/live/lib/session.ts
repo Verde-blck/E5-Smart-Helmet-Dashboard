@@ -23,6 +23,8 @@ export interface SessionState {
   cameraOn: boolean
   noCamera: boolean
   outgoingFailed: boolean
+  // The media server's own reason for refusing our push, for diagnosis.
+  outgoingError?: string
   liveSince: number | null
 }
 
@@ -180,8 +182,11 @@ export class HelmetSession {
         deadlineMs: 20_000,
       })
       if (this.signal.aborted) this.outgoing.close()
-    } catch {
-      if (!this.signal.aborted) this.set({ outgoingFailed: true })
+    } catch (error) {
+      if (this.signal.aborted) return
+      const reason = error instanceof Error ? error.message : String(error)
+      console.warn(`[call] push to ${pushUrl} refused:`, reason)
+      this.set({ outgoingFailed: true, outgoingError: reason })
     }
   }
 

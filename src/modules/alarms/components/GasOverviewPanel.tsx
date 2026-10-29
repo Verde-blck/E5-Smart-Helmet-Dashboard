@@ -4,6 +4,7 @@ import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '@/modules/devices/lib/
 import { GasHistoryChart } from '@/modules/devices/components/GasHistoryChart'
 import { useDevices } from '@/modules/devices/hooks/useDevices'
 import { useDeviceHistory } from '@/modules/devices/hooks/useDeviceHistory'
+import { useGasLiveness } from '@/modules/devices/hooks/useGasLiveness'
 
 const RANK = { danger: 0, warning: 1, normal: 2, unknown: 3 } as const
 
@@ -11,11 +12,16 @@ export function GasOverviewPanel() {
   const { devices } = useDevices()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const withSensors = devices
-    .filter((d) => (d.telemetry.gas?.length ?? 0) > 0)
-    .map((d) => ({ device: d, statuses: evaluateAll(d.telemetry.gas) }))
+  const sensorDevices = devices.filter((d) => (d.telemetry.gas?.length ?? 0) > 0)
+  const liveness = useGasLiveness(sensorDevices)
+
+  // Stale readings sort after live ones, so an old danger can't top the list as if current.
+  const withSensors = sensorDevices
+    .map((d) => ({ device: d, statuses: evaluateAll(d.telemetry.gas), live: liveness.get(d.id)?.live !== false }))
     .sort(
-      (a, b) => RANK[worstLevel(a.statuses)] - RANK[worstLevel(b.statuses)]
+      (a, b) =>
+        Number(b.live) - Number(a.live) ||
+        RANK[worstLevel(a.statuses)] - RANK[worstLevel(b.statuses)]
     )
 
   if (withSensors.length === 0) return null
@@ -37,8 +43,8 @@ export function GasOverviewPanel() {
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
-        {withSensors.map(({ device, statuses }) => {
-          const level = worstLevel(statuses)
+        {withSensors.map(({ device, statuses, live }) => {
+          const level = live ? worstLevel(statuses) : 'unknown'
           const isSelected = selected?.device.id === device.id
           const flagged = statuses.filter((s) => s.level === level)
 
@@ -56,10 +62,12 @@ export function GasOverviewPanel() {
                 />
                 <span className="font-medium text-slate-800">{device.name}</span>
               </span>
-              <span className={`mt-0.5 block ${GAS_LEVEL_STYLE[level].text}`}>
-                {level === 'danger' || level === 'warning'
-                  ? flagged.map((s) => `${s.gas} ${s.value}${s.spec.unit}`).join(' · ')
-                  : 'Within range'}
+              <span className={`mt-0.5 block ${live ? GAS_LEVEL_STYLE[level].text : 'text-slate-400'}`}>
+                {!live
+                  ? 'Offline'
+                  : level === 'danger' || level === 'warning'
+                    ? flagged.map((s) => `${s.gas} ${s.value}${s.spec.unit}`).join(' · ')
+                    : 'Within range'}
               </span>
             </button>
           )

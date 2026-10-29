@@ -1,10 +1,28 @@
 import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import type { GasStatus } from '../lib/gas'
 import type { GasReading } from '@/shared/lib/api-normalize'
+import { formatAge } from '../api/gas.api'
+import { useGasLiveness } from '../hooks/useGasLiveness'
+import type { DeviceView } from '../types'
 
-function GasCard({ status }: { status: GasStatus }) {
+function GasCard({ status, live }: { status: GasStatus; live: boolean }) {
   const style = GAS_LEVEL_STYLE[status.level]
-  const alarming = status.level === 'danger' || status.level === 'warning'
+  const alarming = live && (status.level === 'danger' || status.level === 'warning')
+
+  if (!live) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <span className="font-mono text-xs text-slate-400">{status.gas}</span>
+        <p className="mt-0.5 text-lg font-semibold text-slate-400">
+          {status.value}
+          <span className="ml-0.5 text-xs font-normal text-slate-400">{status.spec.unit}</span>
+        </p>
+        <p className="truncate text-[11px] text-slate-400" title={status.spec.label}>
+          {status.spec.label}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -40,13 +58,17 @@ function GasCard({ status }: { status: GasStatus }) {
 }
 
 export function GasPanel({
+  device,
   readings,
   capturedAt,
 }: {
+  device: DeviceView
   readings: GasReading[] | undefined
   capturedAt?: number
 }) {
   const statuses = evaluateAll(readings)
+  const liveness = useGasLiveness([device]).get(device.id)
+  const live = liveness?.live !== false
 
   if (statuses.length === 0) {
     return (
@@ -61,8 +83,8 @@ export function GasPanel({
     )
   }
 
-  const worst = worstLevel(statuses)
-  const alarming = statuses.filter((s) => s.level === 'danger' || s.level === 'warning')
+  const worst = live ? worstLevel(statuses) : 'unknown'
+  const alarming = live ? statuses.filter((s) => s.level === 'danger' || s.level === 'warning') : []
 
   return (
     <section
@@ -78,24 +100,31 @@ export function GasPanel({
         <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
           Gas readings
         </h2>
-        {alarming.length > 0 && (
-          <span
-            className={`rounded px-2 py-0.5 text-[11px] font-medium ring-1 ${GAS_LEVEL_STYLE[worst].chip}`}
-          >
-            {alarming.map((s) => s.gas).join(', ')} out of range
+        {!live ? (
+          <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
+            Offline
+            {liveness?.ageSeconds != null && ` – last reading ${formatAge(liveness.ageSeconds)} ago`}
           </span>
+        ) : (
+          alarming.length > 0 && (
+            <span
+              className={`rounded px-2 py-0.5 text-[11px] font-medium ring-1 ${GAS_LEVEL_STYLE[worst].chip}`}
+            >
+              {alarming.map((s) => s.gas).join(', ')} out of range
+            </span>
+          )
         )}
       </div>
 
       <p className="mb-3 text-[11px] text-slate-400">
         Only sensors fitted to this helmet are shown. Thresholds are defaults
         and should be confirmed against your site's safety policy.
-        {capturedAt && ` Last reading ${new Date(capturedAt).toLocaleTimeString()}.`}
+        {live && capturedAt && ` Last reading ${new Date(capturedAt).toLocaleTimeString()}.`}
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {statuses.map((status) => (
-          <GasCard key={status.gas} status={status} />
+          <GasCard key={status.gas} status={status} live={live} />
         ))}
       </div>
     </section>

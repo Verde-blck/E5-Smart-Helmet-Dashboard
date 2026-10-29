@@ -30,9 +30,10 @@ async function exchange(url: string, pc: RTCPeerConnection, signal: AbortSignal)
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       signal: timeout.signal,
     })
+    if (!res.ok) throw new NotReadyError(`Media server answered HTTP ${res.status}`)
     const json = (await res.json()) as { code?: number; sdp?: string; msg?: string }
     if (json.code !== 0 || !json.sdp) {
-      throw new NotReadyError(json.msg ?? `Media server answered code ${json.code}`)
+      throw new NotReadyError(`code ${json.code}${json.msg ? `: ${json.msg}` : ''}`)
     }
     await pc.setRemoteDescription({ type: 'answer', sdp: json.sdp })
   } finally {

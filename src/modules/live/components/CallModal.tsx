@@ -167,6 +167,11 @@ function InCall({
         <p role="alert" className="bg-amber-500/15 px-4 py-2 text-xs text-amber-200">
           Your microphone{hasVideo ? ' and camera' : ''} aren’t reaching the helmet, so the wearer
           can’t hear you. Hang up and call again.
+          {state.outgoingError && (
+            <span className="mt-0.5 block font-mono text-[10px] text-amber-200/70">
+              Media server: {state.outgoingError}
+            </span>
+          )}
         </p>
       )}
       {state.noCamera && (

@@ -174,7 +174,7 @@ export function DeviceDetailPage() {
         )}
       </section>
 
-      <GasPanel readings={gasReadings} capturedAt={latestSample?.ts} />
+      <GasPanel device={device} readings={gasReadings} capturedAt={latestSample?.ts} />
 
       <DeviceCommands device={device} />
       <Can perm="wifi:read">
