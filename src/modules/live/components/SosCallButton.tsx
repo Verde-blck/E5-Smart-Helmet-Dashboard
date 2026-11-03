@@ -8,10 +8,16 @@ export function SosCallButton({
   deviceId,
   deviceName,
   className = '',
+  label = 'Join SOS call',
+  onJoin,
+  onHangUp,
 }: {
   deviceId: string
   deviceName: string
   className?: string
+  label?: string
+  onJoin?: () => void
+  onHangUp?: () => void
 }) {
   const { session, state, begin, end } = useHelmetSession(deviceId)
   const [open, setOpen] = useState(false)
@@ -21,6 +27,7 @@ export function SosCallButton({
     e.stopPropagation()
     setOpen(true)
     begin('call', { withCamera: true })
+    onJoin?.()
   }
 
   return (
@@ -31,7 +38,7 @@ export function SosCallButton({
         className={`inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2 ${className}`}
       >
         <PhoneIcon className="h-4 w-4" />
-        Join SOS call
+        {label}
       </button>
 
       {open && (
@@ -46,6 +53,7 @@ export function SosCallButton({
           onHangUp={() => {
             end()
             setOpen(false)
+            onHangUp?.()
           }}
         />
       )}

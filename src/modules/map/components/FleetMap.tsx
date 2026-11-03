@@ -137,6 +137,11 @@ export function FleetMap({
   }, [status, libraries, located, navigate])
 
   const fittedRef = useRef(false)
+  // A new helmet to focus on (e.g. "View on map" while already here) re-runs the one-time fit.
+  useEffect(() => {
+    fittedRef.current = false
+  }, [focusDeviceId])
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || fittedRef.current || located.length === 0) return

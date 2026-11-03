@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useDevices } from '@/modules/devices/hooks/useDevices'
 import { formatLastSeen } from '@/modules/devices/lib/presence'
 import { FenceEditor } from '@/modules/fences/components/FenceEditor'
@@ -27,6 +28,8 @@ function showFence(map: google.maps.Map, fence: Fence) {
 
 export function MapPage() {
   const { devices, now, isLoading } = useDevices()
+  const [params] = useSearchParams()
+  const focusDeviceId = params.get('device') ?? undefined
   const can = usePermission()
   const canSeeFences = can('fences:read')
   const { fences: loadedFences, isLoading: fencesLoading, isError: fencesError } = useFences(canSeeFences)
@@ -138,6 +141,7 @@ export function MapPage() {
           ) : (
             <FleetMap
               devices={devices}
+              focusDeviceId={focusDeviceId}
               onMapReady={setMap}
               markersClickable={!editing}
               heightClass={panelOpen || editing ? 'h-[36rem]' : 'h-[28rem]'}
