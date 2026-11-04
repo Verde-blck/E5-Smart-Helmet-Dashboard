@@ -4,6 +4,7 @@ import type { HelmetSession, SessionState } from '../lib/session'
 import { WALL_MAX, useWallSessions } from '../hooks/useWallSessions'
 import { Overlay } from './Overlay'
 import { StatusPill, StateMessage } from './LiveViewModal'
+import { useStreamHasAudio } from '../hooks/useStreamHasAudio'
 import { StreamVideo } from './StreamVideo'
 import { SpeakerIcon } from './icons'
 
@@ -338,6 +339,15 @@ export function FocusView({
   const state = useSessionState(session)
   const [muted, setMuted] = useState(false)
   const onBlocked = useCallback(() => setMuted(true), [])
+  const hasAudio = useStreamHasAudio(state?.remoteStream ?? null)
+  const [settled, setSettled] = useState(false)
+  // Give the audio track a moment to arrive before saying there isn't one.
+  useEffect(() => {
+    setSettled(false)
+    if (state?.status !== 'live') return
+    const id = setTimeout(() => setSettled(true), 3000)
+    return () => clearTimeout(id)
+  }, [state?.status])
 
   return (
     <Overlay label={`${name}, enlarged`} onDismiss={onClose}>
@@ -373,6 +383,11 @@ export function FocusView({
             className="h-full w-full object-contain"
           />
         </div>
+        {settled && !hasAudio && (
+          <p role="status" className="bg-amber-500/15 px-4 py-2 text-xs text-amber-200">
+            No sound is coming from this helmet’s stream. The picture is arriving, but without audio.
+          </p>
+        )}
       </div>
     </Overlay>
   )

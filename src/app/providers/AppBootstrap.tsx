@@ -94,6 +94,17 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("auth:2fa-setup-required", handle);
   }, [setUser]);
 
+  // A password reset by an admin while this person was signed in: the backend starts refusing
+  // with password_change_required, and RequireAuth takes them to the change screen.
+  useEffect(() => {
+    const handle = () => {
+      const user = useAuthStore.getState().user;
+      if (user && !user.mustChangePassword) setUser({ ...user, mustChangePassword: true });
+    };
+    window.addEventListener("auth:password-change-required", handle);
+    return () => window.removeEventListener("auth:password-change-required", handle);
+  }, [setUser]);
+
   useEffect(() => {
     const handle = () => void endSession();
     window.addEventListener("auth:unauthorized", handle);

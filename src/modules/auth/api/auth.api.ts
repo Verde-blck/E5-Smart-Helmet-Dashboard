@@ -21,6 +21,7 @@ interface ApiProfile {
   deviceIds?: string[]
   twoFactorEnabled?: boolean
   mustSetup2fa?: boolean
+  mustChangePassword?: boolean
 }
 
 function isProfile(value: unknown): value is ApiProfile {
@@ -41,6 +42,7 @@ function userFromProfile(profile: ApiProfile, fallbackUsername: string): AuthUse
     superAdmin: profile.superAdmin === true,
     deviceIds: profile.deviceIds ?? [],
     mustSetup2fa: profile.mustSetup2fa === true,
+    mustChangePassword: profile.mustChangePassword === true,
     twoFactorEnabled: profile.twoFactorEnabled,
     scope: { allSites: true, sites: [] },
   }
@@ -95,7 +97,6 @@ export async function refreshSession(): Promise<void> {
     const current = useAuthStore.getState().user
     useAuthStore.getState().setUser({
       ...userFromProfile(profile, current?.username ?? 'admin'),
-      mustChangePassword: current?.mustChangePassword,
     })
   } catch {
     // A 401 ends the session through the API client; anything else keeps
@@ -284,7 +285,23 @@ export async function changeOwnPassword(input: {
   newPassword: string
 }): Promise<void> {
   if (env.useMocks) return
-  await apiClient.post('/auth/password', input)
+  await apiClient.post('/auth/change-password', input)
+}
+
+/** The backend's reason for refusing a password change, in words a user can act on. */
+export function passwordChangeError(error: unknown): string {
+  const res = (error as { response?: { status?: number; data?: { error?: string } } })?.response
+  switch (res?.data?.error) {
+    case 'wrong_current_password':
+      return 'That current password isn’t right.'
+    case 'password_too_short':
+      return 'Your new password needs at least 8 characters.'
+    case 'same_password':
+      return 'Choose a new password that’s different from your current one.'
+  }
+  if (!res) return 'Could not reach the server. Check your connection and try again.'
+  if (res.status === 401) return 'That current password isn’t right.'
+  return 'Could not change your password. Please try again.'
 }
 
 function delay(ms: number) {

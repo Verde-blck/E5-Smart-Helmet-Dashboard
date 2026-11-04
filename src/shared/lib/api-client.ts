@@ -46,6 +46,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    if (status === 403 && body?.error === 'password_change_required') {
+      window.dispatchEvent(new CustomEvent('auth:password-change-required'))
+      return Promise.reject(error)
+    }
+
     // A 401 from login means a wrong password, which the sign-in page handles.
     if ((status === 401 || status === 403) && !url.includes('/auth/login')) {
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))

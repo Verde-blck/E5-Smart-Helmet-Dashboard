@@ -18,6 +18,8 @@ export function StreamVideo({ stream, muted, mirrored, className = '', onAutopla
     const el = ref.current
     if (!el) return
     if (el.srcObject !== stream) el.srcObject = stream
+    // Set directly: React applies the muted prop to <video> unreliably, which can leave sound off.
+    el.muted = muted
     if (!stream) return
     el.play().catch((error: DOMException) => {
       if (error?.name === 'NotAllowedError') onAutoplayBlocked?.()

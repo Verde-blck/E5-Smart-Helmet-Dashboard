@@ -5,6 +5,8 @@ import { useNow } from '@/shared/hooks/useNow'
 import { features } from '@/config/features'
 import { useSiteScope } from '@/shared/hooks/useSiteScope'
 import { qk } from '@/shared/lib/query-keys'
+import { fetchAlarms } from '@/modules/alarms/api/alarms.api'
+import type { AlarmSeverity } from '@/modules/alarms/types'
 import {
   assignWorker,
   clearWorker,
@@ -31,9 +33,34 @@ export function useDevices() {
     refetchInterval: features.realtimeSocket ? false : features.pollIntervalMs,
   })
 
+  // The backend's helmet list carries no alarm state, so a helmet's active alarm comes from the
+  // open alarms. This drives the red map pins and the alarm badges on tiles and in the table.
+  const { data: alarms } = useQuery({
+    queryKey: qk.alarms.all(tenantId),
+    queryFn: fetchAlarms,
+    staleTime: 30_000,
+  })
+  const openAlarm = useMemo(() => {
+    const worst = new Map<string, AlarmSeverity>()
+    for (const a of alarms ?? []) {
+      if (a.status !== 'active') continue
+      if (worst.get(a.deviceId) !== 'critical') worst.set(a.deviceId, a.severity)
+    }
+    return worst
+  }, [alarms])
+
   const devices = useMemo<DeviceView[]>(
-    () => (data ?? []).filter((d) => inScope(d.site)).map((d) => toDeviceView(d, now)),
-    [data, now, inScope]
+    () =>
+      (data ?? [])
+        .filter((d) => inScope(d.site))
+        .map((d) => {
+          const view = toDeviceView(d, now)
+          const fromAlarms = openAlarm.get(d.id) ?? null
+          const activeAlarm =
+            view.activeAlarm === 'critical' || fromAlarms === 'critical' ? 'critical' : (fromAlarms ?? view.activeAlarm)
+          return activeAlarm === view.activeAlarm ? view : { ...view, activeAlarm }
+        }),
+    [data, now, inScope, openAlarm]
   )
 
   return { devices, now, dataUpdatedAt, isLoading, isError, refetch }
