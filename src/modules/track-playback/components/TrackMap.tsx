@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useGoogleMaps } from '@/modules/map/hooks/useGoogleMaps'
+import { MapUnavailable } from '@/modules/map/components/MapUnavailable'
 import { segmentsOf } from '../lib/track'
 import type { Track } from '../types'
 
@@ -126,27 +127,12 @@ export function TrackMap({
     }
   }, [status, libraries, track, cursor])
 
-  if (status === 'no-key') {
+  if (status === 'no-key' || status === 'error') {
     return (
-      <div className={`flex ${heightClass} items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-6`}>
-        <div className="max-w-md text-center">
-          <p className="text-sm font-medium text-slate-700">Map not configured</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Add a Google Maps browser key to see the route drawn. The track,
-            its statistics and the CSV export all work without one.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'error') {
-    return (
-      <div className={`flex ${heightClass} items-center justify-center rounded-lg border border-red-200 bg-red-50 p-6`}>
-        <p className="max-w-md text-center text-xs text-red-700">
-          Google Maps failed to load.{error && <span className="mt-1 block">{error}</span>}
-        </p>
-      </div>
+      <MapUnavailable
+        heightClass={heightClass}
+        detail={status === 'no-key' ? 'No Google Maps key. Set VITE_GOOGLE_MAPS_API_KEY and rebuild.' : `Google Maps failed to load. ${error ?? ''}`}
+      />
     )
   }
 

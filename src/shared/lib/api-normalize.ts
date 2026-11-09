@@ -55,6 +55,7 @@ export function parseGasData(raw: unknown): GasReading[] {
     .filter((r): r is GasReading => r !== null)
 }
 
-export function shortDeviceName(deviceId: string): string {
-  return deviceId.length > 5 ? `…${deviceId.slice(-5)}` : deviceId
+// The full ID: a shortened one can't be matched to the label printed on the helmet.
+export function fallbackDeviceName(deviceId: string): string {
+  return deviceId
 }

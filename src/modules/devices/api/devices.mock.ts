@@ -116,7 +116,7 @@ export function registerMockDevice(deviceId: string): Device {
 
   const device: Device = {
     id: deviceId,
-    name: `…${deviceId.slice(-5)}`,
+    name: deviceId,
     connectivity: 'sim',
     lastSeenAt: 0,
     activeAlarm: null,
@@ -138,7 +138,7 @@ export function setMockWorker(
 export function renameMockDevice(deviceId: string, name: string): void {
   const device = fleet.find((d) => d.id === deviceId)
   if (!device) return
-  device.name = name || `…${deviceId.slice(-5)}`
+  device.name = name || deviceId
   device.named = Boolean(name)
 }
 

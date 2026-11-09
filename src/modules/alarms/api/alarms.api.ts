@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
-import { num, pageContent, shortDeviceName, ts } from '@/shared/lib/api-normalize'
+import { num, pageContent, fallbackDeviceName, ts } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
 import { getMockAlarms, setMockAlarmResolved } from './alarms.mock'
 import { alarmTypeFromCode, severityForType } from '../types'
@@ -24,7 +24,7 @@ export function toAlarm(api: ApiAlarm): Alarm {
   return {
     id: String(api.id),
     deviceId: api.deviceId,
-    deviceName: shortDeviceName(api.deviceId),
+    deviceName: fallbackDeviceName(api.deviceId),
     type,
     severity: severityForType(type),
     status: api.resolved ? 'resolved' : 'active',

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore, type AuthUser } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { login, statusOf, verifyTwoFactorLogin, type TwoFactorChallenge } from './api/auth.api'
@@ -15,6 +15,20 @@ import {
   authLink,
 } from './components/AuthLayout'
 import { CodeField, codeErrorMessage } from './components/CodeField'
+
+// A 401 is a wrong username or password; a 403 means the account can't sign in right now.
+function signInErrorMessage(error: unknown): string {
+  const status = statusOf(error)
+  if (status === 401) return 'That username and password don’t match. Usernames are case-sensitive.'
+  if (status === 403) {
+    const said = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+    return said
+      ? `This account can’t sign in right now: ${said.replace(/\.$/, '')}.`
+      : 'This account can’t sign in right now. Ask your administrator to check it.'
+  }
+  if (status && status >= 500) return 'Something went wrong on the server. Try again in a moment.'
+  return 'Could not reach the server. Check your connection and try again.'
+}
 
 const schema = z.object({
   username: z.string().trim().min(1, 'Enter your username'),
@@ -67,12 +81,7 @@ function PasswordStep({
       if (result.status === 'needs-code') onNeedsCode(result.challenge)
       else onSignedIn(result.user)
     } catch (error: unknown) {
-      const status = statusOf(error)
-      setFormError(
-        status === 401 || status === 403
-          ? 'That username and password don’t match. Usernames are case-sensitive.'
-          : 'Could not reach the server. Check your connection and try again.'
-      )
+      setFormError(signInErrorMessage(error))
     }
   }
 
@@ -82,13 +91,7 @@ function PasswordStep({
       subtitle="Sign in to the command centre."
       footer={
         <>
-          <p>
-            New here?{' '}
-            <Link to="/register" className={authLink}>
-              Create an account
-            </Link>
-          </p>
-          <p>Forgotten your password? Your administrator can reset it.</p>
+          <p>Need an account, or forgotten your password? Your administrator can help.</p>
         </>
       }
     >

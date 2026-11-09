@@ -149,11 +149,13 @@ export function AvailabilityChart({ summary }: { summary: AvailabilitySummary })
         </div>
       </div>
 
-      <p className="mt-3 text-[11px] text-slate-400">
-        Counted from the spacing between reports, which arrive roughly every{' '}
-        {Math.round(summary.medianIntervalMs / 1000)}s on this helmet. A silence
-        longer than {Math.round(summary.toleranceMs / 60_000)} min counts as offline.
-      </p>
+      {summary.medianIntervalMs > 0 && (
+        <p className="mt-3 text-[11px] text-slate-400">
+          Counted from the spacing between reports, which arrive roughly every{' '}
+          {Math.round(summary.medianIntervalMs / 1000)}s on this helmet. A silence
+          longer than {Math.round(summary.toleranceMs / 60_000)} min counts as offline.
+        </p>
+      )}
     </div>
   )
 }

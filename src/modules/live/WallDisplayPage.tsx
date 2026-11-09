@@ -28,7 +28,7 @@ export function WallDisplayPage() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const byId = new Map(devices.map((d) => [d.id, d]))
-  const nameOf = (id: string) => byId.get(id)?.name ?? `…${id.slice(-5)}`
+  const nameOf = (id: string) => byId.get(id)?.name ?? id
 
   useEffect(() => {
     document.title = `Live wall · ${tenant?.name ?? 'Command Centre'}`

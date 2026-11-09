@@ -153,7 +153,7 @@ export function useDeviceNames() {
   return useMemo(() => {
     const names = new Map(devices.map((d) => [d.id, d.named === false ? null : d.name]))
     return (deviceId: string, fallback?: string): string =>
-      names.get(deviceId) ?? fallback ?? (deviceId.length > 5 ? `…${deviceId.slice(-5)}` : deviceId)
+      names.get(deviceId) ?? fallback ?? deviceId
   }, [devices])
 }
 

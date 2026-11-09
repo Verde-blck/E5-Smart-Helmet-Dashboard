@@ -2,6 +2,7 @@ import { locationQuality } from '@/modules/devices/lib/location'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGoogleMaps } from '../hooks/useGoogleMaps'
+import { MapUnavailable } from './MapUnavailable'
 import type { DeviceView, Presence } from '@/modules/devices/types'
 
 const PIN: Record<Presence, { background: string; border: string; glyph: string }> = {
@@ -163,31 +164,19 @@ export function FleetMap({
 
   if (status === 'no-key') {
     return (
-      <div className={`flex ${heightClass} items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-6`}>
-        <div className="max-w-md text-center">
-          <p className="text-sm font-medium text-slate-700">Map not configured</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Add a Google Maps browser key as <code>VITE_GOOGLE_MAPS_API_KEY</code>{' '}
-            in your <code>.env</code>, and restrict it by HTTP referrer at
-            Google's end. Advanced markers also need{' '}
-            <code>VITE_GOOGLE_MAPS_MAP_ID</code>; <code>DEMO_MAP_ID</code> is
-            fine for development.
-          </p>
-        </div>
-      </div>
+      <MapUnavailable
+        heightClass={heightClass}
+        detail="No Google Maps key. Set VITE_GOOGLE_MAPS_API_KEY (and VITE_GOOGLE_MAPS_MAP_ID) and rebuild."
+      />
     )
   }
 
   if (status === 'error') {
     return (
-      <div className={`flex ${heightClass} items-center justify-center rounded-lg border border-red-200 bg-red-50 p-6`}>
-        <p className="max-w-md text-center text-xs text-red-700">
-          Google Maps failed to load. Check the key is valid, that the Maps
-          JavaScript API is enabled on the project, and that this origin is
-          allowed by the key's referrer restrictions.
-          {error && <span className="mt-1 block text-red-500">{error}</span>}
-        </p>
-      </div>
+      <MapUnavailable
+        heightClass={heightClass}
+        detail={`Google Maps failed to load: check the key, that the Maps JavaScript API is enabled, and that this origin is allowed. ${error ?? ''}`}
+      />
     )
   }
 

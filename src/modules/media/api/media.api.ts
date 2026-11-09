@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/lib/api-client'
 import { env } from '@/config/env'
-import { num, pageContent, shortDeviceName, ts } from '@/shared/lib/api-normalize'
+import { num, pageContent, fallbackDeviceName, ts } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
 import { fetchDevices } from '@/modules/devices/api/devices.api'
 import { deleteMockMedia, getMockMedia, getMockMediaUrl } from './media.mock'
@@ -23,7 +23,7 @@ export function toPhoto(api: ApiPhoto): MediaItem {
   return {
     id: String(api.id),
     deviceId: api.deviceId,
-    deviceName: shortDeviceName(api.deviceId),
+    deviceName: fallbackDeviceName(api.deviceId),
     kind: 'photo',
     status: uploaded ? 'available' : 'uploading',
     capturedAt: ts(api.capturedAt) ?? 0,
@@ -61,7 +61,7 @@ export function toVideo(api: ApiVideo): MediaItem {
   return {
     id: `v${api.id}`,
     deviceId: api.deviceId,
-    deviceName: shortDeviceName(api.deviceId),
+    deviceName: fallbackDeviceName(api.deviceId),
     kind: 'video',
     status: /^https?:\/\//i.test(url) ? 'available' : 'failed',
     // No timezone: the helmet's clock reading, shown as-is. Can be days before upload.

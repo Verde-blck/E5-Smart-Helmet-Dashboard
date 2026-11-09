@@ -6,7 +6,7 @@ import {
   num,
   pageContent,
   parseGasData,
-  shortDeviceName,
+  fallbackDeviceName,
   ts,
 } from '@/shared/lib/api-normalize'
 import type { Page } from '@/shared/lib/api-normalize'
@@ -95,7 +95,7 @@ interface ApiTelemetry {
 function toDevice(api: ApiDevice): Device {
   return {
     id: api.deviceId,
-    name: api.name?.trim() || shortDeviceName(api.deviceId),
+    name: api.name?.trim() || fallbackDeviceName(api.deviceId),
     named: Boolean(api.name?.trim()),
     assignedTo: api.workerName?.trim()
       ? {
