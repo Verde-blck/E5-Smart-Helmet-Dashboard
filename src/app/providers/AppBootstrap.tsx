@@ -106,7 +106,16 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
   }, [setUser]);
 
   useEffect(() => {
-    const handle = () => void endSession();
+    const handle = (e: Event) => {
+      if ((e as CustomEvent<{ expired?: boolean }>).detail?.expired) {
+        try {
+          sessionStorage.setItem("e5.signedOut", "expired");
+        } catch {
+          // No storage: the sign-in page just won't say why.
+        }
+      }
+      void endSession();
+    };
     window.addEventListener("auth:unauthorized", handle);
     return () => window.removeEventListener("auth:unauthorized", handle);
   }, []);

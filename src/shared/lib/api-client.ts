@@ -51,9 +51,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // A 401 from login means a wrong password, which the sign-in page handles.
-    if ((status === 401 || status === 403) && !url.includes('/auth/login')) {
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    // On sign-in, password change and 2FA, a 401 means a wrong password or code, which those
+    // pages explain. Anywhere else, or session_expired on any endpoint, the session has ended.
+    const accountAction = /\/auth\/(login|change-password|2fa\/)/.test(url)
+    const expired = status === 401 && body?.error === 'session_expired'
+    if (expired || ((status === 401 || status === 403) && !accountAction)) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { expired } }))
     }
 
     return Promise.reject(error)

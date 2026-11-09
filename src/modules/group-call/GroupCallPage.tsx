@@ -32,6 +32,7 @@ export function GroupCallPage() {
   const [roster, setRoster] = useState<string[]>([])
   const [mode, setMode] = useState<Mode>('call')
   const [pending, setPending] = useState<{ blob: Blob; url: string } | null>(null)
+  const [confirming, setConfirming] = useState<{ video: boolean } | null>(null)
 
   const matchingGroups = useMemo(() => {
     const needle = groupSearch.trim().toLowerCase()
@@ -274,15 +275,15 @@ export function GroupCallPage() {
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <button
-                        onClick={() => call.start(reachable.map((d) => d.id), true)}
-                        disabled={reachable.length === 0 || overCallLimit || !!call.state}
+                        onClick={() => setConfirming({ video: true })}
+                        disabled={reachable.length === 0 || overCallLimit || !!call.state || !!confirming}
                         className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-primary/90 disabled:opacity-50"
                       >
                         <VideoIcon /> Start video call
                       </button>
                       <button
-                        onClick={() => call.start(reachable.map((d) => d.id), false)}
-                        disabled={reachable.length === 0 || overCallLimit || !!call.state}
+                        onClick={() => setConfirming({ video: false })}
+                        disabled={reachable.length === 0 || overCallLimit || !!call.state || !!confirming}
                         className="inline-flex items-center gap-1.5 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                       >
                         <PhoneIcon /> Voice only
@@ -297,6 +298,17 @@ export function GroupCallPage() {
                         </span>
                       )}
                     </div>
+                    {confirming && reachable.length > 0 && !overCallLimit && (
+                      <ConfirmCall
+                        video={confirming.video}
+                        helmets={reachable.map((d) => ({ name: d.name, offline: d.presence === 'offline' }))}
+                        onCancel={() => setConfirming(null)}
+                        onConfirm={() => {
+                          setConfirming(null)
+                          call.start(reachable.map((d) => d.id), confirming.video)
+                        }}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -463,6 +475,45 @@ function LeftoverCall({
       >
         End it for everyone
       </button>
+    </div>
+  )
+}
+
+function ConfirmCall({
+  video,
+  helmets,
+  onConfirm,
+  onCancel,
+}: {
+  video: boolean
+  helmets: { name: string; offline: boolean }[]
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const offline = helmets.filter((h) => h.offline).length
+  const shown = helmets.slice(0, 6).map((h) => h.name).join(', ')
+  return (
+    <div role="alertdialog" aria-labelledby="confirm-call-title" className="mt-3 rounded-md border border-brand-primary/30 bg-brand-primary/5 p-3">
+      <p id="confirm-call-title" className="text-sm font-medium text-slate-800">
+        Start a {video ? 'video' : 'voice'} call with {helmets.length} {helmets.length === 1 ? 'helmet' : 'helmets'}?
+      </p>
+      <p className="mt-0.5 text-xs text-slate-600">
+        {shown}
+        {helmets.length > 6 && ` and ${helmets.length - 6} more`}.
+        {offline > 0 && ` ${offline} ${offline === 1 ? 'is' : 'are'} offline and will show as not reachable.`}
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          onClick={onConfirm}
+          autoFocus
+          className="rounded bg-brand-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-primary/90"
+        >
+          Start call
+        </button>
+        <button onClick={onCancel} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }

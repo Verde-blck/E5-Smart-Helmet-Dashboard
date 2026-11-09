@@ -1,10 +1,10 @@
-import { Link, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from '@/shared/components/Layout'
 import { RequireAuth } from '@/shared/components/RequireAuth'
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute'
 import { LandingRedirect } from './LandingRedirect'
 import { LoginPage } from '@/modules/auth/LoginPage'
-import { RegisterPage } from '@/modules/auth/RegisterPage'
+import { ForgotPasswordPage } from '@/modules/auth/ForgotPasswordPage'
 import { ChangePasswordPage } from '@/modules/auth/ChangePasswordPage'
 import { SecurityPage } from '@/modules/account/SecurityPage'
 import { RequiredTwoFactorPage } from '@/modules/account/RequiredTwoFactorPage'
@@ -55,7 +55,9 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      {/* Registration is off on the backend; old links land on sign-in. */}
+      <Route path="/register" element={<Navigate to="/login" replace />} />
 
       <Route
         path="/change-password"

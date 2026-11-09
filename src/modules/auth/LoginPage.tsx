@@ -1,11 +1,18 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore, type AuthUser } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { login, statusOf, verifyTwoFactorLogin, type TwoFactorChallenge } from './api/auth.api'
+import {
+  TOO_MANY_ATTEMPTS,
+  isTooManyAttempts,
+  login,
+  statusOf,
+  verifyTwoFactorLogin,
+  type TwoFactorChallenge,
+} from './api/auth.api'
 import {
   AuthLayout,
   FormError,
@@ -18,6 +25,7 @@ import { CodeField, codeErrorMessage } from './components/CodeField'
 
 // A 401 is a wrong username or password; a 403 means the account can't sign in right now.
 function signInErrorMessage(error: unknown): string {
+  if (isTooManyAttempts(error)) return TOO_MANY_ATTEMPTS
   const status = statusOf(error)
   if (status === 401) return 'That username and password don’t match. Usernames are case-sensitive.'
   if (status === 403) {
@@ -72,7 +80,23 @@ function PasswordStep({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
-  const [formError, setFormError] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('e5.signedOut') === 'expired'
+        ? 'Your session expired. Please sign in again.'
+        : null
+    } catch {
+      return null
+    }
+  })
+  // Cleared in an effect, not the initialiser: React runs initialisers twice in development.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('e5.signedOut')
+    } catch {
+      // Nothing to clear.
+    }
+  }, [])
 
   async function onSubmit(values: FormValues) {
     setFormError(null)
@@ -91,7 +115,12 @@ function PasswordStep({
       subtitle="Sign in to the command centre."
       footer={
         <>
-          <p>Need an account, or forgotten your password? Your administrator can help.</p>
+          <p>
+            <Link to="/forgot-password" className={authLink}>
+              Forgotten your password?
+            </Link>
+          </p>
+          <p>Need an account? Your administrator can create one.</p>
         </>
       }
     >

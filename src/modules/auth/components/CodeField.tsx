@@ -52,6 +52,6 @@ export function codeErrorMessage(status: number | undefined): string {
   if (status === 401 || status === 400) {
     return 'That code didn’t work. Codes change every 30 seconds, so enter the one showing now.'
   }
-  if (status === 429) return 'Too many attempts. Wait a minute, then try again.'
+  if (status === 429) return 'Too many attempts. Wait 15 minutes and try again.'
   return 'Could not reach the server. Check your connection and try again.'
 }

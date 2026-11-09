@@ -106,7 +106,8 @@ export async function refreshSession(): Promise<void> {
 
 export interface TwoFactorChallenge {
   username: string
-  mfaToken?: string
+  // Issued by the backend with requires2fa; it replaces the username when verifying.
+  challenge?: string
 }
 
 export type LoginResult =
@@ -116,8 +117,7 @@ export type LoginResult =
 interface LoginResponse {
   token?: string
   requires2fa?: boolean
-  mfaToken?: string
-  challengeToken?: string
+  challenge?: string
 }
 
 const MOCK_2FA_USER = 'MFA-001'
@@ -138,10 +138,7 @@ export async function login(credentials: Credentials): Promise<LoginResult> {
     rememberTwoFactor(credentials.username, true)
     return {
       status: 'needs-code',
-      challenge: {
-        username: credentials.username,
-        mfaToken: data.mfaToken ?? data.challengeToken,
-      },
+      challenge: { username: credentials.username, challenge: data.challenge },
     }
   }
 
@@ -161,11 +158,10 @@ export async function verifyTwoFactorLogin(
     return mockUserFor(challenge.username)
   }
 
-  const { data } = await apiClient.post<{ token: string } & ApiProfile>('/auth/login/verify-2fa', {
-    username: challenge.username,
-    code,
-    ...(challenge.mfaToken ? { mfaToken: challenge.mfaToken } : {}),
-  })
+  const { data } = await apiClient.post<{ token: string } & ApiProfile>(
+    '/auth/login/verify-2fa',
+    challenge.challenge ? { challenge: challenge.challenge, code } : { username: challenge.username, code }
+  )
   return completeSignIn(data.token, data, challenge.username)
 }
 
@@ -241,25 +237,6 @@ export function knownTwoFactorState(username: string): boolean | null {
   }
 }
 
-export interface RegisterInput {
-  username: string
-  password: string
-}
-
-export async function registerAccount(input: RegisterInput): Promise<void> {
-  if (env.useMocks) {
-    await delay(400)
-    if (input.username.trim().toLowerCase() === 'admin') throw httpError(409)
-    return
-  }
-
-  await apiClient.post('/auth/register', {
-    username: input.username.trim(),
-    password: input.password,
-    accountId: null,
-  })
-}
-
 export function restoreSession(): AuthUser | null {
   const token = tokenStore.get()
   if (!token) return null
@@ -285,12 +262,31 @@ export async function changeOwnPassword(input: {
   newPassword: string
 }): Promise<void> {
   if (env.useMocks) return
-  await apiClient.post('/auth/change-password', input)
+  const { data } = await apiClient.post<{ token?: string }>('/auth/change-password', input)
+  // The old token stops working the moment the password changes.
+  if (data?.token) tokenStore.set(data.token)
+}
+
+// Ends the session on every device. Best effort: signing out locally must never wait on the network.
+export async function logoutEverywhere(): Promise<void> {
+  if (env.useMocks || !tokenStore.get()) return
+  await Promise.race([
+    apiClient.post('/auth/logout').catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, 4000)),
+  ])
+}
+
+export const TOO_MANY_ATTEMPTS = 'Too many attempts. Wait 15 minutes and try again.'
+
+export function isTooManyAttempts(error: unknown): boolean {
+  const res = (error as { response?: { status?: number; data?: { error?: string } } })?.response
+  return res?.status === 429 || res?.data?.error === 'too_many_attempts'
 }
 
 /** The backend's reason for refusing a password change, in words a user can act on. */
 export function passwordChangeError(error: unknown): string {
   const res = (error as { response?: { status?: number; data?: { error?: string } } })?.response
+  if (isTooManyAttempts(error)) return TOO_MANY_ATTEMPTS
   switch (res?.data?.error) {
     case 'wrong_current_password':
       return 'That current password isn’t right.'
