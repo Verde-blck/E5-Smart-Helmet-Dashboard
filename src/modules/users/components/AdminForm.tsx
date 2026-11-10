@@ -219,7 +219,7 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
                   className="h-3.5 w-3.5 accent-brand-primary"
                 />
                 <span className="font-medium text-slate-700">{device.name}</span>
-                <span className="font-mono text-slate-400">{device.id.slice(-6)}</span>
+                <span className="font-mono text-slate-400">{device.id}</span>
               </label>
             ))}
             {matchingDevices.length === 0 && (

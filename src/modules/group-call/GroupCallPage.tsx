@@ -248,7 +248,7 @@ export function GroupCallPage() {
                       <span className="min-w-0 flex-1 truncate font-medium text-slate-700">
                         {device.name}
                       </span>
-                      <span className="font-mono text-[11px] text-slate-400">{device.id.slice(-6)}</span>
+                      <span className="font-mono text-[11px] text-slate-400">{device.id}</span>
                       {!device.active && (
                         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
                           Inactive

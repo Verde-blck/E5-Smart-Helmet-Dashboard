@@ -135,6 +135,7 @@ export async function login(credentials: Credentials): Promise<LoginResult> {
   const { data } = await apiClient.post<LoginResponse>('/auth/login', credentials)
 
   if (data.requires2fa) {
+    if (!data.challenge) throw new Error('missing_2fa_challenge')
     rememberTwoFactor(credentials.username, true)
     return {
       status: 'needs-code',
@@ -158,10 +159,11 @@ export async function verifyTwoFactorLogin(
     return mockUserFor(challenge.username)
   }
 
-  const { data } = await apiClient.post<{ token: string } & ApiProfile>(
-    '/auth/login/verify-2fa',
-    challenge.challenge ? { challenge: challenge.challenge, code } : { username: challenge.username, code }
-  )
+  if (!challenge.challenge) throw new Error('missing_2fa_challenge')
+  const { data } = await apiClient.post<{ token: string } & ApiProfile>('/auth/login/verify-2fa', {
+    challenge: challenge.challenge,
+    code,
+  })
   return completeSignIn(data.token, data, challenge.username)
 }
 
@@ -267,13 +269,23 @@ export async function changeOwnPassword(input: {
   if (data?.token) tokenStore.set(data.token)
 }
 
-// Ends the session on every device. Best effort: signing out locally must never wait on the network.
-export async function logoutEverywhere(): Promise<void> {
-  if (env.useMocks || !tokenStore.get()) return
-  await Promise.race([
-    apiClient.post('/auth/logout').catch(() => undefined),
-    new Promise((resolve) => setTimeout(resolve, 4000)),
-  ])
+// Ends the session on every device. Fired after the local sign-out, with the token captured first,
+// so signing out is instant; keepalive lets the request finish even if the page unloads.
+export function logoutEverywhere(token: string | null): void {
+  if (env.useMocks || !token) return
+  const base = (apiClient.defaults.baseURL ?? '/api').replace(/\/$/, '')
+  void fetch(`${base}/auth/logout`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    keepalive: true,
+  }).catch(() => undefined)
+}
+
+// The verification step can't continue: the challenge is missing, expired or no longer valid.
+export function isChallengeProblem(error: unknown): boolean {
+  if (error instanceof Error && error.message === 'missing_2fa_challenge') return true
+  const res = (error as { response?: { status?: number; data?: { error?: string } } })?.response
+  return res?.status === 410 || /challenge|expired/i.test(res?.data?.error ?? '')
 }
 
 export const TOO_MANY_ATTEMPTS = 'Too many attempts. Wait 15 minutes and try again.'

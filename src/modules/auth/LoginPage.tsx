@@ -7,6 +7,7 @@ import { useAuthStore, type AuthUser } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
 import {
   TOO_MANY_ATTEMPTS,
+  isChallengeProblem,
   isTooManyAttempts,
   login,
   statusOf,
@@ -28,11 +29,14 @@ function signInErrorMessage(error: unknown): string {
   if (isTooManyAttempts(error)) return TOO_MANY_ATTEMPTS
   const status = statusOf(error)
   if (status === 401) return 'That username and password don’t match. Usernames are case-sensitive.'
+  if (isChallengeProblem(error)) return 'Sign-in couldn’t start the verification step. Please try again.'
   if (status === 403) {
+    // A refusal at sign-in is usually a server or configuration problem (such as an address the
+    // server doesn't accept), not the password, so say that unless the backend gives its reason.
     const said = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
     return said
-      ? `This account can’t sign in right now: ${said.replace(/\.$/, '')}.`
-      : 'This account can’t sign in right now. Ask your administrator to check it.'
+      ? `The server refused the sign-in: ${said.replace(/\.$/, '')}.`
+      : 'The server refused the sign-in. This is usually a server or configuration problem, not your password. Try again shortly, or contact your administrator.'
   }
   if (status && status >= 500) return 'Something went wrong on the server. Try again in a moment.'
   return 'Could not reach the server. Check your connection and try again.'
@@ -51,6 +55,7 @@ export function LoginPage() {
   const location = useLocation()
 
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const returnTo = (location.state as { from?: string } | null)?.from ?? '/'
 
@@ -62,16 +67,33 @@ export function LoginPage() {
   }
 
   return challenge ? (
-    <CodeStep challenge={challenge} onSignedIn={finish} onBack={() => setChallenge(null)} />
+    <CodeStep
+      challenge={challenge}
+      onSignedIn={finish}
+      onBack={() => setChallenge(null)}
+      onExpired={() => {
+        setChallenge(null)
+        setNotice('Your verification step expired. Enter your password again to get a new one.')
+      }}
+    />
   ) : (
-    <PasswordStep onSignedIn={finish} onNeedsCode={setChallenge} />
+    <PasswordStep
+      notice={notice}
+      onSignedIn={finish}
+      onNeedsCode={(c) => {
+        setNotice(null)
+        setChallenge(c)
+      }}
+    />
   )
 }
 
 function PasswordStep({
+  notice,
   onSignedIn,
   onNeedsCode,
 }: {
+  notice: string | null
   onSignedIn: (user: AuthUser) => void
   onNeedsCode: (challenge: TwoFactorChallenge) => void
 }) {
@@ -81,6 +103,7 @@ function PasswordStep({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
   const [formError, setFormError] = useState<string | null>(() => {
+    if (notice) return notice
     try {
       return sessionStorage.getItem('e5.signedOut') === 'expired'
         ? 'Your session expired. Please sign in again.'
@@ -152,10 +175,12 @@ function CodeStep({
   challenge,
   onSignedIn,
   onBack,
+  onExpired,
 }: {
   challenge: TwoFactorChallenge
   onSignedIn: (user: AuthUser) => void
   onBack: () => void
+  onExpired: () => void
 }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -168,7 +193,11 @@ function CodeStep({
     try {
       onSignedIn(await verifyTwoFactorLogin(challenge, value))
     } catch (err: unknown) {
-      setError(codeErrorMessage(statusOf(err)))
+      if (isChallengeProblem(err)) {
+        onExpired()
+        return
+      }
+      setError(isTooManyAttempts(err) ? TOO_MANY_ATTEMPTS : codeErrorMessage(statusOf(err)))
       setCode('')
       setBusy(false)
     }

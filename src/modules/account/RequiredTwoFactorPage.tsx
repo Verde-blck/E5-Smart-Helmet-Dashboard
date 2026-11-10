@@ -35,7 +35,7 @@ export function RequiredTwoFactorPage() {
       footer={
         <p>
           Not now?{' '}
-          <button type="button" onClick={() => void endSession()} className="font-medium underline underline-offset-2">
+          <button type="button" onClick={() => void endSession({ notifyBackend: true })} className="font-medium underline underline-offset-2">
             Sign out
           </button>
         </p>
@@ -53,7 +53,7 @@ export function RequiredTwoFactorPage() {
         <SetupFlow
           setup={setup}
           username={username}
-          onCancel={() => void endSession()}
+          onCancel={() => void endSession({ notifyBackend: true })}
           onDone={() => {
             setUser({ ...user, mustSetup2fa: false, twoFactorEnabled: true })
             void refreshSession()
