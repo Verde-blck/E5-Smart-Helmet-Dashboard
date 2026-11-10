@@ -281,11 +281,18 @@ export function logoutEverywhere(token: string | null): void {
   }).catch(() => undefined)
 }
 
-// The verification step can't continue: the challenge is missing, expired or no longer valid.
+// The verification step can't continue: the challenge is missing, expired, or its code already used.
 export function isChallengeProblem(error: unknown): boolean {
   if (error instanceof Error && error.message === 'missing_2fa_challenge') return true
   const res = (error as { response?: { status?: number; data?: { error?: string } } })?.response
-  return res?.status === 410 || /challenge|expired/i.test(res?.data?.error ?? '')
+  return res?.status === 410 || /challenge|expired|already_used/i.test(res?.data?.error ?? '')
+}
+
+export function challengeProblemNotice(error: unknown): string {
+  const code = (error as { response?: { data?: { error?: string } } })?.response?.data?.error
+  return code === 'code_already_used'
+    ? 'That code has already been used. Enter your password again, then use the next code from your app.'
+    : 'Your verification step expired. Enter your password again to get a new one.'
 }
 
 export const TOO_MANY_ATTEMPTS = 'Too many attempts. Wait 15 minutes and try again.'

@@ -7,6 +7,7 @@ import { useAuthStore, type AuthUser } from '@/shared/store/authStore'
 import { useAuth } from '@/shared/hooks/useAuth'
 import {
   TOO_MANY_ATTEMPTS,
+  challengeProblemNotice,
   isChallengeProblem,
   isTooManyAttempts,
   login,
@@ -71,9 +72,9 @@ export function LoginPage() {
       challenge={challenge}
       onSignedIn={finish}
       onBack={() => setChallenge(null)}
-      onExpired={() => {
+      onExpired={(message) => {
         setChallenge(null)
-        setNotice('Your verification step expired. Enter your password again to get a new one.')
+        setNotice(message)
       }}
     />
   ) : (
@@ -180,7 +181,7 @@ function CodeStep({
   challenge: TwoFactorChallenge
   onSignedIn: (user: AuthUser) => void
   onBack: () => void
-  onExpired: () => void
+  onExpired: (message: string) => void
 }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -194,7 +195,7 @@ function CodeStep({
       onSignedIn(await verifyTwoFactorLogin(challenge, value))
     } catch (err: unknown) {
       if (isChallengeProblem(err)) {
-        onExpired()
+        onExpired(challengeProblemNotice(err))
         return
       }
       setError(isTooManyAttempts(err) ? TOO_MANY_ATTEMPTS : codeErrorMessage(statusOf(err)))
