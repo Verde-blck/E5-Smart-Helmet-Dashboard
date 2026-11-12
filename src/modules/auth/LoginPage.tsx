@@ -25,6 +25,12 @@ import {
 } from './components/AuthLayout'
 import { CodeField, codeErrorMessage } from './components/CodeField'
 
+// Only addresses inside the dashboard: "//other.site" would leave it, and /login would loop.
+function safeReturnTo(from: string | undefined): string {
+  if (!from || !from.startsWith('/') || from.startsWith('//') || from.startsWith('/login')) return '/'
+  return from
+}
+
 // A 401 is a wrong username or password; a 403 means the account can't sign in right now.
 function signInErrorMessage(error: unknown): string {
   if (isTooManyAttempts(error)) return TOO_MANY_ATTEMPTS
@@ -58,7 +64,7 @@ export function LoginPage() {
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
-  const returnTo = (location.state as { from?: string } | null)?.from ?? '/'
+  const returnTo = safeReturnTo((location.state as { from?: string } | null)?.from)
 
   if (isAuthenticated) return <Navigate to={returnTo} replace />
 

@@ -12,7 +12,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation()
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />
   }
 
   // Checking the path stops the redirect looping on the change-password screen.

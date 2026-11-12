@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
+import { TimeoutError, withTimeout } from '@/shared/lib/withTimeout'
 import { env } from '@/config/env'
 import { useTenant } from '@/shared/hooks/useTenant'
 
@@ -25,8 +26,14 @@ function load(apiKey: string): Promise<MapsLibraries> {
   ]).then(([maps, marker]) => ({ maps, marker }))
 
   loads.set(apiKey, promise)
+  // A failed load isn't kept, so returning to the page tries again.
+  promise.catch(() => loads.delete(apiKey))
   return promise
 }
+
+// Long enough for a slow connection; without a limit a load that never finishes shows
+// "Loading map…" forever.
+const LOAD_LIMIT_MS = 15_000
 
 export function useGoogleMaps() {
   const tenant = useTenant()
@@ -64,7 +71,7 @@ export function useGoogleMaps() {
     let cancelled = false
     setStatus('loading')
 
-    load(apiKey)
+    withTimeout(load(apiKey), LOAD_LIMIT_MS)
       .then((libs) => {
         if (cancelled) return
         setLibraries(libs)
@@ -72,7 +79,13 @@ export function useGoogleMaps() {
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        setError(err instanceof Error ? err.message : 'Failed to load Google Maps')
+        setError(
+          err instanceof TimeoutError
+            ? `Google Maps didn't finish loading within ${LOAD_LIMIT_MS / 1000} s.`
+            : err instanceof Error
+              ? err.message
+              : 'Failed to load Google Maps'
+        )
         setStatus('error')
       })
 
@@ -81,5 +94,11 @@ export function useGoogleMaps() {
     }
   }, [apiKey])
 
-  return { status, libraries, mapId, error }
+  // For failures after loading, such as the map itself refusing to start.
+  const fail = useCallback((reason: unknown) => {
+    setError(`Google Maps couldn't start the map: ${reason instanceof Error ? reason.message : String(reason)}`)
+    setStatus('error')
+  }, [])
+
+  return { status, libraries, mapId, error, fail }
 }

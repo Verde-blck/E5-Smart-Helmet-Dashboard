@@ -17,12 +17,24 @@ const VENDOR_GROUPS: Array<[name: string, pattern: RegExp]> = [
   ['data', /[\\/]node_modules[\\/](@tanstack|axios)[\\/]/],
 ]
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
-  
-  const apiTarget =
-    env.VITE_API_PROXY_TARGET || 'https://e5energy-production.up.railway.app'
+  // Never fall back to the live backend: a missing setting must not quietly send development
+  // requests to the real system. Mock mode needs no backend at all.
+  const apiTarget = env.VITE_API_PROXY_TARGET?.trim()
+  const useMocks = env.VITE_USE_MOCKS === 'true'
+  if (command === 'serve' && !useMocks) {
+    if (!apiTarget) {
+      throw new Error(
+        'VITE_API_PROXY_TARGET is not set. Set it in .env to the backend you want to use, ' +
+          'or set VITE_USE_MOCKS=true to run without a backend.'
+      )
+    }
+    if (/production|e5energyng\.com/i.test(apiTarget)) {
+      console.warn(`\n  Warning: development requests are going to the LIVE backend (${apiTarget}).\n`)
+    }
+  }
 
   return {
     plugins: [react()],
@@ -31,12 +43,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
-      proxy: {
-        '/api': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
-      },
+      proxy: apiTarget
+        ? {
+            '/api': {
+              target: apiTarget,
+              changeOrigin: true,
+            },
+          }
+        : undefined,
     },
     build: {
      

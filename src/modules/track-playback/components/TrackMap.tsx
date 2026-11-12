@@ -13,7 +13,7 @@ export function TrackMap({
   cursor: number
   heightClass?: string
 }) {
-  const { status, libraries, mapId, error } = useGoogleMaps()
+  const { status, libraries, mapId, error, fail } = useGoogleMaps()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const linesRef = useRef<google.maps.Polyline[]>([])
@@ -23,14 +23,18 @@ export function TrackMap({
 
   useEffect(() => {
     if (status !== 'ready' || !libraries || !containerRef.current || mapRef.current) return
-    mapRef.current = new libraries.maps.Map(containerRef.current, {
-      center: { lat: 6.5244, lng: 3.3792 },
-      zoom: 15,
-      mapId,
-      mapTypeControl: true,
-      streetViewControl: false,
-    })
-  }, [status, libraries, mapId])
+    try {
+      mapRef.current = new libraries.maps.Map(containerRef.current, {
+        center: { lat: 6.5244, lng: 3.3792 },
+        zoom: 15,
+        mapId,
+        mapTypeControl: true,
+        streetViewControl: false,
+      })
+    } catch (err) {
+      fail(err)
+    }
+  }, [status, libraries, mapId, fail])
 
   useEffect(() => {
     const map = mapRef.current

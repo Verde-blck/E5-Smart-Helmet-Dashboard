@@ -5,6 +5,7 @@ import { TrackMap } from './components/TrackMap'
 import { PlaybackControls } from './components/PlaybackControls'
 import { AvailabilityChart } from './components/AvailabilityChart'
 import { downloadCsv, formatDistance, formatDuration, trackToCsv } from './lib/track'
+import { matchesDeviceSearch } from '@/modules/devices/lib/search'
 
 function isoDate(ts: number): string {
   // Local date, not toISOString(): UTC names yesterday for the first hour after midnight in Lagos.
@@ -40,13 +41,10 @@ export function TrackPlaybackPage() {
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(4)
 
-  const matches = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    if (!needle) return devices
-    return devices.filter(
-      (d) => d.name.toLowerCase().includes(needle) || d.id.includes(needle.trim())
-    )
-  }, [devices, search])
+  const matches = useMemo(
+    () => devices.filter((d) => matchesDeviceSearch(d, search)),
+    [devices, search]
+  )
 
   const selected = devices.find((d) => d.id === deviceId) ?? null
 
@@ -57,10 +55,12 @@ export function TrackPlaybackPage() {
     requested !== null
   )
 
+  const dateProblem = dateRangeProblem(fromDate, toDate)
+
   function view() {
+    if (dateProblem) return
     const from = new Date(`${fromDate}T00:00:00`).getTime()
     const to = new Date(`${toDate}T23:59:59.999`).getTime()
-    if (Number.isNaN(from) || Number.isNaN(to) || from > to) return
     setRequested({ from, to })
     setCursor(0)
     setPlaying(false)
@@ -106,21 +106,27 @@ export function TrackPlaybackPage() {
         <div>
           <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3">
             <div>
-              <label className="mb-1 block text-[11px] text-slate-500">From</label>
+              <label htmlFor="track-from" className="mb-1 block text-[11px] text-slate-500">From</label>
               <input
+                id="track-from"
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="rounded border border-slate-300 px-2.5 py-1.5 text-sm"
+                aria-invalid={dateProblem ? true : undefined}
+                aria-describedby={dateProblem ? 'track-date-problem' : undefined}
+                className={`rounded border px-2.5 py-1.5 text-sm ${dateProblem ? 'border-red-400' : 'border-slate-300'}`}
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-slate-500">To</label>
+              <label htmlFor="track-to" className="mb-1 block text-[11px] text-slate-500">To</label>
               <input
+                id="track-to"
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="rounded border border-slate-300 px-2.5 py-1.5 text-sm"
+                aria-invalid={dateProblem ? true : undefined}
+                aria-describedby={dateProblem ? 'track-date-problem' : undefined}
+                className={`rounded border px-2.5 py-1.5 text-sm ${dateProblem ? 'border-red-400' : 'border-slate-300'}`}
               />
             </div>
 
@@ -150,6 +156,11 @@ export function TrackPlaybackPage() {
             {!deviceId && (
               <span className="text-xs text-slate-500"> </span>
             )}
+            {dateProblem && (
+              <p id="track-date-problem" role="alert" className="basis-full text-xs text-red-600">
+                {dateProblem}
+              </p>
+            )}
           </div>
 
           {isError && <p className="text-sm text-red-600">Failed to load this track.</p>}
@@ -173,8 +184,8 @@ export function TrackPlaybackPage() {
               {track.stats.impossibleJumps > 0 && (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                   {track.stats.impossibleJumps} position{' '}
-                  {track.stats.impossibleJumps === 1 ? 'fix was' : 'fixes were'} excluded as
-                  physically impossible — a jump too far to have been travelled in the time.
+                  {track.stats.impossibleJumps === 1 ? 'reading was' : 'readings were'} left out of the
+                  route and distance: each was too far away to have been travelled in the time.
                 </p>
               )}
 
@@ -227,4 +238,12 @@ export function TrackPlaybackPage() {
       </div>
     </div>
   )
+}
+
+function dateRangeProblem(from: string, to: string): string | null {
+  if (!from && !to) return 'Choose a start and an end date.'
+  if (!from) return 'Choose a start date.'
+  if (!to) return 'Choose an end date.'
+  if (from > to) return 'The start date must be on or before the end date.'
+  return null
 }

@@ -47,46 +47,36 @@ export function buildTrack(
   let approximatePoints = 0
   let lastGps: TrackPoint | undefined
 
-  for (const fix of fixes) {
-    const previous = points[points.length - 1]
-    let stepMetres = 0
-    let speedMps = 0
+  const at = (s: TelemetrySample) => ({ lat: s.lat as number, lng: s.lng as number })
+  const impliedSpeed = (from: { ts: number; lat: number; lng: number }, to: TelemetrySample) => {
+    const ms = to.ts - from.ts
+    // Zero elapsed time: treat as a jump rather than divide by zero.
+    return ms > 0 ? haversine(from, at(to)) / (ms / 1000) : Infinity
+  }
+
+  const push = (fix: TelemetrySample, previous: TrackPoint | undefined, newSegment: boolean) => {
     const approximate = locationQuality(fix)?.approximate === true
     if (approximate) approximatePoints += 1
-
-    if (previous) {
-      const legMs = fix.ts - previous.ts
-      const raw = haversine(previous, { lat: fix.lat as number, lng: fix.lng as number })
-      // Zero elapsed time: treat as a jump rather than divide by zero.
-      const impliedSpeed = legMs > 0 ? raw / (legMs / 1000) : Infinity
-
-      if (legMs > GAP_MS) {
-        longestGapMs = Math.max(longestGapMs, legMs)
-        segment += 1
-      } else if (impliedSpeed > MAX_PLAUSIBLE_SPEED_MPS) {
-        impossibleJumps += 1
-        segment += 1
-      } else if (approximate) {
-        // A network or Wi-Fi position can be hundreds of metres off: it stays
-        // on the line, but isn't counted as distance walked.
-      } else {
-        const origin = previous.approximate && lastGps ? lastGps : previous
-        const measured = origin === previous ? raw : haversine(origin, { lat: fix.lat as number, lng: fix.lng as number })
-        stepMetres = measured < NOISE_FLOOR_M ? 0 : measured
-        distanceMetres += stepMetres
-        const spanMs = fix.ts - origin.ts
-        if (spanMs > 0) {
-          speedMps = stepMetres / (spanMs / 1000)
-          maxSpeedMps = Math.max(maxSpeedMps, speedMps)
-          if (stepMetres > 0) movingMs += legMs
-        }
+    if (newSegment) segment += 1
+    let stepMetres = 0
+    let speedMps = 0
+    if (previous && !newSegment && !approximate) {
+      // A network or Wi-Fi position can be hundreds of metres off: it stays on the line, but
+      // isn't counted as distance walked.
+      const origin = previous.approximate && lastGps ? lastGps : previous
+      const measured = haversine(origin, at(fix))
+      stepMetres = measured < NOISE_FLOOR_M ? 0 : measured
+      distanceMetres += stepMetres
+      const spanMs = fix.ts - origin.ts
+      if (spanMs > 0) {
+        speedMps = stepMetres / (spanMs / 1000)
+        maxSpeedMps = Math.max(maxSpeedMps, speedMps)
+        if (stepMetres > 0) movingMs += fix.ts - previous.ts
       }
     }
-
-    points.push({
+    const point: TrackPoint = {
       ts: fix.ts,
-      lat: fix.lat as number,
-      lng: fix.lng as number,
+      ...at(fix),
       altitude: fix.altitude,
       batteryPercent: fix.batteryPercent,
       stepMetres,
@@ -94,9 +84,54 @@ export function buildTrack(
       segment,
       approximate,
       accuracyMeters: fix.accuracyMeters,
-    })
-    if (!approximate) lastGps = points[points.length - 1]
+    }
+    points.push(point)
+    if (!approximate) lastGps = point
   }
+
+  // A fix implying an impossible speed is held back. If the next fix agrees with it, the helmet
+  // really moved and it starts a new segment; otherwise it was a glitch and is dropped, counted once.
+  let held: TelemetrySample | null = null
+  let segmentStart = 0
+
+  for (const fix of fixes) {
+    const previous = points[points.length - 1]
+    if (!previous) {
+      push(fix, undefined, false)
+      continue
+    }
+    const legMs = fix.ts - previous.ts
+
+    if (held) {
+      if (fix.ts - held.ts <= GAP_MS && impliedSpeed({ ts: held.ts, ...at(held) }, fix) <= MAX_PLAUSIBLE_SPEED_MPS) {
+        // A lone fix before the jump, such as a reading from before the helmet was shipped, is the glitch.
+        if (points.length - segmentStart === 1) {
+          points.pop()
+          impossibleJumps += 1
+          segment = Math.max(0, segment - 1)
+        }
+        segmentStart = points.length
+        push(held, points[points.length - 1], points.length > 0)
+        held = null
+        push(fix, points[points.length - 1], false)
+        continue
+      }
+      impossibleJumps += 1
+      held = null
+    }
+
+    if (legMs > GAP_MS) {
+      longestGapMs = Math.max(longestGapMs, legMs)
+      segmentStart = points.length
+      push(fix, previous, true)
+    } else if (impliedSpeed(previous, fix) > MAX_PLAUSIBLE_SPEED_MPS) {
+      held = fix
+    } else {
+      push(fix, previous, false)
+    }
+  }
+  // A jump at the very end has nothing to confirm it.
+  if (held) impossibleJumps += 1
 
   const stats: TrackStats = {
     points: points.length,

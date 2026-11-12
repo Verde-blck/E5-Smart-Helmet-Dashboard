@@ -9,6 +9,7 @@ import { RefreshButton } from '@/shared/components/RefreshButton'
 import { useTenantId } from '@/shared/hooks/useTenant'
 import { qk } from '@/shared/lib/query-keys'
 import { LiveWall } from '@/modules/live/components/LiveWall'
+import { matchesDeviceSearch } from './lib/search'
 
 type View = 'tiles' | 'table' | 'wall'
 
@@ -25,18 +26,12 @@ export function DevicesPage() {
   const [search, setSearch] = useState('')
   // Kept here rather than in the wall, so switching views remembers its helmets.
   const [wallIds, setWallIds] = useState<string[]>([])
-  const { devices, now, isLoading } = useDevices()
+  const { devices, now, isLoading, isError, refetch } = useDevices()
 
-  const matches = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    if (!needle) return devices
-    return devices.filter(
-      (d) =>
-        d.name.toLowerCase().includes(needle) ||
-        d.id.toLowerCase().includes(needle) ||
-        (d.assignedTo?.name ?? '').toLowerCase().includes(needle)
-    )
-  }, [devices, search])
+  const matches = useMemo(
+    () => devices.filter((d) => matchesDeviceSearch(d, search)),
+    [devices, search]
+  )
 
   return (
     <div>
@@ -100,6 +95,12 @@ export function DevicesPage() {
         </p>
       )}
 
+      {isError && devices.length > 0 && (
+        <p role="status" className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+          Couldn’t update the helmet list. Showing what was last loaded.
+        </p>
+      )}
+
       {view === 'wall' ? (
         // Outside the loading/empty checks: a search matching nothing mustn't unmount the wall and
         // stop its streams.
@@ -111,9 +112,20 @@ export function DevicesPage() {
         />
       ) : isLoading ? (
         <p className="text-sm text-slate-500">Loading fleet…</p>
+      ) : isError && devices.length === 0 ? (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p className="font-medium">Couldn’t load the helmets.</p>
+          <p className="mt-0.5 text-red-700">Check your connection, then try again.</p>
+          <button
+            onClick={() => void refetch()}
+            className="mt-2 rounded border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+          >
+            Try again
+          </button>
+        </div>
       ) : matches.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-          No helmets match that search.
+          {devices.length === 0 ? 'No helmets are registered yet.' : 'No helmets match that search.'}
         </p>
       ) : view === 'tiles' ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

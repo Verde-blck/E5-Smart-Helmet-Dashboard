@@ -28,7 +28,7 @@ export function FleetMap({
   onMapReady,
   markersClickable = true,
 }: Props) {
-  const { status, libraries, mapId, error } = useGoogleMaps()
+  const { status, libraries, mapId, error, fail } = useGoogleMaps()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map())
@@ -43,16 +43,21 @@ export function FleetMap({
   useEffect(() => {
     if (status !== 'ready' || !libraries || !containerRef.current || mapRef.current) return
 
-    mapRef.current = new libraries.maps.Map(containerRef.current, {
-      center: { lat: 6.5244, lng: 3.3792 },
-      zoom: 12,
-      mapId,
-      mapTypeControl: true,
-      streetViewControl: false,
-      fullscreenControl: true,
-    })
+    try {
+      mapRef.current = new libraries.maps.Map(containerRef.current, {
+        center: { lat: 6.5244, lng: 3.3792 },
+        zoom: 12,
+        mapId,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true,
+      })
+    } catch (err) {
+      fail(err)
+      return
+    }
     onMapReady?.(mapRef.current)
-  }, [status, libraries, mapId, onMapReady])
+  }, [status, libraries, mapId, onMapReady, fail])
 
   // Reconciled in place, so an open marker doesn't vanish on every poll.
   useEffect(() => {

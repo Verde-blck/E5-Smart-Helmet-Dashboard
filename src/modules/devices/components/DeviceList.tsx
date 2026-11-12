@@ -6,6 +6,7 @@ import { AlarmBadge, StatusDot } from './StatusDot'
 import { BroadcastButton } from '@/modules/messaging/components/BroadcastButton'
 import { GAS_LEVEL_STYLE, evaluateAll, worstLevel } from '../lib/gas'
 import type { DeviceView } from '../types'
+import { matchesDeviceSearch } from '../lib/search'
 
 function GasBadge({ device }: { device: DeviceView }) {
   const statuses = evaluateAll(device.telemetry.gas)
@@ -46,15 +47,7 @@ const battery = (device: DeviceView) =>
 export function DeviceList({ search = '' }: { search?: string } = {}) {
   const { devices: all, now, isLoading, isError } = useDevices()
 
-  const needle = search.trim().toLowerCase()
-  const devices = needle
-    ? all.filter(
-        (d) =>
-          d.name.toLowerCase().includes(needle) ||
-          d.id.toLowerCase().includes(needle) ||
-          (d.assignedTo?.name ?? '').toLowerCase().includes(needle)
-      )
-    : all
+  const devices = all.filter((d) => matchesDeviceSearch(d, search))
 
   if (isLoading) return <p className="text-sm text-slate-500">Loading devices…</p>
   if (isError) return <p className="text-sm text-red-600">Failed to load devices.</p>

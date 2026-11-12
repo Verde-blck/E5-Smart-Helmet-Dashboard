@@ -11,7 +11,9 @@ import { endSession } from "@/shared/lib/session";
 import { startRealtime, stopRealtime } from "@/app/realtime/realtime";
 import { startMockHeartbeats } from "@/app/realtime/mock-heartbeats";
 import { fetchBranding } from "@/modules/profile/api/profile.api";
+import { withTimeout } from "@/shared/lib/withTimeout";
 
+const BRANDING_WAIT_MS = 4_000;
 const BRANDING_REFRESH_MS = 50 * 60_000;
 
 export function AppBootstrap({ children }: { children: React.ReactNode }) {
@@ -51,12 +53,16 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
         }
 
         if (!env.multiTenant) {
-          try {
-            const saved = await fetchBranding();
+          const apply = (saved: Awaited<ReturnType<typeof fetchBranding>>) => {
             applyBrandColors(saved.colors);
             setTenant({ id: saved.id, name: saved.name, logoUrl: saved.logoUrl, colors: saved.colors });
+          };
+          const branding = fetchBranding();
+          try {
+            apply(await withTimeout(branding, BRANDING_WAIT_MS));
           } catch {
-            // Backend unreachable: the env branding stands.
+            // Slow or unreachable: carry on with the default look, and apply it if it arrives later.
+            branding.then(apply).catch(() => {});
           }
         }
 
