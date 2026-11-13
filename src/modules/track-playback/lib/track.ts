@@ -100,6 +100,9 @@ export function buildTrack(
       push(fix, undefined, false)
       continue
     }
+    // A report sent twice has the same timestamp: keep the first, or the zero time between them
+    // reads as an impossible jump and splits the journey.
+    if (fix.ts === previous.ts || fix.ts === held?.ts) continue
     const legMs = fix.ts - previous.ts
 
     if (held) {

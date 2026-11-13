@@ -6,6 +6,7 @@ import { qk } from '@/shared/lib/query-keys'
 import { useDeviceNames } from '@/modules/devices/hooks/useDevices'
 import { deleteMedia, fetchMedia, fetchMediaUrl, fetchVideoCalendar } from '../api/media.api'
 import type { MediaItem, MediaQuery } from '../types'
+import { matchesDeviceSearch } from '@/modules/devices/lib/search'
 
 // Re-issued well before the signed URL lapses, so a <video> never gets an expired link mid-scrub.
 const SIGNED_URL_CACHE_MS = 10 * 60_000
@@ -43,8 +44,7 @@ export function useMediaList(query: MediaQuery = {}) {
     if (!needle) return named
     return named.filter(
       (m) =>
-        m.deviceName.toLowerCase().includes(needle) ||
-        m.deviceId.includes(needle) ||
+        matchesDeviceSearch({ id: m.deviceId, name: m.deviceName }, needle) ||
         (m.fileName?.toLowerCase().includes(needle) ?? false)
     )
   }, [data, inScope, nameOf, needle])

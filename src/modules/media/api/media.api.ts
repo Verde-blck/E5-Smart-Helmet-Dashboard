@@ -6,6 +6,7 @@ import { fetchDevices } from '@/modules/devices/api/devices.api'
 import { deleteMockMedia, getMockMedia, getMockMediaUrl } from './media.mock'
 import { dayBounds } from '../types'
 import type { MediaItem, MediaKind, MediaQuery, SignedMediaUrl } from '../types'
+import { matchesDeviceSearch } from '@/modules/devices/lib/search'
 
 export interface ApiPhoto {
   id: number
@@ -126,8 +127,7 @@ export async function fetchMedia(query: MediaQuery = {}): Promise<MediaItem[]> {
     items = items.filter(
       (m) =>
         m.fileName?.toLowerCase().includes(needle) ||
-        m.deviceName.toLowerCase().includes(needle) ||
-        m.deviceId.includes(needle)
+        matchesDeviceSearch({ id: m.deviceId, name: m.deviceName }, needle)
     )
   }
 

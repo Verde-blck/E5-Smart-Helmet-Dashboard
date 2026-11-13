@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useDevices } from "@/modules/devices/hooks/useDevices";
+import { matchesDeviceSearch } from "@/modules/devices/lib/search";
 import { useHelmetSettings } from "./hooks/useHelmetSettings";
 import { SettingsForm } from "./components/SettingsForm";
 
@@ -8,13 +9,10 @@ export function UnitSettingPage() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const matches = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    if (!needle) return devices;
-    return devices.filter(
-      (d) => d.name.toLowerCase().includes(needle) || d.id.includes(needle),
-    );
-  }, [devices, search]);
+  const matches = useMemo(
+    () => devices.filter((d) => matchesDeviceSearch(d, search)),
+    [devices, search],
+  );
 
   const selected = devices.find((d) => d.id === selectedId) ?? null;
   const { settings, isLoading, isError } = useHelmetSettings(

@@ -2,14 +2,31 @@ import { useState } from 'react'
 import { useRegisterDevice } from '../hooks/useDevices'
 import { DEVICE_NAME_MAX } from '../api/devices.api'
 
+const IMEI_LENGTH = 15
+
+// IDs copied from a label or document often carry spaces, dashes or invisible characters.
+function normaliseImei(input: string): string {
+  return input.replace(/[\s\-\u200b-\u200d\u2060\ufeff]/g, '')
+}
+
 function validate(id: string): string | null {
-  const trimmed = id.trim()
-  if (!trimmed) return 'Enter the device ID printed on the helmet'
-  if (!/^\d+$/.test(trimmed)) return 'Device IDs are digits only'
-  if (trimmed.length < 10 || trimmed.length > 20) {
-    return `That's ${trimmed.length} digits — an IMEI is usually 15`
+  if (!id) return 'Enter the device ID printed on the helmet.'
+  if (!/^\d+$/.test(id)) return 'A device ID contains digits only.'
+  if (id.length !== IMEI_LENGTH) {
+    return `An IMEI has ${IMEI_LENGTH} digits. This one has ${id.length}.`
   }
   return null
+}
+
+function registerErrorMessage(error: unknown): string {
+  const res = (error as { response?: { status?: number; data?: { error?: string; message?: string } } })?.response
+  if (res?.data?.error === 'invalid_device_id') {
+    return `That isn’t a valid helmet ID. Use the ${IMEI_LENGTH}-digit IMEI printed on the helmet.`
+  }
+  if (res?.status === 409) return 'That helmet is already registered.'
+  if (res?.status === 403) return 'Your role doesn’t allow registering helmets.'
+  if (!res) return 'Could not reach the server. Check your connection and try again.'
+  return res.data?.message ?? 'Could not register that helmet. Check the ID and try again.'
 }
 
 export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
@@ -20,18 +37,19 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
   const register = useRegisterDevice()
 
   function submit() {
-    const problem = validate(deviceId)
+    const id = normaliseImei(deviceId)
+    const problem = validate(id)
     setError(problem)
     setRegistered(null)
     if (problem) return
 
-    register.mutate({ deviceId: deviceId.trim(), name: name.trim() || undefined }, {
+    register.mutate({ deviceId: id, name: name.trim() || undefined }, {
       onSuccess: ({ device, named }) => {
         setRegistered({ id: device.id, name: name.trim(), named })
         setDeviceId('')
         setName('')
       },
-      onError: () => setError('Could not register that helmet. Check the ID and try again.'),
+      onError: (err) => setError(registerErrorMessage(err)),
     })
   }
 
@@ -42,7 +60,10 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
       <div className="flex flex-wrap items-start gap-2">
         <input
           value={deviceId}
-          onChange={(e) => setDeviceId(e.target.value)}
+          onChange={(e) => {
+            setDeviceId(e.target.value)
+            if (error) setError(null)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') submit()
             if (e.key === 'Escape') onDone()
@@ -51,6 +72,7 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
           inputMode="numeric"
           spellCheck={false}
           aria-label="Device ID"
+          aria-invalid={error ? true : undefined}
           className="w-56 rounded border border-slate-300 px-2.5 py-1.5 font-mono text-sm"
         />
         <input
@@ -79,7 +101,7 @@ export function RegisterDeviceForm({ onDone }: { onDone: () => void }) {
         </button>
       </div>
 
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-xs text-red-600">{error}</p>}
 
       {registered && (
         <p className="mt-2 text-xs text-emerald-700">

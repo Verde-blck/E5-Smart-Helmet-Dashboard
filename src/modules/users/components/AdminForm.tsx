@@ -5,6 +5,7 @@ import { useCreateAdmin, useGroups, usePermissionCatalogue, useUpdateAdmin } fro
 import { PermissionTree } from './PermissionTree'
 import type { ApiPermission } from '../lib/permissions'
 import type { Administrator } from '../types'
+import { matchesDeviceSearch } from '@/modules/devices/lib/search'
 
 const input = 'w-full rounded border border-slate-300 px-2.5 py-1.5 text-sm'
 
@@ -67,12 +68,7 @@ export function AdminForm({ admin, onDone }: { admin?: Administrator; onDone: ()
   const set = <K extends keyof typeof values>(key: K, value: (typeof values)[K]) =>
     setValues((prev) => ({ ...prev, [key]: value }))
 
-  const matchingDevices = devices.filter(
-    (d) =>
-      !deviceFilter.trim() ||
-      d.name.toLowerCase().includes(deviceFilter.toLowerCase()) ||
-      d.id.includes(deviceFilter.trim())
-  )
+  const matchingDevices = devices.filter((d) => matchesDeviceSearch(d, deviceFilter))
 
   function validate(): string | null {
     if (values.username.trim().length < 2) return 'Account name is required'

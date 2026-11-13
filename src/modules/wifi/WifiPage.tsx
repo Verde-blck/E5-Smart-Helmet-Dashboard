@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useDevices } from '@/modules/devices/hooks/useDevices'
+import { matchesDeviceSearch } from '@/modules/devices/lib/search'
 import { WifiPanel } from './components/WifiPanel'
 import { SiteWifiCard } from './components/SiteWifiCard'
 import { ConnectionCard } from './components/ConnectionCard'
@@ -18,10 +19,7 @@ export function WifiPage() {
   const selectedId = params.get('device')
 
   const matches = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    const list = needle
-      ? devices.filter((d) => d.name.toLowerCase().includes(needle) || d.id.includes(needle))
-      : devices
+    const list = devices.filter((d) => matchesDeviceSearch(d, search))
     const rank = { online: 0, degraded: 1, offline: 2 } as const
     return [...list].sort((a, b) => rank[a.presence] - rank[b.presence])
   }, [devices, search])
